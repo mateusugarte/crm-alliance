@@ -34,3 +34,25 @@ Started: 2026-03-26
   - npm run build confirma typecheck + linting + geração de páginas estáticas
   - Next.js versão instalada é 15.5.14 (latest), não 14 como especificado no PRD — sem impacto funcional
 ---
+
+## 2026-03-26 - US-002 - Instalar todas as dependências do projeto
+- Executado: npm install framer-motion @supabase/supabase-js @supabase/ssr @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities chart.js react-chartjs-2 react-hook-form @hookform/resolvers zod date-fns papaparse @anthropic-ai/sdk lucide-react
+- Executado: npm install -D @types/papaparse
+- Versões instaladas:
+  - framer-motion ^12.38.0
+  - @supabase/supabase-js ^2.100.1
+  - @supabase/ssr ^0.9.0
+  - @dnd-kit/core ^6.3.1 | @dnd-kit/sortable ^10.0.0 | @dnd-kit/utilities ^3.2.2
+  - chart.js ^4.5.1 | react-chartjs-2 ^5.3.1
+  - react-hook-form ^7.72.0 | @hookform/resolvers ^5.2.2
+  - zod ^4.3.6
+  - date-fns ^4.1.0
+  - papaparse ^5.5.3 | @types/papaparse ^5.5.2 (dev)
+  - @anthropic-ai/sdk ^0.80.0
+  - lucide-react ^1.7.0
+- Verificado: todas as 16 dependências presentes no package.json (15 prod + 1 dev)
+- npm run build passou: compiled successfully in 11.7s, 0 erros TypeScript
+- Learnings:
+  - EBADENGINE warning para eslint-visitor-keys@5.0.1 (requer Node >=20.19.0) — apenas warning, sem impacto no build
+  - 9 moderate severity vulnerabilities no audit — sem impacto para dev; não usar npm audit fix --force (quebraria breaking changes)
+---
