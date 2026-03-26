@@ -1,0 +1,527 @@
+{
+  "project": "CRM Alliance — La Reserva",
+  "branchName": "ralph/crm-alliance",
+  "description": "CRM completo para Alliance Investimentos Imobiliários. Gestão de leads WhatsApp para La Reserva (34 unidades). Stack: Next.js 14 + TypeScript + Tailwind + Supabase + Framer Motion + shadcn/ui + dnd-kit + Chart.js.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Criar projeto Next.js 14 com configuração base",
+      "description": "Como desenvolvedor, preciso criar o projeto Next.js com toda a configuração inicial correta para o CRM Alliance.",
+      "acceptanceCriteria": [
+        "Executar: npx create-next-app@latest crm-alliance --typescript --tailwind --eslint --app --src-dir --import-alias '@/*' --no-turbopack (na raiz do la-reserva-system)",
+        "Verificar que crm-alliance/ foi criado com src/app/page.tsx existindo",
+        "Verificar que tsconfig.json tem 'strict': true",
+        "Criar .gitignore incluindo .env.local",
+        "Copiar .env.example para crm-alliance/.env.local",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Executar DENTRO de c:/Users/User/Desktop/la-reserva-system/ — o projeto ficará em la-reserva-system/crm-alliance/"
+    },
+    {
+      "id": "US-002",
+      "title": "Instalar todas as dependências do projeto",
+      "description": "Como desenvolvedor, preciso instalar framer-motion, supabase, dnd-kit, chart.js, react-hook-form, zod, date-fns, papaparse, lucide-react, anthropic SDK.",
+      "acceptanceCriteria": [
+        "cd crm-alliance && npm install framer-motion @supabase/supabase-js @supabase/ssr @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities chart.js react-chartjs-2 react-hook-form @hookform/resolvers zod date-fns papaparse @anthropic-ai/sdk lucide-react",
+        "npm install -D @types/papaparse",
+        "package.json contém todas as dependências listadas",
+        "npm run build completa sem erros",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Dependências obrigatórias para todas as fases. Executar em crm-alliance/"
+    },
+    {
+      "id": "US-003",
+      "title": "Configurar tailwind.config.ts com tokens Alliance e inicializar shadcn/ui",
+      "description": "Como desenvolvedor, preciso configurar os tokens de cor Alliance no Tailwind e inicializar o shadcn/ui com os componentes necessários.",
+      "acceptanceCriteria": [
+        "tailwind.config.ts contém: alliance: { blue:'#1E90FF', dark:'#0A2EAD', mid:'#1565C0', card:'#F0F0F0', col:'#E8E8E8', input:'#D9D9D9', chat:'#CCCCCC' }",
+        "tailwind.config.ts contém: badge: { joao:'#FF6B00', mateus:'#3D3D3D', ia:'#0A2EAD', quente:'#FF4500', morno:'#FF8C00', frio:'#1E90FF' }",
+        "Executar: npx shadcn@latest init (aceitar defaults, usar slate como base)",
+        "Executar: npx shadcn@latest add button card input label sheet dialog badge avatar separator skeleton scroll-area sonner",
+        "src/components/ui/ contém os componentes shadcn",
+        "npm run build sem erros",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "NUNCA editar arquivos em src/components/ui/ manualmente. Tokens devem ser usados como text-alliance-blue, bg-alliance-dark etc."
+    },
+    {
+      "id": "US-004",
+      "title": "Criar src/lib/animations.ts com todos os variants Framer Motion",
+      "description": "Como desenvolvedor frontend, preciso de todos os presets de animação Framer Motion centralizados para uso em todos os componentes.",
+      "acceptanceCriteria": [
+        "Arquivo src/lib/animations.ts exporta: pageTransition, modalAnimation, dragAnimation, staggerContainer, staggerItem, cardHover",
+        "pageTransition: initial { opacity:0, y:16 }, animate { opacity:1, y:0 }, exit { opacity:0, y:-8 }, transition { duration:0.25, ease:'easeOut' }",
+        "modalAnimation: initial { opacity:0, scale:0.95 }, animate { opacity:1, scale:1 }, exit { opacity:0, scale:0.95 }, transition { duration:0.2, ease:'easeOut' }",
+        "dragAnimation: whileDrag { scale:1.03, boxShadow:'0 8px 24px rgba(0,0,0,0.12)' }",
+        "staggerContainer: animate { transition { staggerChildren:0.05 } }",
+        "staggerItem: initial { opacity:0, y:12 }, animate { opacity:1, y:0 }",
+        "cardHover: whileHover { y:-2, transition { duration:0.15 } }",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Todos os componentes devem importar de '@/lib/animations' — nunca definir animações inline"
+    },
+    {
+      "id": "US-005",
+      "title": "Criar src/lib/utils.ts e src/lib/utils/format.ts",
+      "description": "Como desenvolvedor, preciso do helper cn() para classnames e funções de formatação pt-BR.",
+      "acceptanceCriteria": [
+        "src/lib/utils.ts exporta função cn() usando clsx + tailwind-merge",
+        "src/lib/utils/format.ts exporta: formatPhone(phone: string): string (formato (XX) XXXXX-XXXX), formatCurrency(value: number): string (BRL), formatDate(date: string | Date): string (pt-BR)",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Criar componentes de layout: BlobBottom e BlobHeader",
+      "description": "Como designer frontend, preciso dos dois blobs SVG/CSS que aparecem na splash, login e header do sistema.",
+      "acceptanceCriteria": [
+        "src/components/layout/blob-bottom.tsx: div com clip-path: ellipse(75% 100% at 50% 100%), bg-alliance-blue, position absolute bottom-0, w-full, h-64",
+        "BlobBottom usa Framer Motion: initial { opacity:0 } animate { opacity:1 } transition { duration:0.6 }",
+        "src/components/layout/blob-header.tsx: div com clip-path: ellipse(60% 100% at 100% 0%), bg-alliance-mid, position absolute top-0 right-0",
+        "Ambos os componentes são 'use client' e exportam default",
+        "Nenhuma cor hardcoded — usar tokens Tailwind",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "clip-path deve ser definido via style prop pois Tailwind não suporta clip-path arbitrário nativamente"
+    },
+    {
+      "id": "US-007",
+      "title": "Criar NavShell — navegação principal com active pill",
+      "description": "Como usuário, quero uma barra de navegação lateral/superior com 5 itens e indicador visual da rota ativa.",
+      "acceptanceCriteria": [
+        "src/components/layout/nav-shell.tsx é 'use client'",
+        "5 itens de navegação: Dashboard (/dashboard), Kanban (/kanban), Agenda (/agenda), Imóveis (/imoveis), Interações (/interacoes)",
+        "Item ativo detectado via usePathname(): fundo bg-alliance-dark rounded-full texto branco",
+        "Item inativo: texto escuro sem fundo",
+        "Logo Alliance no topo do nav",
+        "Framer Motion: entrada com pageTransition variants",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "Usar ícones lucide-react para cada item nav"
+    },
+    {
+      "id": "US-008",
+      "title": "Criar AllianceBadge e AllianceCard components",
+      "description": "Como desenvolvedor frontend, preciso de componentes reutilizáveis de badge e card seguindo o design system Alliance.",
+      "acceptanceCriteria": [
+        "src/components/layout/alliance-badge.tsx: props { label: string, color: string, variant?: 'default' | 'small' }",
+        "AllianceBadge renderiza pill com background na cor fornecida e texto branco",
+        "AllianceBadge usa Framer Motion: initial { scale:0.95 } animate { scale:1 } na montagem",
+        "src/components/layout/alliance-card.tsx: props { children, variant?: 'default' | 'featured', className? }",
+        "AllianceCard variant='featured': bg-alliance-dark texto branco",
+        "AllianceCard variant='default': bg-alliance-card texto escuro",
+        "AllianceCard usa cardHover de animations.ts",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Criar PageTransition wrapper e estrutura de layouts",
+      "description": "Como desenvolvedor, preciso do wrapper de transição de página e dos layouts Next.js corretos.",
+      "acceptanceCriteria": [
+        "src/components/layout/page-transition.tsx: 'use client', wraps children em motion.div com pageTransition de animations.ts",
+        "src/app/layout.tsx: fonte Inter do next/font, inclui Toaster do sonner, sem NavShell (NavShell vai no (protected)/layout.tsx)",
+        "src/app/(protected)/layout.tsx: inclui NavShell + PageTransition",
+        "src/app/(auth)/layout.tsx: layout limpo sem nav, só children",
+        "Estrutura de pastas: app/(auth)/login/, app/(protected)/dashboard/, app/(protected)/kanban/, app/(protected)/agenda/, app/(protected)/imoveis/, app/(protected)/interacoes/",
+        "Cada rota tem page.tsx com conteúdo placeholder 'Em breve'",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "AnimatePresence deve ficar no layout raiz para que as transições de página funcionem corretamente"
+    },
+    {
+      "id": "US-010",
+      "title": "Criar Splash Screen animada",
+      "description": "Como usuário, quero ver uma splash screen elegante ao acessar o sistema pela primeira vez, com animação e redirecionamento automático.",
+      "acceptanceCriteria": [
+        "src/app/page.tsx é 'use client'",
+        "Fundo branco, logo Alliance no canto superior esquerdo",
+        "Título 'SISTEMA DE GESTÃO INTELIGENTE' em text-alliance-blue, font-bold, uppercase, centralizado",
+        "Subtítulo 'GESTÃO - AGENTE DE IA - PIPELINE - AGENDA' em text-alliance-blue/70, letter-spacing wide",
+        "BlobBottom no rodapé",
+        "Título: Framer Motion fade+scale, subtítulo delay 0.3s",
+        "Após 2.5s: useRouter().push('/login')",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Criar Login page visual completa",
+      "description": "Como usuário, quero uma tela de login elegante com card flutuando sobre blob azul inferior.",
+      "acceptanceCriteria": [
+        "src/app/(auth)/login/page.tsx renderiza layout visual completo",
+        "Fundo branco, logo Alliance no canto superior esquerdo",
+        "'BEM-VINDO' em text-alliance-blue font-bold centralizado",
+        "'FAÇA O LOGIN PARA ACESSAR' em text-alliance-blue/70 letra espaçada",
+        "BlobBottom cobrindo ~60% da parte inferior",
+        "Card branco flutuando sobre blob: campos E-MAIL e SENHA com bg-alliance-input rounded-lg",
+        "Botão 'ENTRAR' bg-alliance-dark text-white rounded-full w-full",
+        "Estado de loading no botão (spinner)",
+        "Mensagem de erro em vermelho se credenciais inválidas",
+        "Card: Framer Motion initial { y:40, opacity:0 } animate { y:0, opacity:1 } transition { duration:0.4 }",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "Auth real (Supabase) será conectado na US-014"
+    },
+    {
+      "id": "US-012",
+      "title": "Criar Supabase client, server e types",
+      "description": "Como desenvolvedor backend, preciso das abstrações Supabase para uso em Client Components, Server Components e API routes.",
+      "acceptanceCriteria": [
+        "src/lib/supabase/client.ts exporta createClient() usando createBrowserClient de @supabase/ssr",
+        "src/lib/supabase/server.ts exporta createServerClient() usando cookies() do next/headers",
+        "src/lib/supabase/types.ts exporta interface Database com tipos das 7 tabelas: user_profiles, leads, interactions, meetings, broadcasts, broadcast_numbers, imoveis",
+        "Tipos cobrem todos os campos do 001_schema.sql (na raiz do la-reserva-system)",
+        "Sem 'any' em TypeScript",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "Ler 001_schema.sql em c:/Users/User/Desktop/la-reserva-system/001_schema.sql para derivar os tipos. Credenciais virão de .env.local"
+    },
+    {
+      "id": "US-013",
+      "title": "Criar middleware.ts para proteção de rotas",
+      "description": "Como desenvolvedor, preciso proteger todas as rotas autenticadas e redirecionar para /login quando não autenticado.",
+      "acceptanceCriteria": [
+        "src/middleware.ts verifica sessão Supabase via createServerClient",
+        "Rotas públicas: /, /login, /api/webhooks/* — não precisam de auth",
+        "Todas as outras rotas: redireciona para /login se não autenticado",
+        "Rotas autenticadas acessadas sem sessão: redireciona para /login",
+        "Usuário logado tentando acessar /login: redireciona para /dashboard",
+        "matcher config no middleware exclui _next/static, _next/image, favicon.ico",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Criar Server Action de login e conectar ao formulário",
+      "description": "Como usuário, quero fazer login com e-mail e senha que autentica via Supabase.",
+      "acceptanceCriteria": [
+        "src/app/(auth)/login/actions.ts exporta Server Action 'signIn' com 'use server'",
+        "signIn recebe FormData com email e password",
+        "Usa createServerClient para chamar supabase.auth.signInWithPassword",
+        "Em caso de erro: retorna { error: string }",
+        "Em caso de sucesso: redirect('/dashboard')",
+        "Formulário de login em page.tsx conectado ao Server Action via action prop",
+        "Estado de erro exibido abaixo do botão",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "Server Actions com 'use server' não podem estar em arquivos 'use client'. Separar em actions.ts"
+    },
+    {
+      "id": "US-015",
+      "title": "Criar Dashboard layout com MetricCard e MetricsGrid",
+      "description": "Como usuário, quero ver o dashboard com 6 cards de métricas em grid 2×3.",
+      "acceptanceCriteria": [
+        "src/app/(protected)/dashboard/page.tsx é Server Component",
+        "src/app/(protected)/dashboard/loading.tsx tem skeleton de 6 cards",
+        "src/components/dashboard/metric-card.tsx: props { title, value, variant: 'featured'|'default' }",
+        "MetricCard variant=featured: bg-alliance-dark text-white",
+        "MetricCard variant=default: bg-alliance-card text-gray-800",
+        "src/components/dashboard/metrics-grid.tsx: grid 2 colunas, 3 linhas, stagger animation",
+        "6 métricas: Total Leads, Novos Hoje, Em Negociação, Reuniões Hoje, Disponíveis (imóveis), Taxa Conversão",
+        "Dados mockados por enquanto (será conectado ao Supabase em US-016)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Conectar Dashboard ao Supabase com dados reais",
+      "description": "Como usuário, quero ver métricas reais do banco de dados no dashboard.",
+      "acceptanceCriteria": [
+        "dashboard/page.tsx busca dados reais do Supabase usando createServerClient",
+        "Total Leads: COUNT(*) FROM leads",
+        "Novos Hoje: COUNT(*) FROM leads WHERE created_at > today",
+        "Em Negociação: COUNT(*) FROM leads WHERE stage IN ('proposta','reuniao_agendada')",
+        "Reuniões Hoje: COUNT(*) FROM meetings WHERE date = today",
+        "Disponíveis: COUNT(*) FROM imoveis WHERE disponivel = true",
+        "Taxa Conversão: vendidos / total * 100",
+        "Saudação dinâmica: 'BEM-VINDO, [nome]!' usando user_profiles.name",
+        "Typecheck passes"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": "Usar Promise.all para buscar todas as métricas em paralelo"
+    },
+    {
+      "id": "US-017",
+      "title": "Criar ActivityChart — 2 gráficos Chart.js no Dashboard",
+      "description": "Como usuário, quero ver 2 gráficos de barras no dashboard mostrando atividade de leads e reuniões.",
+      "acceptanceCriteria": [
+        "src/components/dashboard/activity-chart.tsx é 'use client'",
+        "Usa Chart.js + react-chartjs-2 (Bar chart)",
+        "Gráfico 1: Leads por estágio (barras horizontais, cor #1E90FF)",
+        "Gráfico 2: Reuniões dos últimos 7 dias (barras verticais, cor #0A2EAD)",
+        "Container com staggerItem animation ao montar",
+        "Título de cada gráfico em text-alliance-blue font-bold",
+        "Dashboard page.tsx inclui ActivityChart abaixo do MetricsGrid",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": "Chart.js requer 'use client'. Passar dados como props do Server Component pai."
+    },
+    {
+      "id": "US-018",
+      "title": "Criar KanbanBoard com DndContext e 6 KanbanColumn",
+      "description": "Como corretor, quero ver os leads organizados em 6 colunas de pipeline com drag-and-drop.",
+      "acceptanceCriteria": [
+        "src/app/(protected)/kanban/page.tsx é 'use client'",
+        "src/components/kanban/kanban-board.tsx: DndContext do @dnd-kit/core",
+        "src/components/kanban/kanban-column.tsx: 6 colunas com labels: Novo Lead, Qualificado, Proposta, Reunião Agendada, Fechado, Perdido",
+        "Cada coluna mostra contador de leads (badge)",
+        "Cores distintas por coluna (ícones lucide-react)",
+        "Fundo de coluna: bg-alliance-col",
+        "Buscar leads do Supabase agrupados por stage",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": "Stages no banco: 'novo_lead','qualificado','proposta','reuniao_agendada','fechado','perdido'"
+    },
+    {
+      "id": "US-019",
+      "title": "Criar LeadCard draggable com badge dinâmico",
+      "description": "Como corretor, quero arrastar cards de lead entre colunas e ver o badge colorido do consultor responsável.",
+      "acceptanceCriteria": [
+        "src/components/kanban/lead-card.tsx: useDraggable do @dnd-kit/core",
+        "Mostra: nome do lead, cidade, temperatura (quente/morno/frio via badge)",
+        "Badge do consultor: cor vinda de user_profiles.badge_color via JOIN",
+        "dragAnimation de animations.ts no card enquanto arrasta",
+        "Drag-end: PATCH /api/leads/[id] com novo stage",
+        "Typecheck passes"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Adicionar Realtime Supabase ao Kanban",
+      "description": "Como corretor, quero ver o Kanban atualizar em tempo real quando outros corretores movem leads.",
+      "acceptanceCriteria": [
+        "KanbanBoard usa supabase.channel('leads').on('postgres_changes') para tabela leads",
+        "Evento INSERT: adiciona card na coluna correta",
+        "Evento UPDATE: move card para nova coluna se stage mudou",
+        "Subscription limpa no cleanup do useEffect",
+        "Typecheck passes"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Criar PATCH /api/leads/[id] route",
+      "description": "Como desenvolvedor backend, preciso da API route para atualizar stage e campos de um lead.",
+      "acceptanceCriteria": [
+        "src/app/api/leads/[id]/route.ts exporta PATCH",
+        "Auth obrigatório: auth.getUser() como primeira operação — 401 se não autenticado",
+        "Validação Zod: stage deve ser um dos 6 valores válidos",
+        "UPDATE na tabela leads com os campos fornecidos",
+        "Retorna lead atualizado com status 200",
+        "Sem 'any' em TypeScript",
+        "Typecheck passes"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": "Seguir template de API route segura do CLAUDE.md do projeto"
+    },
+    {
+      "id": "US-022",
+      "title": "Criar LeadModal com detalhes completos do lead",
+      "description": "Como corretor, quero abrir um modal com todos os detalhes de um lead ao clicar no card.",
+      "acceptanceCriteria": [
+        "src/components/kanban/lead-modal.tsx usa AnimatePresence + modalAnimation",
+        "Exibe: nome, telefone, cidade, imóvel de interesse, intenção, tempo disponível, resumo da IA",
+        "Botão fechar no canto superior direito",
+        "Overlay escuro com onClick fecha o modal",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Criar AssignButton, PauseButton e rotas de assign/pause",
+      "description": "Como corretor, quero poder me atribuir a um lead e pausar a automação de IA.",
+      "acceptanceCriteria": [
+        "src/app/api/leads/[id]/assign/route.ts: POST, auth obrigatório, atualiza assigned_to = auth.uid()",
+        "src/app/api/leads/[id]/pause/route.ts: PATCH, auth obrigatório, toggle automation_paused",
+        "AssignButton no LeadModal: chama /api/leads/[id]/assign, mostra consultor atribuído",
+        "PauseButton no LeadModal: chama /api/leads/[id]/pause, mostra estado atual",
+        "Typecheck passes"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "Criar Agenda — layout do calendário mensal",
+      "description": "Como corretor, quero ver um calendário mensal com navegação entre meses.",
+      "acceptanceCriteria": [
+        "src/app/(protected)/agenda/page.tsx é Server Component",
+        "src/components/agenda/calendar-grid.tsx é 'use client'",
+        "Grade de 7 colunas com abreviações pt-BR: Seg, Ter, Qua, Qui, Sex, Sáb, Dom",
+        "Célula do dia atual com bg-alliance-blue text-white",
+        "Navegação: botões ← → para mês anterior/próximo",
+        "Exibe nome do mês e ano no topo",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": "Usar date-fns para cálculos de calendário"
+    },
+    {
+      "id": "US-025",
+      "title": "Criar MeetingPill e buscar reuniões do Supabase",
+      "description": "Como corretor, quero ver pills coloridos nas datas com reuniões agendadas.",
+      "acceptanceCriteria": [
+        "src/components/agenda/meeting-pill.tsx: pill com cor do consultor (badge_color de user_profiles)",
+        "MeetingPill exibe: nome do lead (ou título da reunião)",
+        "Agenda page busca meetings do mês atual do Supabase via JOIN com user_profiles",
+        "Pills aparecem nas células do dia correto",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-026",
+      "title": "Criar CreateMeetingDialog e POST /api/meetings",
+      "description": "Como corretor, quero criar novas reuniões pelo calendário.",
+      "acceptanceCriteria": [
+        "src/components/agenda/create-meeting-dialog.tsx usa Dialog do shadcn/ui + modalAnimation",
+        "Campos: lead_id (select), date (date picker), time, notes",
+        "src/app/api/meetings/route.ts: GET (lista do mês) + POST (criar)",
+        "POST: auth obrigatório, Zod validation, INSERT em meetings",
+        "Após criar: atualiza calendário sem reload",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-027",
+      "title": "Criar página /imoveis com 6 ImóvelCard",
+      "description": "Como corretor, quero ver o catálogo das 6 unidades do La Reserva com detalhes de cada uma.",
+      "acceptanceCriteria": [
+        "src/app/(protected)/imoveis/page.tsx é Server Component",
+        "Busca os 6 imóveis do Supabase: SELECT * FROM imoveis",
+        "src/components/imoveis/imovel-card.tsx: props ImovelCard com campos do schema",
+        "Exibe: tipo (apto/cobertura), número, metragem, quartos, suítes, diferenciais, faixa de valor, disponibilidade",
+        "Badge 'Disponível' em verde ou 'Vendido' em vermelho",
+        "Animação stagger de entrada nos cards (staggerContainer + staggerItem)",
+        "cardHover nos cards",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": "O seed dos 6 imóveis está no 001_schema.sql. Executar o schema antes se não existir."
+    },
+    {
+      "id": "US-028",
+      "title": "Criar /interacoes — layout sidebar + área de chat",
+      "description": "Como corretor, quero ver uma interface estilo WhatsApp com lista de leads na sidebar e chat na direita.",
+      "acceptanceCriteria": [
+        "src/app/(protected)/interacoes/page.tsx é 'use client'",
+        "Layout 2 colunas: sidebar esquerda (w-80, bg-alliance-dark) + área direita (flex-1, bg-alliance-chat)",
+        "Sidebar: logo Alliance + lista de leads ordenados por última interação",
+        "Lead ativo na sidebar: bg-alliance-blue/20 rounded",
+        "Área de chat: header com nome do lead + área de mensagens com scroll",
+        "Busca leads do Supabase com última interação",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": "Inspiração visual: WhatsApp Web. Sidebar escura, chat claro."
+    },
+    {
+      "id": "US-029",
+      "title": "Criar MessageBubble e Realtime nas Interações",
+      "description": "Como corretor, quero ver as mensagens do WhatsApp em tempo real com bolhas visuais diferentes para enviado/recebido.",
+      "acceptanceCriteria": [
+        "src/components/interacoes/message-bubble.tsx: props { content, direction: 'inbound'|'outbound', sender_type: 'lead'|'ia'|'human', sender_name?, created_at }",
+        "Inbound (lead): alinhado à esquerda, bg-alliance-blue text-white, rounded-br-none",
+        "Outbound IA: alinhado à direita, bg-white, badge 'Agente de IA' em badge-ia, rounded-bl-none",
+        "Outbound humano: alinhado à direita, bg-white, nome do corretor no topo",
+        "Supabase Realtime: .channel('interactions:leadId').on('INSERT') — scroll automático para última mensagem",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": "Usar useRef para o scroll automático no final das mensagens"
+    },
+    {
+      "id": "US-030",
+      "title": "Criar input de envio manual e POST /api/leads/[id]/send-message",
+      "description": "Como corretor, quero enviar mensagens manualmente quando a automação de IA estiver pausada.",
+      "acceptanceCriteria": [
+        "src/components/interacoes/send-input.tsx: visível apenas quando automation_paused = true",
+        "Input de texto + botão Enviar",
+        "src/app/api/leads/[id]/send-message/route.ts: POST, auth obrigatório",
+        "API route: valida com Zod, insere em interactions com direction='outbound', chama lib/whatsapp/send.ts",
+        "src/lib/whatsapp/send.ts: função sendTextMessage(phone, text) usando Meta Cloud API (graph.facebook.com)",
+        "Usa WHATSAPP_ACCESS_TOKEN e WHATSAPP_PHONE_NUMBER_ID do .env.local",
+        "Loading state no botão durante envio",
+        "Typecheck passes"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": "NUNCA expor tokens WhatsApp no cliente. A chamada à Meta API deve ser feita na API route (server-side)"
+    }
+  ]
+}

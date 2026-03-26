@@ -1,0 +1,16 @@
+# Ralph Progress Log — CRM Alliance
+Started: 2026-03-26
+---
+
+## Codebase Patterns
+- Stack: Next.js 14 App Router + TypeScript strict + Tailwind CSS + Supabase + Framer Motion
+- Projeto Next.js em: c:/Users/User/Desktop/la-reserva-system/crm-alliance/
+- Tokens Alliance em tailwind.config.ts: alliance.blue, alliance.dark, alliance.mid, alliance.card, alliance.col, alliance.input, alliance.chat
+- Tokens badge: badge.joao, badge.mateus, badge.ia, badge.quente, badge.morno, badge.frio
+- Animations centralizadas em src/lib/animations.ts
+- Supabase: client.ts (browser) / server.ts (SSR) / types.ts (Database types)
+- SUPABASE_SERVICE_ROLE_KEY: NUNCA em client components
+- Todas as API routes: auth.getUser() PRIMEIRO — 401 se não autenticado
+- shadcn/ui em src/components/ui/ — nunca editar manualmente
+- Schema SQL: c:/Users/User/Desktop/la-reserva-system/001_schema.sql
+- .env.local: c:/Users/User/Desktop/la-reserva-system/crm-alliance/.env.local (copiar de ../env.example)
