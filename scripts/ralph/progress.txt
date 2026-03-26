@@ -83,3 +83,18 @@ Started: 2026-03-26
   - Tokens Tailwind v4 geram classes como text-alliance-blue, bg-alliance-dark etc. (mesma API do v3)
   - shadcn init cria src/lib/utils.ts (cn helper) automaticamente — não precisa criar manualmente na US-005
 ---
+
+## 2026-03-26 - US-004 - Criar src/lib/animations.ts com presets Framer Motion
+- Criado: crm-alliance/src/lib/animations.ts
+- Exporta: pageTransition, pageTransitionProps, modalAnimation, modalAnimationProps, dragAnimation, staggerContainer, staggerItem, cardHover
+- Todos os variants com valores exatos conforme PRD (opacidade, y, scale, transitions)
+- npx tsc --noEmit: passou sem erros
+---
+
+## 2026-03-26 - US-005 - Criar src/lib/utils/format.ts
+- src/lib/utils.ts já existia (criado pelo shadcn na US-003) com cn() helper — não modificado
+- Criado diretório: crm-alliance/src/lib/utils/
+- Criado: crm-alliance/src/lib/utils/format.ts
+- Exporta: formatPhone (11 ou 10 dígitos -> (XX) XXXXX-XXXX ou (XX) XXXX-XXXX), formatCurrency (BRL pt-BR), formatDate (dd/mm/yyyy pt-BR)
+- npx tsc --noEmit: passou sem erros
+---
