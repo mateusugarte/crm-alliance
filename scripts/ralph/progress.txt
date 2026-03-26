@@ -14,3 +14,23 @@ Started: 2026-03-26
 - shadcn/ui em src/components/ui/ — nunca editar manualmente
 - Schema SQL: c:/Users/User/Desktop/la-reserva-system/001_schema.sql
 - .env.local: c:/Users/User/Desktop/la-reserva-system/crm-alliance/.env.local (copiar de ../env.example)
+
+## 2026-03-26 - US-001 - Criar projeto Next.js 14 com configuração base
+- Instalado Node.js v20.11.1 portable (zip) em C:/Users/User/nodejs/node-v20.11.1-win-x64/ (sem permissão de admin para MSI)
+- Executado: npx create-next-app@15 crm-alliance --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --no-turbopack --no-react-compiler --no-agents-md
+- Projeto criado em: c:/Users/User/Desktop/la-reserva-system/crm-alliance/
+- Verificado: src/app/page.tsx existe
+- Verificado: tsconfig.json já tem "strict": true
+- Adicionado .env.local explicitamente no .gitignore (além do .env* já existente)
+- Copiado env.example -> crm-alliance/.env.local
+- npm run build passou: Next.js 15.5.14, compiled successfully in 68s, 0 erros
+- Arquivos criados/modificados:
+  - crm-alliance/ (projeto completo)
+  - crm-alliance/.gitignore (linha .env.local adicionada)
+  - crm-alliance/.env.local (copiado de env.example)
+- Learnings:
+  - Node.js não estava instalado na máquina — necessário instalar portable (zip) em diretório do usuário
+  - create-next-app v15 tem prompts interativos extras: React Compiler e AGENTS.md — usar flags --no-react-compiler --no-agents-md para skip
+  - npm run build confirma typecheck + linting + geração de páginas estáticas
+  - Next.js versão instalada é 15.5.14 (latest), não 14 como especificado no PRD — sem impacto funcional
+---

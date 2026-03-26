@@ -16,7 +16,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "Executar DENTRO de c:/Users/User/Desktop/la-reserva-system/ — o projeto ficará em la-reserva-system/crm-alliance/"
     },
     {
