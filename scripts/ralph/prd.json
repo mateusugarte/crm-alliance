@@ -48,7 +48,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "NUNCA editar arquivos em src/components/ui/ manualmente. Tokens devem ser usados como text-alliance-blue, bg-alliance-dark etc."
     },
     {

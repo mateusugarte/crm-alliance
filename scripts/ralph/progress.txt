@@ -56,3 +56,30 @@ Started: 2026-03-26
   - EBADENGINE warning para eslint-visitor-keys@5.0.1 (requer Node >=20.19.0) — apenas warning, sem impacto no build
   - 9 moderate severity vulnerabilities no audit — sem impacto para dev; não usar npm audit fix --force (quebraria breaking changes)
 ---
+
+## 2026-03-26 - US-003 - Configurar tailwind tokens Alliance e shadcn/ui
+- Projeto usa Tailwind v4 (não v3) — tokens configurados via CSS em src/app/globals.css sob @theme inline (não tailwind.config.ts)
+- Adicionados tokens Alliance ao @theme inline em globals.css:
+  - alliance: blue=#1E90FF, dark=#0A2EAD, mid=#1565C0, card=#F0F0F0, col=#E8E8E8, input=#D9D9D9, chat=#CCCCCC
+  - badge: joao=#FF6B00, mateus=#3D3D3D, ia=#0A2EAD, quente=#FF4500, morno=#FF8C00, frio=#1E90FF
+- Executado: npx shadcn@latest init --defaults
+  - shadcn v4.1.0 detectou Tailwind v4 automaticamente
+  - Estilo: base-nova (default para Tailwind v4), baseColor: neutral, CSS variables: true
+  - Criado: components.json, src/components/ui/button.tsx, src/lib/utils.ts
+  - globals.css atualizado pelo shadcn com variáveis CSS completas (sidebar, chart, radius etc.)
+- Executado: npx shadcn@latest add button card input label sheet dialog badge avatar separator skeleton scroll-area sonner --overwrite
+  - Criados 11 componentes em src/components/ui/: card, input, label, badge, avatar, separator, skeleton, scroll-area, sonner, sheet, dialog
+  - button.tsx já existia (criado no init), skipped
+- Verificado: src/components/ui/ tem todos os 12 componentes (button + 11 adicionados)
+- npm run build passou: compiled successfully in 14.0s, 0 erros TypeScript
+- Arquivos criados/modificados:
+  - crm-alliance/src/app/globals.css (tokens Alliance + shadcn CSS vars)
+  - crm-alliance/src/lib/utils.ts (cn() helper — criado pelo shadcn)
+  - crm-alliance/src/components/ui/*.tsx (12 componentes shadcn)
+  - crm-alliance/components.json (config shadcn)
+- Learnings:
+  - Tailwind v4 não usa tailwind.config.ts — tokens definidos com --color-* no @theme inline do CSS
+  - shadcn@latest init detecta automaticamente Tailwind v4 e usa estilo base-nova (sem config file)
+  - Tokens Tailwind v4 geram classes como text-alliance-blue, bg-alliance-dark etc. (mesma API do v3)
+  - shadcn init cria src/lib/utils.ts (cn helper) automaticamente — não precisa criar manualmente na US-005
+---
