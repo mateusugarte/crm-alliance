@@ -15,18 +15,28 @@ import {
   subMonths,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { MeetingPill } from './meeting-pill'
+import { CreateMeetingDialog } from './create-meeting-dialog'
 import type { MeetingWithLead } from './types'
 
 const DAY_HEADERS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 
-interface AgendaClientProps {
-  meetings: MeetingWithLead[]
+interface Lead {
+  id: string
+  name: string
+  phone: string
 }
 
-export function AgendaClient({ meetings }: AgendaClientProps) {
+interface AgendaClientProps {
+  meetings: MeetingWithLead[]
+  leads: Lead[]
+}
+
+export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [meetings, setMeetings] = useState(initialMeetings)
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
@@ -40,22 +50,53 @@ export function AgendaClient({ meetings }: AgendaClientProps) {
   const monthLabel = format(currentDate, 'MMMM yyyy', { locale: ptBR })
     .replace(/^\w/, c => c.toUpperCase())
 
+  const handleMeetingCreated = async () => {
+    // Refetch meetings after creation
+    try {
+      const res = await fetch('/api/meetings')
+      if (res.ok) {
+        const json = await res.json() as { data: Array<{ id: string; datetime: string; lead_id: string; assigned_to: string | null }> }
+        // Update with available data (simplified, without lead name lookup)
+        const updated = json.data.map(m => ({
+          id: m.id,
+          datetime: m.datetime,
+          lead_name: leads.find(l => l.id === m.lead_id)?.name ?? 'Lead',
+          consultant_name: 'Consultor',
+          consultant_color: '#0A2EAD',
+        }))
+        setMeetings(updated)
+      }
+    } catch {
+      // Keep existing meetings on error
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {/* Header do calendário */}
       <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCurrentDate(d => subMonths(d, 1))}
+            className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+          >
+            <ChevronLeft size={20} className="text-alliance-dark" />
+          </button>
+          <h2 className="text-lg font-bold text-alliance-dark">{monthLabel}</h2>
+          <button
+            onClick={() => setCurrentDate(d => addMonths(d, 1))}
+            className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+          >
+            <ChevronRight size={20} className="text-alliance-dark" />
+          </button>
+        </div>
+
         <button
-          onClick={() => setCurrentDate(d => subMonths(d, 1))}
-          className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+          onClick={() => setDialogOpen(true)}
+          className="flex items-center gap-1.5 px-4 py-2 bg-alliance-dark text-white text-sm font-semibold rounded-xl hover:bg-alliance-dark/90 transition-colors"
         >
-          <ChevronLeft size={20} className="text-alliance-dark" />
-        </button>
-        <h2 className="text-lg font-bold text-alliance-dark">{monthLabel}</h2>
-        <button
-          onClick={() => setCurrentDate(d => addMonths(d, 1))}
-          className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
-        >
-          <ChevronRight size={20} className="text-alliance-dark" />
+          <Plus size={16} />
+          Nova Reunião
         </button>
       </div>
 
@@ -112,6 +153,13 @@ export function AgendaClient({ meetings }: AgendaClientProps) {
           })}
         </div>
       </div>
+
+      <CreateMeetingDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        leads={leads}
+        onCreated={handleMeetingCreated}
+      />
     </div>
   )
 }

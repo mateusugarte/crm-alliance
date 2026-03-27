@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import BlobBottom from '@/components/layout/blob-bottom'
+import { signIn } from './actions'
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
@@ -11,10 +12,12 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    // Auth real será conectado na US-014
-    await new Promise(r => setTimeout(r, 1000))
-    setError('Credenciais inválidas. Configure o Supabase no .env.local.')
-    setLoading(false)
+    const formData = new FormData(e.currentTarget)
+    const result = await signIn(formData)
+    if (result?.error) {
+      setError(result.error)
+      setLoading(false)
+    }
   }
 
   return (
@@ -44,7 +47,7 @@ export default function LoginPage() {
         </motion.p>
       </div>
 
-      {/* Card flutuante sobre blob */}
+      {/* Card flutuante */}
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
@@ -67,7 +70,6 @@ export default function LoginPage() {
               className="rounded-xl bg-alliance-input px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-alliance-blue/30 transition"
             />
           </div>
-
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-alliance-blue/80 uppercase tracking-wider">
               Senha
@@ -80,11 +82,9 @@ export default function LoginPage() {
               className="rounded-xl bg-alliance-input px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-alliance-blue/30 transition"
             />
           </div>
-
           {error && (
             <p className="text-red-500 text-xs text-center">{error}</p>
           )}
-
           <button
             type="submit"
             disabled={loading}
@@ -95,14 +95,11 @@ export default function LoginPage() {
                 <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                 Entrando...
               </>
-            ) : (
-              'Entrar'
-            )}
+            ) : 'Entrar'}
           </button>
         </form>
       </motion.div>
 
-      {/* Blob rodapé */}
       <BlobBottom />
     </div>
   )
