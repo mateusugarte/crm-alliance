@@ -180,3 +180,23 @@ Started: 2026-03-26
   - fundo bg-white, flex col items-center justify-center h-screen
 - npx tsc --noEmit: passou sem erros
 ---
+
+## 2026-03-27 - US-011 - Criar Login page visual completa
+- Reescrito: crm-alliance/src/app/(auth)/login/page.tsx
+  - 'use client' + export default LoginPage
+  - useState: loading (bool), error (string | null)
+  - handleSubmit: preventDefault, setLoading(true), await 1s mock, setError com mensagem Supabase, setLoading(false)
+  - Layout: relative flex col items-center justify-center h-screen overflow-hidden bg-white
+  - Logo "Alliance" absolute top-6 left-6 z-10, text-alliance-dark font-bold text-2xl tracking-tight
+  - motion.h1: initial { opacity:0, y:-12 } animate { opacity:1, y:0 } transition { duration:0.4 } — "Bem-vindo" text-4xl font-bold text-alliance-blue uppercase tracking-wider
+  - motion.p: initial { opacity:0 } animate { opacity:1 } transition { duration:0.4, delay:0.15 } — "Faça o login para acessar" text-alliance-blue/60 text-xs uppercase tracking-[0.25em]
+  - Card: motion.div initial { opacity:0, y:40 } animate { opacity:1, y:0 } transition { duration:0.4, ease:'easeOut' } — z-10 w-full max-w-sm mx-4
+  - form: bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col gap-5
+  - Input E-mail: type email, bg-alliance-input, rounded-xl, focus:ring-2 focus:ring-alliance-blue/30
+  - Input Senha: type password, mesmo estilo
+  - Error display: text-red-500 text-xs text-center
+  - Botão: rounded-full bg-alliance-dark text-white font-semibold py-3 text-sm uppercase tracking-wider hover:opacity-90 disabled:opacity-60
+  - Loading spinner: span w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin
+  - BlobBottom importado de @/components/layout/blob-bottom
+- npx tsc --noEmit: passou sem erros
+---
