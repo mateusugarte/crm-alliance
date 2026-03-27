@@ -148,7 +148,7 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "AnimatePresence deve ficar no layout raiz para que as transições de página funcionem corretamente"
     },
     {

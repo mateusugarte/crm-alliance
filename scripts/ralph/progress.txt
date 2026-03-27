@@ -144,3 +144,27 @@ Started: 2026-03-26
   - cn() de @/lib/utils para classes condicionais + className passthrough
 - npx tsc --noEmit: passou sem erros
 ---
+
+## 2026-03-27 - US-009 - Criar PageTransition wrapper e estrutura de layouts
+- Criado: crm-alliance/src/components/layout/page-transition.tsx
+  - 'use client' + export default
+  - motion.div com variants={pageTransition} de @/lib/animations
+  - initial="initial" animate="animate" exit="exit" transition={{ duration:0.25, ease:'easeOut' }}
+- Atualizado: crm-alliance/src/app/layout.tsx
+  - Fonte Inter (next/font/google) substituindo Geist
+  - Toaster do @/components/ui/sonner incluído
+  - html lang="pt-BR", metadata: title 'CRM Alliance'
+- Criado: crm-alliance/src/app/(protected)/layout.tsx
+  - NavShell + main flex-1 overflow-auto p-6
+  - div com flex h-screen
+- Criado: crm-alliance/src/app/(auth)/layout.tsx
+  - Layout limpo: apenas <>{children}</>
+- Criados placeholders de página:
+  - (protected)/dashboard/page.tsx
+  - (protected)/kanban/page.tsx
+  - (protected)/agenda/page.tsx
+  - (protected)/imoveis/page.tsx
+  - (protected)/interacoes/page.tsx
+  - (auth)/login/page.tsx
+- npm run build: compiled successfully in 48s, 0 erros — 11 rotas geradas
+---
