@@ -205,7 +205,7 @@
         "Typecheck passes"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "Ler 001_schema.sql em c:/Users/User/Desktop/la-reserva-system/001_schema.sql para derivar os tipos. Credenciais virão de .env.local"
     },
     {
@@ -222,7 +222,7 @@
         "Typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

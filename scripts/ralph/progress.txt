@@ -200,3 +200,32 @@ Started: 2026-03-26
   - BlobBottom importado de @/components/layout/blob-bottom
 - npx tsc --noEmit: passou sem erros
 ---
+
+## 2026-03-27 - US-012 - Criar Supabase client, server e types
+- Criado diretório: crm-alliance/src/lib/supabase/
+- Criado: crm-alliance/src/lib/supabase/client.ts
+  - createBrowserClient<Database> de @supabase/ssr
+  - Usa NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY
+- Criado: crm-alliance/src/lib/supabase/server.ts
+  - createServerClient<Database> de @supabase/ssr + cookies() do next/headers
+  - getAll / setAll com try/catch para Server Components read-only
+- Criado: crm-alliance/src/lib/supabase/types.ts
+  - Derivado do schema real em 001_schema.sql.sql (na raiz do repo)
+  - Interface Database com 7 tabelas: user_profiles, leads, interactions, meetings, broadcasts, broadcast_numbers, imoveis
+  - Todos os campos reais com tipos corretos (string/number/boolean/null/Json, enums literais)
+  - Row / Insert / Update (Partial<Insert>) para cada tabela
+  - Tipos de conveniência: UserProfile, Lead, Interaction, Meeting, Broadcast, BroadcastNumber, Imovel
+  - Schema usa 'adm' (não 'admin') e 'full_name' (não 'name') — corrigido nos tipos
+- npx tsc --noEmit: passou sem erros
+---
+
+## 2026-03-27 - US-013 - Criar middleware.ts para proteção de rotas
+- Criado: crm-alliance/src/middleware.ts
+  - createServerClient de @supabase/ssr com cookies.getAll / setAll (padrão oficial Supabase Next.js)
+  - supabase.auth.getUser() para verificar sessão
+  - Rotas públicas: /, /login, /api/webhooks/* — sem redirecionamento
+  - Rota protegida sem user: redirect para /login
+  - /login com user autenticado: redirect para /dashboard
+  - matcher exclui _next/static, _next/image, favicon.ico e arquivos de imagem estática
+- npx tsc --noEmit: passou sem erros
+---
