@@ -7,6 +7,8 @@ export type Json =
   | Json[]
 
 export interface Database {
+  // Required by @supabase/supabase-js v2.100+
+  PostgrestVersion: '12'
   public: {
     Tables: {
       user_profiles: {
