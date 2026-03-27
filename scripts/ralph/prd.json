@@ -95,7 +95,7 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "clip-path deve ser definido via style prop pois Tailwind não suporta clip-path arbitrário nativamente"
     },
     {
@@ -113,7 +113,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Usar ícones lucide-react para cada item nav"
     },
     {
@@ -131,7 +131,7 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

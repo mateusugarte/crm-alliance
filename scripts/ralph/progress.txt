@@ -98,3 +98,49 @@ Started: 2026-03-26
 - Exporta: formatPhone (11 ou 10 dígitos -> (XX) XXXXX-XXXX ou (XX) XXXX-XXXX), formatCurrency (BRL pt-BR), formatDate (dd/mm/yyyy pt-BR)
 - npx tsc --noEmit: passou sem erros
 ---
+
+## 2026-03-26 - US-006 - Criar BlobBottom e BlobHeader
+- Criado diretório: crm-alliance/src/components/layout/
+- Criado: crm-alliance/src/components/layout/blob-bottom.tsx
+  - motion.div com initial { opacity:0 } animate { opacity:1 } transition { duration:0.6 }
+  - Classes: absolute bottom-0 left-0 w-full h-64 bg-alliance-blue
+  - clip-path via style prop: ellipse(75% 100% at 50% 100%)
+  - 'use client' + export default
+- Criado: crm-alliance/src/components/layout/blob-header.tsx
+  - div com clip-path: ellipse(60% 100% at 100% 0%)
+  - Classes: absolute top-0 right-0 w-full h-48 bg-alliance-mid pointer-events-none
+  - 'use client' + export default
+- npx tsc --noEmit: passou sem erros
+- npm run build: compiled successfully in 4.7s, 0 erros
+---
+
+## 2026-03-26 - US-007 - Criar NavShell
+- Criado: crm-alliance/src/components/layout/nav-shell.tsx
+  - 'use client' + export default
+  - 5 itens de navegação: Dashboard, Kanban, Agenda, Imóveis, Interações
+  - usePathname() para detectar rota ativa: bg-alliance-dark text-white rounded-full
+  - Item inativo: text-gray-600 hover:text-alliance-dark
+  - Logo "Alliance" em font-bold text-alliance-dark text-lg
+  - Framer Motion: initial { opacity:0, y:-16 } animate { opacity:1, y:0 } transition { duration:0.3, ease:'easeOut' }
+  - Ícones lucide-react: LayoutDashboard, Kanban, Calendar, Building2, MessageSquare
+  - cn() de @/lib/utils para classes condicionais
+- npx tsc --noEmit: passou sem erros
+- npm run build: compiled successfully in 4.7s, 0 erros
+---
+
+## 2026-03-27 - US-008 - Criar AllianceBadge e AllianceCard components
+- Criado: crm-alliance/src/components/layout/alliance-badge.tsx
+  - 'use client' + export default
+  - Props: { label: string, color: string, variant?: 'default' | 'small' }
+  - motion.span com initial { scale:0.95, opacity:0 } animate { scale:1, opacity:1 } transition { duration:0.15 }
+  - Variant 'small': px-2 py-0.5 text-xs; variant 'default': px-3 py-1 text-sm
+  - Background via style prop (color prop), texto sempre branco
+- Criado: crm-alliance/src/components/layout/alliance-card.tsx
+  - 'use client' + export default
+  - Props: { children: React.ReactNode, variant?: 'default' | 'featured', className?: string }
+  - motion.div com cardHover de @/lib/animations via spread {...cardHover}
+  - Variant 'featured': bg-alliance-dark text-white
+  - Variant 'default': bg-alliance-card text-gray-800
+  - cn() de @/lib/utils para classes condicionais + className passthrough
+- npx tsc --noEmit: passou sem erros
+---
