@@ -1,0 +1,179 @@
+{
+  "project": "CRM Alliance — La Reserva",
+  "branchName": "master",
+  "baseDir": "crm-alliance",
+  "stories": [
+    {
+      "id": "US-014",
+      "phase": "2",
+      "plan": "02-02",
+      "title": "Executar schema Supabase + RLS + seed imóveis",
+      "description": "Executar 001_schema.sql.sql no Supabase via CLI ou Management API. Validar que as 7 tabelas existem, RLS ativa, seed das 6 unidades La Reserva inserido. Requer SUPABASE_SERVICE_ROLE_KEY e NEXT_PUBLIC_SUPABASE_ANON_KEY reais no .env.local.",
+      "agent": "alliance-db",
+      "passes": false,
+      "priority": 1,
+      "blocker": "Aguardando NEXT_PUBLIC_SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY reais no crm-alliance/.env.local"
+    },
+    {
+      "id": "US-015",
+      "phase": "3",
+      "plan": "03-01",
+      "title": "Dashboard — Layout + MetricCard + MetricsGrid + skeleton",
+      "description": "Implementar página /dashboard com saudação 'BEM-VINDO, [nome]!', grid 2x3 de MetricCards (featured e default), skeleton loading. Usar alliance.blue, alliance.dark, Framer Motion stagger. Server Component com loading.tsx.",
+      "agent": "alliance-frontend",
+      "passes": false,
+      "priority": 2
+    },
+    {
+      "id": "US-016",
+      "phase": "3",
+      "plan": "03-02",
+      "title": "Dashboard — ActivityChart (2 gráficos de barras Chart.js)",
+      "description": "Dois gráficos de barras lado a lado: 'reuniões' e 'leads'. Barras em #1E90FF, labels em pt-BR, animação de entrada com Framer Motion. Usar react-chartjs-2. Client Component.",
+      "agent": "alliance-frontend",
+      "passes": false,
+      "priority": 3
+    },
+    {
+      "id": "US-017",
+      "phase": "3",
+      "plan": "03-03",
+      "title": "Dashboard — Queries Supabase + saudação dinâmica + dados reais",
+      "description": "Conectar métricas ao Supabase: contar leads por stage, reuniões do dia, saudação com nome do user_profile. Contadores animados 0→valor com Framer Motion spring.",
+      "agent": "alliance-frontend",
+      "passes": false,
+      "priority": 4,
+      "depends_on": "US-014"
+    },
+    {
+      "id": "US-018",
+      "phase": "4",
+      "plan": "04-01",
+      "title": "Kanban — KanbanBoard + 6 KanbanColumns + fetch leads",
+      "description": "Página /kanban com DnD context (dnd-kit). 6 colunas: Lead Frio (azul), Lead Morno (laranja), Lead Quente (vermelho), Reunião Agendada (verde), Follow Up, Visita Confirmada. Buscar leads do Supabase agrupados por stage.",
+      "agent": "alliance-frontend",
+      "passes": false,
+      "priority": 5
+    },
+    {
+      "id": "US-019",
+      "phase": "4",
+      "plan": "04-02",
+      "title": "Kanban — LeadCard draggável + badge dinâmico + Realtime",
+      "description": "LeadCard draggável com badge dinâmico: 'agente de IA' (dark blue) quando sem consultor, ou nome+cor do consultor via badge_color. Supabase Realtime para sync multi-usuário. Framer Motion drag com scale 1.03.",
+      "agent": "alliance-frontend",
+      "passes": false,
+      "priority": 6
+    },
+    {
+      "id": "US-020",
+      "phase": "4",
+      "plan": "04-03",
+      "title": "Kanban — Modal de detalhes fiel ao Figma",
+      "description": "Modal ao clicar no card: nome, telefone, cidade, imóvel, intenção, tempo no stage, resumo IA. Animação scale 0.95→1 com AnimatePresence. Fiel ao design do ROADMAP.",
+      "agent": "alliance-frontend",
+      "passes": false,
+      "priority": 7
+    },
+    {
+      "id": "US-021",
+      "phase": "4",
+      "plan": "04-04",
+      "title": "Kanban — AssignButton + PauseButton + API routes",
+      "description": "Botão 'Assumir conversa' (atribui logged user, muda badge_color). Botão 'Pausar automação' (toggle automation_paused). API routes /api/leads/[id]/assign e /api/leads/[id]/pause. Auth verificado em cada route.",
+      "agent": "alliance-backend",
+      "passes": false,
+      "priority": 8
+    },
+    {
+      "id": "US-022",
+      "phase": "5",
+      "plan": "05-01",
+      "title": "Agenda — Calendário mensal + cells pt-BR + hoje destacado",
+      "description": "Página /agenda com calendário mensal. Abreviações portuguesas (seg, ter, qua, qui, sex, sáb, dom). Célula de hoje com fundo alliance-blue. Navegação por mês/ano com chevrons.",
+      "agent": "alliance-frontend",
+      "passes": false,
+      "priority": 9
+    },
+    {
+      "id": "US-023",
+      "phase": "5",
+      "plan": "05-02",
+      "title": "Agenda — Meeting pills com cor do consultor + seletores",
+      "description": "Pills de reuniões nas células do calendário com cor do badge_color do consultor (busca user_profiles). Seletores de mês e ano funcionais.",
+      "agent": "alliance-frontend",
+      "passes": false,
+      "priority": 10
+    },
+    {
+      "id": "US-024",
+      "phase": "5",
+      "plan": "05-03",
+      "title": "Agenda — CreateMeetingDialog + sync Kanban + API routes",
+      "description": "Dialog de criar reunião com lead pré-preenchido quando vem do Kanban. API routes /api/meetings (GET, POST). Reuniões aparecem imediatamente no calendário.",
+      "agent": "alliance-backend",
+      "passes": false,
+      "priority": 11
+    },
+    {
+      "id": "US-025",
+      "phase": "6",
+      "plan": "06-01",
+      "title": "Imóveis — 6 cards das unidades La Reserva",
+      "description": "Página /imoveis com 6 cards: Apto 01 (146m²), Apto 02 (90,80m²), Apto 03 (110,85m²), Apto 04 (144,80m²), Cobertura 01 (245,60m²), Cobertura 02 (259,95m²). Metragem, quartos, suítes, diferenciais, faixa de valor, disponibilidade.",
+      "agent": "alliance-frontend",
+      "passes": false,
+      "priority": 12
+    },
+    {
+      "id": "US-026",
+      "phase": "6",
+      "plan": "06-02",
+      "title": "Interações — Layout sidebar dark + área chat + Realtime",
+      "description": "Página /interacoes estilo WhatsApp. Sidebar esquerda #0A2EAD com lista de leads. Área de chat #CCCCCC. Header: nome+telefone+ícones. Pills inbound #1E90FF à esquerda, cards outbound branco à direita. Realtime Supabase.",
+      "agent": "alliance-frontend",
+      "passes": false,
+      "priority": 13
+    },
+    {
+      "id": "US-027",
+      "phase": "6",
+      "plan": "06-03",
+      "title": "Interações — Envio manual de mensagem + scroll automático",
+      "description": "Input de envio manual visível somente quando automation_paused=true. API route /api/leads/[id]/send-message → Meta API. Scroll automático para última mensagem.",
+      "agent": "alliance-backend",
+      "passes": false,
+      "priority": 14
+    },
+    {
+      "id": "US-028",
+      "phase": "7",
+      "plan": "07-01",
+      "title": "WhatsApp — Webhook Meta (GET verificação + POST + HMAC)",
+      "description": "API route /api/webhooks/whatsapp. GET: responder hub.challenge. POST: validar X-Hub-Signature-256 com HMAC SHA256 + repassar ao N8N. Rejeitar com 403 se assinatura inválida.",
+      "agent": "alliance-backend",
+      "passes": false,
+      "priority": 15
+    },
+    {
+      "id": "US-029",
+      "phase": "7",
+      "plan": "07-02",
+      "title": "WhatsApp — lib/whatsapp/send.ts + documentação N8N",
+      "description": "sendTextMessage e sendTemplateMessage via Meta Cloud API. Documentação do fluxo N8N com contexto completo do lead (name, stage, intention, imovel, summary, histórico últimas 10).",
+      "agent": "alliance-backend",
+      "passes": false,
+      "priority": 16
+    },
+    {
+      "id": "US-030",
+      "phase": "7",
+      "plan": "07-03",
+      "title": "WhatsApp — API route sync N8N→CRM + update summary",
+      "description": "API route /api/webhooks/n8n (valida N8N_WEBHOOK_SECRET). Atualiza stage + summary no Supabase. Supabase Realtime notifica Kanban e Interações.",
+      "agent": "alliance-backend",
+      "passes": false,
+      "priority": 17
+    }
+  ]
+}

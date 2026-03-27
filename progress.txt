@@ -1,0 +1,27 @@
+## Codebase Patterns
+- Node em: /c/Users/User/nodejs/node-v20.11.1-win-x64/node.exe — usar PATH="..." prefix
+- PATH prefix obrigatório: PATH="/c/Users/User/nodejs/node-v20.11.1-win-x64:$PATH"
+- App fica em: crm-alliance/ (subdiretório do projeto)
+- Commits seguem: feat: [Story ID] - [Story Title]
+- TypeScript estrito — sem any, sem as unknown
+- Server Components por padrão; 'use client' só quando necessário (hooks, Framer Motion, dnd-kit)
+- Animações: importar de @/lib/animations.ts (pageTransition, modalAnimation, staggerContainer, etc)
+- Cores via tokens Tailwind: alliance-blue (#1E90FF), alliance-dark (#0A2EAD), alliance-mid (#1565C0)
+- Supabase client: @/lib/supabase/client.ts (browser) e @/lib/supabase/server.ts (server)
+- Tipos do banco: @/lib/supabase/types.ts — nunca importar direto de @supabase/supabase-js
+- BlobBottom e BlobHeader já implementados em @/components/layout/
+- NavShell, AllianceBadge, AllianceCard, PageTransition já implementados
+- shadcn/ui components disponíveis em @/components/ui/
+- Formato de data: date-fns com locale ptBR
+
+---
+
+## 2026-03-27 - Sessão de kickoff
+- Status do projeto mapeado
+- prd.json criado com US-014 a US-030
+- .env.local atualizado com URL real do Supabase (https://lmvdruvmpybutmmidrfp.supabase.co)
+- BLOCKER: NEXT_PUBLIC_SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY ainda são placeholders
+- Fases 0-2 (parcial) implementadas: design system, splash, login, supabase clients, middleware, types
+- Agentes alliance-* configurados em .claude/agents/
+- Pixel Agents (pablodelucca.pixel-agents-1.1.1) instalado — sub-agentes aparecem automaticamente no painel
+---
