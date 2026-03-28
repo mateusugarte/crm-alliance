@@ -11,7 +11,6 @@ interface ChatAreaProps {
   messages: Interaction[]
   lead: LeadWithLastInteraction
   onSend?: (text: string) => Promise<void>
-  // Wave F — indicador de carregamento do historico via GET /api/interactions/[leadId]
   loading?: boolean
 }
 
@@ -20,7 +19,6 @@ export function ChatArea({ messages, lead, onSend, loading }: ChatAreaProps) {
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
 
-  // Scroll para ultima mensagem ao abrir o chat (lead.id muda) e ao receber nova mensagem
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, lead.id])
@@ -38,26 +36,35 @@ export function ChatArea({ messages, lead, onSend, loading }: ChatAreaProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-[#CCCCCC]">
+    // Usa token alliance-chat em vez de bg-[#CCCCCC] hardcoded
+    <div className="flex-1 flex flex-col overflow-hidden bg-alliance-chat">
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-3">
-        {/* Wave F — skeleton de carregamento do historico */}
         {loading && (
           <div className="flex items-center justify-center py-8 gap-2 text-gray-500">
             <Loader2 size={16} className="animate-spin" />
-            <span className="text-sm">Carregando historico...</span>
+            <span className="text-body">Carregando historico...</span>
           </div>
         )}
 
         {!loading && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.5">
+            <div className="w-14 h-14 rounded-2xl bg-white shadow-card flex items-center justify-center">
+              {/* stroke usa currentColor via classe Tailwind em vez de hex inline */}
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                className="text-gray-400"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
                 <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
               </svg>
             </div>
-            <p className="text-gray-500 text-sm">Nenhuma mensagem ainda</p>
-            <p className="text-gray-400 text-xs">As mensagens aparecerao aqui em tempo real</p>
+            <p className="text-body text-gray-500">Nenhuma mensagem ainda</p>
+            <p className="text-caption text-gray-400">As mensagens aparecerao aqui em tempo real</p>
           </div>
         )}
 
@@ -90,7 +97,7 @@ export function ChatArea({ messages, lead, onSend, loading }: ChatAreaProps) {
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
                 placeholder="Escreva uma mensagem..."
                 disabled={sending}
-                className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-alliance-blue/30 focus-visible:border-alliance-blue transition disabled:opacity-60 cursor-text"
+                className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2.5 text-body outline-none focus-visible:ring-2 focus-visible:ring-alliance-blue/30 focus-visible:border-alliance-blue transition disabled:opacity-60 cursor-text"
               />
               <button
                 onClick={handleSend}

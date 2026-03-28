@@ -69,10 +69,12 @@ export default async function AgendaPage() {
     <PageTransition>
       <div className="px-8 py-7 flex flex-col gap-6">
         <div>
-          <p className="text-xs font-semibold text-alliance-blue/60 uppercase tracking-widest mb-1">
+          {/* Eyebrow: text-label semântico */}
+          <p className="text-label text-alliance-blue/60 uppercase tracking-widest mb-1">
             Reunioes
           </p>
-          <h1 className="text-2xl font-bold text-alliance-dark">Agenda</h1>
+          {/* Título de página: text-title semântico */}
+          <h1 className="text-title text-alliance-dark">Agenda</h1>
         </div>
 
         {!result.ok ? (

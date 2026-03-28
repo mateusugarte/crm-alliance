@@ -4,6 +4,7 @@ import { useDroppable } from '@dnd-kit/core'
 import { motion } from 'framer-motion'
 import { LeadCard } from './lead-card'
 import { staggerContainer, staggerItem } from '@/lib/animations'
+import { hexToRgba } from '@/lib/tokens'
 import type { KanbanColumnConfig } from './types'
 import type { Lead } from '@/lib/supabase/types'
 
@@ -21,7 +22,10 @@ export function KanbanColumn({ column, leads, onLeadClick }: KanbanColumnProps) 
     <div
       className="rounded-2xl min-w-[260px] max-w-[260px] flex flex-col h-full transition-all duration-150"
       style={{
-        backgroundColor: isOver ? column.color + '10' : '#E8E8E8',
+        // Usa token CSS alliance-col como fundo base em vez de hex hardcoded
+        backgroundColor: isOver
+          ? hexToRgba(column.color, 0.10)
+          : 'var(--color-alliance-col)',
         outline: isOver ? `2px dashed ${column.color}` : undefined,
       }}
     >
@@ -29,7 +33,7 @@ export function KanbanColumn({ column, leads, onLeadClick }: KanbanColumnProps) 
       <div className="px-3 pt-3 pb-2 flex-shrink-0">
         <div
           className="rounded-xl px-3 py-2.5 flex items-center justify-between"
-          style={{ backgroundColor: column.color + '18' }}
+          style={{ backgroundColor: hexToRgba(column.color, 0.09) }}
         >
           <div className="flex items-center gap-2">
             <Icon size={15} strokeWidth={2} style={{ color: column.color }} />

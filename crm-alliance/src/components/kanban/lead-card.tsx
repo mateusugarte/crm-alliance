@@ -3,6 +3,7 @@
 import { useDraggable } from '@dnd-kit/core'
 import { Pause, Bot, MapPin, Home } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { cn } from '@/lib/utils'
 import type { Lead } from '@/lib/supabase/types'
 
 interface LeadCardProps {
@@ -24,7 +25,8 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
   const style = transform
     ? {
         transform: `translate(${transform.x}px, ${transform.y}px) rotate(1.5deg) scale(1.02)`,
-        boxShadow: '0 16px 32px rgba(0,0,0,0.16)',
+        // Usa token shadow-float para o card flutuando durante drag
+        boxShadow: '0 16px 32px rgba(0,0,0,0.14), 0 4px 8px rgba(0,0,0,0.08)',
         zIndex: 50,
         position: 'relative' as const,
       }
@@ -37,13 +39,17 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
       ref={setNodeRef}
       style={style}
       whileHover={{ y: -2, transition: { duration: 0.15 } }}
-      className={`bg-white rounded-xl p-3.5 shadow-sm cursor-pointer active:cursor-grabbing select-none transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alliance-blue focus-visible:ring-offset-1 ${
-        isDragging ? 'opacity-40' : ''
-      } ${
-        lead.automation_paused
-          ? 'border border-gray-100 border-l-4 border-l-orange-400'
-          : 'border border-gray-100'
-      }`}
+      className={cn(
+        // Base: shadow-card, sem borda — sombra já delimita o card
+        'bg-white rounded-xl p-3.5 shadow-card cursor-pointer active:cursor-grabbing select-none',
+        'transition-shadow hover:shadow-elevated',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alliance-blue focus-visible:ring-offset-1',
+        isDragging && 'opacity-40',
+        // Borda esquerda de destaque apenas quando pausado
+        // Declaramos border-l-[3px] e border-l-orange-400 sem border global
+        // para evitar conflito de cores entre lados
+        lead.automation_paused && 'border-l-[3px] border-l-orange-400'
+      )}
       aria-label={`Ver detalhes de ${displayName}`}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {

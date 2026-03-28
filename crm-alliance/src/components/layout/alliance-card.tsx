@@ -14,7 +14,8 @@ export default function AllianceCard({ children, variant = 'default', className 
     <motion.div
       {...cardHover}
       className={cn(
-        'rounded-2xl p-6 shadow-sm',
+        // shadow-card substitui shadow-sm — usa token de elevação
+        'rounded-2xl p-6 shadow-card',
         variant === 'featured'
           ? 'bg-alliance-dark text-white'
           : 'bg-alliance-card text-gray-800',

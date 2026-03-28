@@ -11,7 +11,6 @@ interface LeadsSidebarProps {
   leads: LeadWithLastInteraction[]
   activeLeadId: string | null
   onSelect: (id: string) => void
-  // Wave H — pulsing dot quando nova mensagem chega
   hasNewMessage?: boolean
 }
 
@@ -58,7 +57,6 @@ export function LeadsSidebar({ leads, activeLeadId, onSelect, hasNewMessage }: L
         </p>
         <div className="flex items-center gap-2">
           <span className="font-bold text-white text-lg tracking-tight">Conversas</span>
-          {/* Wave H — pulsing dot quando nova mensagem inbound chega via Realtime */}
           {hasNewMessage && (
             <span
               className="w-2.5 h-2.5 rounded-full bg-alliance-blue animate-pulse flex-shrink-0"
@@ -68,7 +66,7 @@ export function LeadsSidebar({ leads, activeLeadId, onSelect, hasNewMessage }: L
         </div>
       </div>
 
-      {/* Search — Wave G melhorado */}
+      {/* Search */}
       <div className="px-3 pb-3 flex-shrink-0">
         <div className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2">
           <Search size={14} className="text-white/40 flex-shrink-0" />
@@ -114,8 +112,9 @@ export function LeadsSidebar({ leads, activeLeadId, onSelect, hasNewMessage }: L
                 onClick={() => onSelect(lead.id)}
                 className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-all duration-150 border-l-2 cursor-pointer focus-visible:outline-none focus-visible:bg-white/10 ${
                   isActive
-                    ? 'bg-white/12 border-alliance-blue'
-                    : 'hover:bg-white/8 border-transparent'
+                    ? 'bg-white/[0.12] border-alliance-blue'
+                    // Corrigido: bg-white/[0.08] em vez de bg-white/8 (não gerado pelo Tailwind v4)
+                    : 'hover:bg-white/[0.08] border-transparent'
                 }`}
               >
                 {/* Avatar */}

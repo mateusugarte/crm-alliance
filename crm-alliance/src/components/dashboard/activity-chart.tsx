@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Chart as ChartJS,
@@ -11,6 +12,7 @@ import {
   Legend,
 } from 'chart.js'
 import { Bar } from 'react-chartjs-2'
+import { getAllianceBlue, getAllianceDark } from '@/lib/tokens'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
@@ -21,13 +23,22 @@ interface ActivityChartProps {
 }
 
 export function ActivityChart({ title, labels, data }: ActivityChartProps) {
+  // Lê os tokens de cor em runtime para respeitar dark mode e custom properties
+  const [blueColor, setBlueColor] = useState(getAllianceBlue())
+  const [darkColor, setDarkColor] = useState(getAllianceDark())
+
+  useEffect(() => {
+    setBlueColor(getAllianceBlue())
+    setDarkColor(getAllianceDark())
+  }, [])
+
   const chartData = {
     labels,
     datasets: [
       {
         data,
-        backgroundColor: '#1E90FF',
-        hoverBackgroundColor: '#0A2EAD',
+        backgroundColor: blueColor,
+        hoverBackgroundColor: darkColor,
         borderRadius: 8,
         borderSkipped: false,
       },
@@ -40,7 +51,7 @@ export function ActivityChart({ title, labels, data }: ActivityChartProps) {
       legend: { display: false },
       title: { display: false },
       tooltip: {
-        backgroundColor: '#0A2EAD',
+        backgroundColor: darkColor,
         titleColor: '#fff',
         bodyColor: '#fff',
         cornerRadius: 8,
@@ -51,6 +62,7 @@ export function ActivityChart({ title, labels, data }: ActivityChartProps) {
       x: {
         grid: { display: false },
         border: { display: false },
+        // Usa var CSS para compatibilidade com dark mode quando Chart.js re-renderiza
         ticks: { color: '#9CA3AF', font: { size: 12 } },
       },
       y: {
@@ -66,9 +78,10 @@ export function ActivityChart({ title, labels, data }: ActivityChartProps) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="bg-white rounded-2xl px-6 py-5 shadow-sm border border-gray-100"
+      className="bg-white rounded-2xl px-6 py-5 shadow-card"
     >
-      <h3 className="text-sm font-semibold text-alliance-dark uppercase tracking-wider mb-4">
+      {/* Título: escala semântica text-label */}
+      <h3 className="text-label text-alliance-dark uppercase tracking-widest mb-4">
         {title}
       </h3>
       <Bar data={chartData} options={options} />

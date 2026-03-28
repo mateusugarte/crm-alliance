@@ -40,11 +40,12 @@ export function MetricCard({ label, value, variant = 'default', icon }: MetricCa
       className={`rounded-2xl px-6 py-5 flex flex-col gap-3 ${
         variant === 'featured'
           ? 'bg-alliance-dark text-white'
-          : 'bg-white text-alliance-dark border border-gray-100 shadow-sm'
+          : 'bg-white text-alliance-dark shadow-card'
       }`}
     >
       <div className="flex items-center justify-between">
-        <span className={`text-xs font-semibold uppercase tracking-wider ${
+        {/* Label: escala semântica text-label */}
+        <span className={`text-label uppercase tracking-widest ${
           variant === 'featured' ? 'text-white/60' : 'text-gray-400'
         }`}>
           {label}
@@ -55,6 +56,7 @@ export function MetricCard({ label, value, variant = 'default', icon }: MetricCa
           </span>
         )}
       </div>
+      {/* tabular-nums garante que dígitos não "tremam" durante CountUp */}
       <span className={`text-4xl font-bold tabular-nums ${
         variant === 'featured' ? 'text-white' : 'text-alliance-dark'
       }`}>

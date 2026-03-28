@@ -19,15 +19,12 @@ const navItems = [
 
 export default function NavShell() {
   const pathname = usePathname()
-  // Wave H — badge numérico no ícone do Kanban quando lead muda de stage via Realtime
   const [kanbanBadge, setKanbanBadge] = useState(0)
-  // Wave H — pulsing dot na nav de Interacoes quando nova mensagem inbound chega
   const [interacoesDot, setInteracoesDot] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
 
-    // Canal para badge do Kanban (mudancas de stage)
     const kanbanChannel = supabase
       .channel('nav-leads-realtime')
       .on(
@@ -36,9 +33,7 @@ export default function NavShell() {
         (payload) => {
           const updated = payload.new as Lead
           const old = payload.old as Partial<Lead>
-          // Apenas mudanca de stage conta para o badge
           if (old.stage && updated.stage && old.stage !== updated.stage) {
-            // So incrementa se nao estiver na pagina do kanban
             if (!window.location.pathname.startsWith('/kanban')) {
               setKanbanBadge(n => n + 1)
             }
@@ -47,7 +42,6 @@ export default function NavShell() {
       )
       .subscribe()
 
-    // Canal para dot de Interacoes (mensagens inbound)
     const interacoesChannel = supabase
       .channel('nav-interactions-realtime')
       .on(
@@ -56,7 +50,6 @@ export default function NavShell() {
         (payload) => {
           const msg = payload.new as { direction: string }
           if (msg.direction === 'inbound') {
-            // So acende se nao estiver na pagina de interacoes
             if (!window.location.pathname.startsWith('/interacoes')) {
               setInteracoesDot(true)
             }
@@ -71,7 +64,6 @@ export default function NavShell() {
     }
   }, [])
 
-  // Limpar badge ao entrar na pagina correspondente
   useEffect(() => {
     if (pathname.startsWith('/kanban')) setKanbanBadge(0)
     if (pathname.startsWith('/interacoes')) setInteracoesDot(false)
@@ -112,22 +104,21 @@ export default function NavShell() {
                 'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
                 isActive
                   ? 'bg-white/15 text-white'
-                  : 'text-white/50 hover:text-white hover:bg-white/8'
+                  // Corrigido: bg-white/[0.08] é a sintaxe válida no Tailwind v4
+                  // bg-white/8 não é gerado por padrão (8 não é múltiplo de 5)
+                  : 'text-white/50 hover:text-white hover:bg-white/[0.08]'
               )}
             >
-              {/* Icone com badge numérico para Kanban */}
               <span className="relative flex-shrink-0">
                 <Icon
                   size={17}
                   className={isActive ? 'text-alliance-blue' : 'text-current'}
                 />
-                {/* Wave H — badge numérico no Kanban */}
                 {isKanban && kanbanBadge > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-3.5 bg-alliance-blue text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5 leading-none">
                     {kanbanBadge > 9 ? '9+' : kanbanBadge}
                   </span>
                 )}
-                {/* Wave H — pulsing dot na nav de Interacoes */}
                 {isInteracoes && interacoesDot && (
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-alliance-blue rounded-full animate-pulse" />
                 )}

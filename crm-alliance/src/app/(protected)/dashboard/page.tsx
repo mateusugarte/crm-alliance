@@ -61,7 +61,6 @@ async function getDashboardData(): Promise<DashboardResult> {
       disponiveis: leads.filter(l => l.stage === 'visita_confirmada' || l.stage === 'reuniao_agendada').length,
     }
 
-    // Chart data
     const now = new Date()
     const sevenDaysAgo = subDays(now, 6)
     const days = eachDayOfInterval({ start: sevenDaysAgo, end: now })
@@ -103,10 +102,12 @@ export default async function DashboardPage() {
       <PageTransition>
         <div className="px-8 py-7 flex flex-col gap-7">
           <div>
-            <p className="text-xs font-semibold text-alliance-blue/60 uppercase tracking-widest mb-1">
+            {/* Eyebrow: text-label semântico */}
+            <p className="text-label text-alliance-blue/60 uppercase tracking-widest mb-1">
               Bem-vindo de volta
             </p>
-            <h1 className="text-3xl font-bold text-alliance-dark">Dashboard</h1>
+            {/* Título de página: text-display semântico */}
+            <h1 className="text-display text-alliance-dark">Dashboard</h1>
           </div>
           <ErrorState
             title="Erro ao carregar metricas"
@@ -122,10 +123,12 @@ export default async function DashboardPage() {
       <div className="px-8 py-7 flex flex-col gap-7">
         {/* Header */}
         <div>
-          <p className="text-xs font-semibold text-alliance-blue/60 uppercase tracking-widest mb-1">
+          {/* Eyebrow: text-label semântico */}
+          <p className="text-label text-alliance-blue/60 uppercase tracking-widest mb-1">
             Bem-vindo de volta
           </p>
-          <h1 className="text-3xl font-bold text-alliance-dark">
+          {/* Título de página h1: text-display semântico */}
+          <h1 className="text-display text-alliance-dark">
             {result.userName}
           </h1>
         </div>

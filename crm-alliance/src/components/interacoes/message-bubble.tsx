@@ -17,10 +17,11 @@ export function MessageBubble({ message, isIA, consultantName }: MessageBubblePr
     return (
       <div className="flex justify-start">
         <div className="max-w-[75%]">
-          <div className="bg-alliance-blue text-white rounded-r-2xl rounded-tl-2xl px-4 py-2.5 text-sm leading-relaxed">
+          <div className="bg-alliance-blue text-white rounded-r-2xl rounded-tl-2xl px-4 py-2.5 text-body leading-relaxed">
             {message.content}
           </div>
-          <span className="text-xs text-gray-400 mt-1 block pl-1">{time}</span>
+          {/* timestamp: text-caption semântico */}
+          <span className="text-caption text-gray-400 mt-1 block pl-1">{time}</span>
         </div>
       </div>
     )
@@ -29,7 +30,8 @@ export function MessageBubble({ message, isIA, consultantName }: MessageBubblePr
   return (
     <div className="flex justify-end">
       <div className="max-w-[75%] flex flex-col items-end gap-1">
-        <div className="bg-white rounded-l-2xl rounded-tr-2xl px-4 py-2.5 text-sm shadow-sm leading-relaxed text-alliance-dark">
+        {/* shadow-card substitui shadow-sm */}
+        <div className="bg-white rounded-l-2xl rounded-tr-2xl px-4 py-2.5 text-body shadow-card leading-relaxed text-alliance-dark">
           {message.content}
         </div>
         {isIA ? (
@@ -37,9 +39,9 @@ export function MessageBubble({ message, isIA, consultantName }: MessageBubblePr
             <Bot size={10} /> agente de IA
           </span>
         ) : (
-          <span className="text-xs text-gray-500 font-medium">{consultantName ?? 'Consultor'}</span>
+          <span className="text-caption text-gray-500 font-medium">{consultantName ?? 'Consultor'}</span>
         )}
-        <span className="text-xs text-gray-400">{time}</span>
+        <span className="text-caption text-gray-400">{time}</span>
       </div>
     </div>
   )

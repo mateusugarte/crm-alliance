@@ -65,7 +65,8 @@ export default async function InteracoesPage() {
 
   if (!result.ok) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50">
+      // Usa token semântico bg-background em vez de bg-gray-50 hardcoded
+      <div className="h-screen flex items-center justify-center bg-background">
         <ErrorState
           title="Erro ao carregar conversas"
           description="Nao foi possivel conectar ao banco de dados. Recarregue a pagina para tentar novamente."
