@@ -13,12 +13,15 @@ interface KanbanColumnProps {
 
 export function KanbanColumn({ column, leads, onLeadClick }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
+  const Icon = column.icon
 
   return (
     <div
-      className={`bg-gray-50 rounded-2xl min-w-[260px] max-w-[260px] flex flex-col h-full transition-all duration-150 ${
-        isOver ? 'ring-2 ring-alliance-blue ring-inset bg-alliance-blue/5' : ''
-      }`}
+      className="rounded-2xl min-w-[260px] max-w-[260px] flex flex-col h-full transition-all duration-150"
+      style={{
+        backgroundColor: isOver ? column.color + '10' : '#F9FAFB',
+        outline: isOver ? `2px dashed ${column.color}` : undefined,
+      }}
     >
       {/* Header */}
       <div className="px-3 pt-3 pb-2 flex-shrink-0">
@@ -27,8 +30,11 @@ export function KanbanColumn({ column, leads, onLeadClick }: KanbanColumnProps) 
           style={{ backgroundColor: column.color + '18' }}
         >
           <div className="flex items-center gap-2">
-            <span>{column.icon}</span>
-            <span className="font-semibold text-xs text-gray-700 uppercase tracking-wider">
+            <Icon size={15} strokeWidth={2} style={{ color: column.color }} />
+            <span
+              className="font-semibold text-xs uppercase tracking-widest"
+              style={{ color: column.color }}
+            >
               {column.label}
             </span>
           </div>

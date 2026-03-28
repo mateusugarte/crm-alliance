@@ -1,16 +1,18 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { BedDouble, Bath, CheckCircle, XCircle, Maximize } from 'lucide-react'
+import { BedDouble, Bath, Eye, EyeOff, Maximize } from 'lucide-react'
 import { staggerItem } from '@/lib/animations'
 import { formatCurrency } from '@/lib/utils/format'
 import type { ImovelMock } from './imovel-data'
 
 interface ImovelCardProps {
   imovel: ImovelMock
+  isAdm?: boolean
+  onToggle?: (id: string) => void
 }
 
-export function ImovelCard({ imovel }: ImovelCardProps) {
+export function ImovelCard({ imovel, isAdm = false, onToggle }: ImovelCardProps) {
   return (
     <motion.div
       variants={staggerItem}
@@ -24,15 +26,29 @@ export function ImovelCard({ imovel }: ImovelCardProps) {
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-bold text-alliance-dark text-base leading-tight">{imovel.nome}</h3>
-          {imovel.disponivel ? (
-            <span className="inline-flex items-center gap-1 bg-green-50 text-green-600 border border-green-200 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0">
-              <CheckCircle size={11} /> Disponível
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 bg-red-50 text-red-500 border border-red-200 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0">
-              <XCircle size={11} /> Vendido
-            </span>
-          )}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {imovel.disponivel ? (
+              <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap">
+                <Eye size={11} /> Disponível
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 border border-gray-200 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap">
+                <EyeOff size={11} /> Indisponível
+              </span>
+            )}
+            {isAdm && onToggle && (
+              <button
+                onClick={() => onToggle(imovel.id)}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-0.5"
+                title={imovel.disponivel ? 'Marcar indisponível' : 'Marcar disponível'}
+              >
+                {imovel.disponivel
+                  ? <EyeOff size={14} />
+                  : <Eye size={14} />
+                }
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Metragem destaque */}

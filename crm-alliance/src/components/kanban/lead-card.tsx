@@ -1,13 +1,17 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import { useDraggable } from '@dnd-kit/core'
-import { PauseCircle, Bot, MapPin, Home } from 'lucide-react'
+import { Pause, Bot, MapPin, Home } from 'lucide-react'
 import type { Lead } from '@/lib/supabase/types'
 
 interface LeadCardProps {
   lead: Lead
   onClick: () => void
+}
+
+function formatPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '').replace(/^55/, '')
+  return digits.replace(/(\d{2})(\d{4,5})(\d{4})/, '($1) $2-$3')
 }
 
 export function LeadCard({ lead, onClick }: LeadCardProps) {
@@ -17,16 +21,26 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
   })
 
   const style = transform
-    ? { transform: `translate(${transform.x}px, ${transform.y}px)` }
+    ? {
+        transform: `translate(${transform.x}px, ${transform.y}px) rotate(1.5deg) scale(1.02)`,
+        boxShadow: '0 16px 32px rgba(0,0,0,0.16)',
+        zIndex: 50,
+        position: 'relative' as const,
+      }
     : undefined
 
+  const displayName = lead.name?.trim() || formatPhone(lead.phone) || 'Lead sem nome'
+
   return (
-    <motion.div
+    <div
       ref={setNodeRef}
       style={style}
-      whileDrag={{ scale: 1.03, boxShadow: '0 12px 32px rgba(10,46,173,0.15)' }}
-      className={`bg-white rounded-xl p-3.5 shadow-sm border border-gray-100 cursor-grab active:cursor-grabbing select-none transition-shadow hover:shadow-md ${
-        isDragging ? 'opacity-50 z-50 shadow-xl' : ''
+      className={`bg-white rounded-xl p-3.5 shadow-sm cursor-grab active:cursor-grabbing select-none transition-shadow hover:shadow-md ${
+        isDragging ? 'opacity-40' : ''
+      } ${
+        lead.automation_paused
+          ? 'border border-gray-100 border-l-4 border-l-orange-400'
+          : 'border border-gray-100'
       }`}
       {...attributes}
       {...listeners}
@@ -36,13 +50,16 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
       }}
     >
       <div className="flex flex-col gap-2">
-        {/* Nome + pausa */}
+        {/* Nome + badge pausado */}
         <div className="flex items-start justify-between gap-1">
           <span className="font-semibold text-sm text-alliance-dark leading-tight">
-            {lead.name}
+            {displayName}
           </span>
           {lead.automation_paused && (
-            <PauseCircle size={13} className="text-amber-500 flex-shrink-0 mt-0.5" />
+            <span className="inline-flex items-center gap-0.5 bg-orange-100 text-orange-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap">
+              <Pause size={9} />
+              pausado
+            </span>
           )}
         </div>
 
@@ -65,7 +82,7 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
         {/* Separator */}
         <div className="border-t border-gray-50" />
 
-        {/* Badge */}
+        {/* Badge IA / Consultor */}
         <div>
           {lead.assigned_to === null ? (
             <span className="inline-flex items-center gap-1 bg-alliance-dark text-white text-xs font-medium px-2 py-0.5 rounded-full">
@@ -78,6 +95,6 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
