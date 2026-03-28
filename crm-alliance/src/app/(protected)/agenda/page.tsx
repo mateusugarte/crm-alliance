@@ -1,4 +1,5 @@
 import PageTransition from '@/components/layout/page-transition'
+import { ErrorState } from '@/components/layout/error-state'
 import { AgendaClient } from '@/components/agenda/agenda-client'
 import type { MeetingWithLead } from '@/components/agenda/types'
 
@@ -8,15 +9,16 @@ interface LeadRow {
   phone: string
 }
 
-async function getAgendaData(): Promise<{
-  meetings: MeetingWithLead[]
-  leads: LeadRow[]
-}> {
+type AgendaResult =
+  | { ok: true; meetings: MeetingWithLead[]; leads: LeadRow[] }
+  | { ok: false }
+
+async function getAgendaData(): Promise<AgendaResult> {
   try {
     const { createClient } = await import('@/lib/supabase/server')
     const supabase = await createClient()
 
-    const [{ data: meetingData }, { data: leadsData }] = await Promise.all([
+    const [{ data: meetingData, error: mtgErr }, { data: leadsData, error: leadErr }] = await Promise.all([
       supabase
         .from('meetings')
         .select('id, datetime, lead_id, assigned_to')
@@ -27,9 +29,11 @@ async function getAgendaData(): Promise<{
         .order('name', { ascending: true }),
     ])
 
+    if (mtgErr || leadErr) return { ok: false }
+
     const leads = (leadsData as LeadRow[] | null) ?? []
 
-    if (!meetingData) return { meetings: [], leads }
+    if (!meetingData) return { ok: true, meetings: [], leads }
 
     const meetingRows = meetingData as { id: string; datetime: string; lead_id: string; assigned_to: string | null }[]
     const profileIds = [...new Set(meetingRows.map(m => m.assigned_to).filter((x): x is string => x !== null))]
@@ -52,25 +56,33 @@ async function getAgendaData(): Promise<{
       }
     })
 
-    return { meetings, leads }
+    return { ok: true, meetings, leads }
   } catch {
-    return { meetings: [], leads: [] }
+    return { ok: false }
   }
 }
 
 export default async function AgendaPage() {
-  const { meetings, leads } = await getAgendaData()
+  const result = await getAgendaData()
 
   return (
     <PageTransition>
       <div className="px-8 py-7 flex flex-col gap-6">
         <div>
           <p className="text-xs font-semibold text-alliance-blue/60 uppercase tracking-widest mb-1">
-            Reuniões
+            Reunioes
           </p>
           <h1 className="text-2xl font-bold text-alliance-dark">Agenda</h1>
         </div>
-        <AgendaClient meetings={meetings} leads={leads} />
+
+        {!result.ok ? (
+          <ErrorState
+            title="Erro ao carregar agenda"
+            description="Nao foi possivel buscar as reunioes. Recarregue a pagina para tentar novamente."
+          />
+        ) : (
+          <AgendaClient meetings={result.meetings} leads={result.leads} />
+        )}
       </div>
     </PageTransition>
   )

@@ -2,6 +2,7 @@
 
 import { useDraggable } from '@dnd-kit/core'
 import { Pause, Bot, MapPin, Home } from 'lucide-react'
+import { motion } from 'framer-motion'
 import type { Lead } from '@/lib/supabase/types'
 
 interface LeadCardProps {
@@ -32,16 +33,27 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
   const displayName = lead.name?.trim() || formatPhone(lead.phone) || 'Lead sem nome'
 
   return (
-    <div
+    <motion.div
       ref={setNodeRef}
       style={style}
-      className={`bg-white rounded-xl p-3.5 shadow-sm cursor-grab active:cursor-grabbing select-none transition-shadow hover:shadow-md ${
+      whileHover={{ y: -2, transition: { duration: 0.15 } }}
+      whileDrag={{ scale: 1.03, boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
+      className={`bg-white rounded-xl p-3.5 shadow-sm cursor-pointer active:cursor-grabbing select-none transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alliance-blue focus-visible:ring-offset-1 ${
         isDragging ? 'opacity-40' : ''
       } ${
         lead.automation_paused
           ? 'border border-gray-100 border-l-4 border-l-orange-400'
           : 'border border-gray-100'
       }`}
+      tabIndex={0}
+      role="button"
+      aria-label={`Ver detalhes de ${displayName}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick()
+        }
+      }}
       {...attributes}
       {...listeners}
       onClick={(e) => {
@@ -85,16 +97,16 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
         {/* Badge IA / Consultor */}
         <div>
           {lead.assigned_to === null ? (
-            <span className="inline-flex items-center gap-1 bg-alliance-dark text-white text-xs font-medium px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-1 bg-alliance-dark text-white text-xs font-medium px-2 py-0.5 rounded-full transition-colors duration-300">
               <Bot size={9} /> agente de IA
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full transition-colors duration-300">
               Consultor
             </span>
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

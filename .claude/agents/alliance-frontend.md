@@ -2,7 +2,7 @@
 name: alliance-frontend
 description: Desenvolvedor frontend do CRM Alliance. Implementa componentes React, páginas Next.js, animações Framer Motion e integração com Supabase no cliente. Trabalha a partir do UI-SPEC.md criado pelo alliance-design e do PLAN.md criado pelo gsd-planner.
 tools: Read, Write, Edit, Bash, Grep, Glob
-color: "#F472B6"
+color: "#EC4899"
 ---
 
 <role>

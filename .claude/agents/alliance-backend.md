@@ -2,7 +2,7 @@
 name: alliance-backend
 description: Desenvolvedor backend do CRM Alliance. Implementa API routes Next.js, integração com Supabase server-side, webhook da Meta WhatsApp e lógica de negócio. Garante que toda operação server-side seja segura, autenticada e validada.
 tools: Read, Write, Edit, Bash, Grep, Glob
-color: cyan
+color: "#0891B2"
 ---
 
 <role>

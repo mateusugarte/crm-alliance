@@ -16,11 +16,12 @@ import {
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus, Calendar } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { MeetingPill } from './meeting-pill'
 import { CreateMeetingDialog } from './create-meeting-dialog'
 import type { MeetingWithLead } from './types'
 
-const DAY_HEADERS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
+const DAY_HEADERS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom']
 
 interface Lead {
   id: string
@@ -82,7 +83,8 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
           <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-200 shadow-sm p-1">
             <button
               onClick={() => setCurrentDate(d => subMonths(d, 1))}
-              className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+              aria-label="Mes anterior"
+              className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alliance-blue"
             >
               <ChevronLeft size={18} className="text-alliance-dark" />
             </button>
@@ -91,32 +93,38 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
             </span>
             <button
               onClick={() => setCurrentDate(d => addMonths(d, 1))}
-              className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+              aria-label="Proximo mes"
+              className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alliance-blue"
             >
               <ChevronRight size={18} className="text-alliance-dark" />
             </button>
           </div>
 
-          {totalMeetingsThisMonth > 0 && (
+          {totalMeetingsThisMonth > 0 ? (
             <span className="flex items-center gap-1.5 text-xs font-medium text-gray-500 bg-white border border-gray-200 px-3 py-1.5 rounded-xl">
               <Calendar size={13} className="text-alliance-blue" />
-              {totalMeetingsThisMonth} reuniões
+              {totalMeetingsThisMonth} reunioes
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-xs font-medium text-gray-400 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl">
+              <Calendar size={13} className="text-gray-300" />
+              Nenhuma reuniao este mes
             </span>
           )}
         </div>
 
         <button
           onClick={() => setDialogOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-alliance-dark text-white text-sm font-semibold rounded-xl hover:bg-alliance-dark/90 transition-colors shadow-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-alliance-dark text-white text-sm font-semibold rounded-xl hover:bg-alliance-dark/90 transition-colors shadow-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alliance-blue focus-visible:ring-offset-2"
         >
           <Plus size={15} />
-          Nova Reunião
+          Nova Reuniao
         </button>
       </div>
 
-      {/* Calendário */}
+      {/* Calendario */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        {/* Cabeçalhos dos dias */}
+        {/* Cabecalhos dos dias */}
         <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50">
           {DAY_HEADERS.map(d => (
             <div key={d} className="py-3 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">
@@ -125,7 +133,7 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
           ))}
         </div>
 
-        {/* Células */}
+        {/* Celulas */}
         <div className="grid grid-cols-7">
           {days.map((day) => {
             const dayMeetings = meetingsForDay(day)
@@ -166,6 +174,23 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
             )
           })}
         </div>
+
+        {/* Empty state por mes — somente quando nenhuma reuniao existe no mes */}
+        {totalMeetingsThisMonth === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="border-t border-gray-50 py-6 text-center"
+          >
+            <p className="text-sm text-gray-400">Nenhuma reuniao agendada em {monthLabel}</p>
+            <button
+              onClick={() => setDialogOpen(true)}
+              className="mt-2 text-sm font-medium text-alliance-blue hover:text-alliance-dark transition-colors cursor-pointer"
+            >
+              Agendar primeira reuniao
+            </button>
+          </motion.div>
+        )}
       </div>
 
       <CreateMeetingDialog

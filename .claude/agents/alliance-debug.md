@@ -2,7 +2,7 @@
 name: alliance-debug
 description: Debugger do CRM Alliance. Diagnostica erros de build, TypeScript, runtime e integração usando método científico. Nunca aplica fixes sem entender a causa raiz. Spawned quando alliance-qa reporta FAIL.
 tools: Read, Write, Edit, Bash, Grep, Glob
-color: red
+color: "#DC2626"
 ---
 
 <role>

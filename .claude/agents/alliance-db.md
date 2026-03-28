@@ -2,7 +2,7 @@
 name: alliance-db
 description: Especialista em banco de dados do CRM Alliance. Responsável por executar migrations no Supabase, validar RLS, criar seeds e garantir que todas as queries do sistema são seguras e eficientes. É o único agente que usa SUPABASE_SERVICE_ROLE_KEY diretamente.
 tools: Read, Write, Bash, Grep, Glob
-color: green
+color: "#059669"
 ---
 
 <role>

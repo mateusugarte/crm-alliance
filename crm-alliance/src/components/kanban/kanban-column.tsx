@@ -1,7 +1,9 @@
 'use client'
 
 import { useDroppable } from '@dnd-kit/core'
+import { motion } from 'framer-motion'
 import { LeadCard } from './lead-card'
+import { staggerContainer, staggerItem } from '@/lib/animations'
 import type { KanbanColumnConfig } from './types'
 import type { Lead } from '@/lib/supabase/types'
 
@@ -19,7 +21,7 @@ export function KanbanColumn({ column, leads, onLeadClick }: KanbanColumnProps) 
     <div
       className="rounded-2xl min-w-[260px] max-w-[260px] flex flex-col h-full transition-all duration-150"
       style={{
-        backgroundColor: isOver ? column.color + '10' : '#F9FAFB',
+        backgroundColor: isOver ? column.color + '10' : '#E8E8E8',
         outline: isOver ? `2px dashed ${column.color}` : undefined,
       }}
     >
@@ -47,24 +49,28 @@ export function KanbanColumn({ column, leads, onLeadClick }: KanbanColumnProps) 
         </div>
       </div>
 
-      {/* Cards */}
-      <div
+      {/* Cards — staggerChildren ao carregar a coluna */}
+      <motion.div
         ref={setNodeRef}
+        variants={staggerContainer}
+        initial="initial"
+        animate="animate"
         className="flex flex-col gap-2 px-3 pb-3 overflow-y-auto flex-1"
       >
         {leads.map((lead) => (
-          <LeadCard
-            key={lead.id}
-            lead={lead}
-            onClick={() => onLeadClick(lead)}
-          />
+          <motion.div key={lead.id} variants={staggerItem}>
+            <LeadCard
+              lead={lead}
+              onClick={() => onLeadClick(lead)}
+            />
+          </motion.div>
         ))}
         {leads.length === 0 && (
-          <div className="text-center text-xs text-gray-400 py-10 border-2 border-dashed border-gray-200 rounded-xl">
+          <div className="text-center text-xs text-gray-400 py-10 border-2 border-dashed border-gray-300 rounded-xl">
             Arraste um lead aqui
           </div>
         )}
-      </div>
+      </motion.div>
     </div>
   )
 }

@@ -2,7 +2,7 @@
 name: alliance-architect
 description: Arquiteto do sistema CRM Alliance. Toma decisões de arquitetura antes de qualquer execução. Analisa o ROADMAP, o CLAUDE.md e o schema do banco, identifica riscos técnicos, dependências entre fases e propõe a estrutura de pastas e padrões que todos os outros agentes devem seguir.
 tools: Read, Write, Bash, Grep, Glob, WebSearch
-color: blue
+color: "#1D4ED8"
 ---
 
 <role>
