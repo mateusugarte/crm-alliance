@@ -1,0 +1,41 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/lib/supabase/types'
+
+type LeadUpdate = Database['public']['Tables']['leads']['Update']
+
+interface N8NPayload {
+  lead_id: string
+  stage?: string
+  summary?: string
+}
+
+export async function POST(request: NextRequest) {
+  const secret = process.env.N8N_WEBHOOK_SECRET
+  const incomingSecret = request.headers.get('x-webhook-secret')
+
+  if (secret && secret !== 'seu_secret_aleatorio_aqui' && incomingSecret !== secret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const body = await request.json() as N8NPayload
+
+  if (!body.lead_id) {
+    return NextResponse.json({ error: 'lead_id required' }, { status: 400 })
+  }
+
+  const supabase = await createClient()
+
+  const updates: LeadUpdate = { updated_at: new Date().toISOString() }
+  if (body.stage) updates['stage'] = body.stage as LeadUpdate['stage']
+  if (body.summary) updates['summary'] = body.summary
+
+  const { error } = await supabase
+    .from('leads')
+    .update(updates as never)
+    .eq('id', body.lead_id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  return NextResponse.json({ data: { updated: true } })
+}
