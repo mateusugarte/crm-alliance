@@ -25,7 +25,6 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
   const style = transform
     ? {
         transform: `translate(${transform.x}px, ${transform.y}px) rotate(1.5deg) scale(1.02)`,
-        // Usa token shadow-float para o card flutuando durante drag
         boxShadow: '0 16px 32px rgba(0,0,0,0.14), 0 4px 8px rgba(0,0,0,0.08)',
         zIndex: 50,
         position: 'relative' as const,
@@ -33,6 +32,7 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
     : undefined
 
   const displayName = lead.name?.trim() || formatPhone(lead.phone) || 'Lead sem nome'
+  const isPaused = !!lead.automation_paused
 
   return (
     <motion.div
@@ -40,15 +40,11 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
       style={style}
       whileHover={{ y: -2, transition: { duration: 0.15 } }}
       className={cn(
-        // Base: shadow-card, sem borda — sombra já delimita o card
-        'bg-white rounded-xl p-3.5 shadow-card cursor-pointer active:cursor-grabbing select-none',
+        'rounded-2xl shadow-card bg-white cursor-pointer active:cursor-grabbing select-none',
         'transition-shadow hover:shadow-elevated',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alliance-blue focus-visible:ring-offset-1',
         isDragging && 'opacity-40',
-        // Borda esquerda de destaque apenas quando pausado
-        // Declaramos border-l-[3px] e border-l-orange-400 sem border global
-        // para evitar conflito de cores entre lados
-        lead.automation_paused && 'border-l-[3px] border-l-orange-400'
+        isPaused && 'border-l-[3px] border-l-orange-400 pl-[calc(theme(spacing.4)-3px)]'
       )}
       aria-label={`Ver detalhes de ${displayName}`}
       onKeyDown={(e) => {
@@ -64,13 +60,13 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
         onClick()
       }}
     >
-      <div className="flex flex-col gap-2">
+      <div className={cn('flex flex-col gap-2', isPaused ? 'p-3.5' : 'p-3.5')}>
         {/* Nome + badge pausado */}
         <div className="flex items-start justify-between gap-1">
           <span className="font-semibold text-sm text-alliance-dark leading-tight">
             {displayName}
           </span>
-          {lead.automation_paused && (
+          {isPaused && (
             <span className="inline-flex items-center gap-0.5 bg-orange-100 text-orange-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap">
               <Pause size={9} />
               pausado

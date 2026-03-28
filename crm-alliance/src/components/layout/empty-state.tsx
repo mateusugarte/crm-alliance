@@ -19,7 +19,7 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
       className="flex flex-col items-center justify-center gap-4 py-20 px-8 text-center"
     >
       {icon && (
-        <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400">
+        <div className="w-16 h-16 rounded-2xl bg-alliance-blue/[0.06] flex items-center justify-center text-alliance-blue">
           {icon}
         </div>
       )}

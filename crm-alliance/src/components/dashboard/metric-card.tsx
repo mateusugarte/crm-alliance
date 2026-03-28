@@ -9,6 +9,7 @@ interface MetricCardProps {
   value: number
   variant?: 'featured' | 'default'
   icon?: React.ReactNode
+  delta?: number
 }
 
 function useCountUp(target: number, duration = 800) {
@@ -30,8 +31,13 @@ function useCountUp(target: number, duration = 800) {
   return count
 }
 
-export function MetricCard({ label, value, variant = 'default', icon }: MetricCardProps) {
+export function MetricCard({ label, value, variant = 'default', icon, delta }: MetricCardProps) {
   const count = useCountUp(value)
+
+  const isPositive = delta !== undefined && delta >= 0
+  const deltaColor = isPositive ? 'text-emerald-500' : 'text-red-500'
+  const deltaArrow = isPositive ? '↑' : '↓'
+  const deltaAbs = delta !== undefined ? Math.abs(delta) : 0
 
   return (
     <motion.div
@@ -56,12 +62,22 @@ export function MetricCard({ label, value, variant = 'default', icon }: MetricCa
           </span>
         )}
       </div>
-      {/* tabular-nums garante que dígitos não "tremam" durante CountUp */}
-      <span className={`text-4xl font-bold tabular-nums ${
-        variant === 'featured' ? 'text-white' : 'text-alliance-dark'
+
+      {/* Valor principal — featured usa text-display, default usa text-4xl */}
+      <span className={`font-bold tabular-nums ${
+        variant === 'featured'
+          ? 'text-display text-white'
+          : 'text-4xl text-alliance-dark'
       }`}>
         {count}
       </span>
+
+      {/* Delta percentual */}
+      {delta !== undefined && (
+        <span className={`text-caption ${deltaColor}`}>
+          {deltaArrow} {deltaAbs}% vs. semana passada
+        </span>
+      )}
     </motion.div>
   )
 }

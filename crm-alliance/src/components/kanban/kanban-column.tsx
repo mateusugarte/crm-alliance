@@ -11,18 +11,22 @@ import type { Lead } from '@/lib/supabase/types'
 interface KanbanColumnProps {
   column: KanbanColumnConfig
   leads: Lead[]
+  allLeads: Lead[]
   onLeadClick: (lead: Lead) => void
 }
 
-export function KanbanColumn({ column, leads, onLeadClick }: KanbanColumnProps) {
+export function KanbanColumn({ column, leads, allLeads, onLeadClick }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
   const Icon = column.icon
+
+  const total = allLeads.length
+  const count = leads.length
+  const progressPercent = total > 0 ? (count / total) * 100 : 0
 
   return (
     <div
       className="rounded-2xl min-w-[260px] max-w-[260px] flex flex-col h-full transition-all duration-150"
       style={{
-        // Usa token CSS alliance-col como fundo base em vez de hex hardcoded
         backgroundColor: isOver
           ? hexToRgba(column.color, 0.10)
           : 'var(--color-alliance-col)',
@@ -31,6 +35,17 @@ export function KanbanColumn({ column, leads, onLeadClick }: KanbanColumnProps) 
     >
       {/* Header */}
       <div className="px-3 pt-3 pb-2 flex-shrink-0">
+        {/* Barra de progresso horizontal no topo */}
+        <div className="h-[2px] w-full rounded-full bg-black/5 mb-2 overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{
+              width: `${progressPercent}%`,
+              backgroundColor: column.color,
+            }}
+          />
+        </div>
+
         <div
           className="rounded-xl px-3 py-2.5 flex items-center justify-between"
           style={{ backgroundColor: hexToRgba(column.color, 0.09) }}

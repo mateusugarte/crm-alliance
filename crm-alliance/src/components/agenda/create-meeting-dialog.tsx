@@ -6,7 +6,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CalendarDays } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { CalendarDays, ChevronsUpDown, Check } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface Lead {
   id: string
@@ -22,6 +32,8 @@ interface CreateMeetingDialogProps {
   onCreated: () => void
 }
 
+const LEAD_LISTBOX_ID = 'lead-combobox-listbox'
+
 export function CreateMeetingDialog({
   open,
   onClose,
@@ -30,10 +42,13 @@ export function CreateMeetingDialog({
   onCreated,
 }: CreateMeetingDialogProps) {
   const [leadId, setLeadId] = useState(prefillLeadId ?? '')
+  const [comboOpen, setComboOpen] = useState(false)
   const [dateStr, setDateStr] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"))
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const selectedLead = leads.find(l => l.id === leadId)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,6 +77,7 @@ export function CreateMeetingDialog({
       onCreated()
       onClose()
       setNotes('')
+      setLeadId('')
     } finally {
       setLoading(false)
     }
@@ -78,22 +94,66 @@ export function CreateMeetingDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-2">
+          {/* Combobox de Lead */}
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="lead">Lead</Label>
-            <select
-              id="lead"
-              value={leadId}
-              onChange={e => setLeadId(e.target.value)}
-              className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-alliance-blue"
-              required
-            >
-              <option value="">Selecionar lead...</option>
-              {leads.map(l => (
-                <option key={l.id} value={l.id}>
-                  {l.name} — {l.phone}
-                </option>
-              ))}
-            </select>
+            <Label htmlFor="lead-trigger">Lead</Label>
+            <Popover open={comboOpen} onOpenChange={setComboOpen}>
+              <PopoverTrigger
+                render={
+                  <button
+                    id="lead-trigger"
+                    type="button"
+                    role="combobox"
+                    aria-expanded={comboOpen}
+                    aria-haspopup="listbox"
+                    aria-controls={LEAD_LISTBOX_ID}
+                    className={cn(
+                      'flex h-10 w-full items-center justify-between rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-alliance-blue cursor-pointer',
+                      !selectedLead && 'text-muted-foreground'
+                    )}
+                  >
+                    {selectedLead
+                      ? `${selectedLead.name} — ${selectedLead.phone}`
+                      : 'Selecionar lead...'}
+                    <ChevronsUpDown size={14} className="opacity-50 flex-shrink-0 ml-2" />
+                  </button>
+                }
+              />
+              <PopoverContent
+                className="p-0 w-[var(--radix-popover-trigger-width)]"
+                align="start"
+                sideOffset={4}
+              >
+                <Command>
+                  <CommandInput placeholder="Buscar por nome..." />
+                  <CommandList id={LEAD_LISTBOX_ID}>
+                    <CommandEmpty>Nenhum lead encontrado.</CommandEmpty>
+                    <CommandGroup>
+                      {leads.map(l => (
+                        <CommandItem
+                          key={l.id}
+                          value={`${l.name} ${l.phone}`}
+                          onSelect={() => {
+                            setLeadId(l.id)
+                            setComboOpen(false)
+                          }}
+                        >
+                          <Check
+                            size={14}
+                            className={cn(
+                              'mr-2 flex-shrink-0',
+                              leadId === l.id ? 'opacity-100' : 'opacity-0'
+                            )}
+                          />
+                          <span className="font-medium">{l.name}</span>
+                          <span className="ml-1.5 text-gray-400 text-xs">{l.phone}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -134,7 +194,7 @@ export function CreateMeetingDialog({
             </Button>
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || !leadId}
               className="rounded-xl bg-alliance-dark hover:bg-alliance-dark/90"
             >
               {loading ? 'Criando...' : 'Criar Reunião'}

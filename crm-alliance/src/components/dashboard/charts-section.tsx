@@ -19,11 +19,13 @@ export function ChartsSection({ reunioes, leads }: ChartsSectionProps) {
         title="Reuniões (últimos 7 dias)"
         labels={reunioes.labels}
         data={reunioes.data}
+        variant="reunioes"
       />
       <ActivityChart
         title="Leads (últimos 7 dias)"
         labels={leads.labels}
         data={leads.data}
+        variant="leads"
       />
     </div>
   )

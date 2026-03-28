@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Send, Loader2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { format, isToday, isYesterday } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import { MessageBubble } from './message-bubble'
 import type { LeadWithLastInteraction } from './types'
 import type { Interaction } from '@/lib/supabase/types'
@@ -12,6 +14,31 @@ interface ChatAreaProps {
   lead: LeadWithLastInteraction
   onSend?: (text: string) => Promise<void>
   loading?: boolean
+}
+
+/** Formata a chave de data para agrupamento (yyyy-MM-dd) */
+function toDateKey(isoString: string): string {
+  return isoString.slice(0, 10)
+}
+
+/** Retorna o rótulo legível para o separador de data */
+function formatDateLabel(isoDateKey: string): string {
+  const date = new Date(isoDateKey + 'T12:00:00')
+  if (isToday(date)) return 'Hoje'
+  if (isYesterday(date)) return 'Ontem'
+  return format(date, 'dd MMM', { locale: ptBR })
+}
+
+/** Agrupa um array de Interaction por data (yyyy-MM-dd) */
+function groupMessagesByDate(messages: Interaction[]): Array<{ dateKey: string; messages: Interaction[] }> {
+  const map = new Map<string, Interaction[]>()
+  for (const msg of messages) {
+    const key = toDateKey(msg.created_at)
+    const group = map.get(key) ?? []
+    group.push(msg)
+    map.set(key, group)
+  }
+  return Array.from(map.entries()).map(([dateKey, msgs]) => ({ dateKey, messages: msgs }))
 }
 
 export function ChatArea({ messages, lead, onSend, loading }: ChatAreaProps) {
@@ -35,8 +62,11 @@ export function ChatArea({ messages, lead, onSend, loading }: ChatAreaProps) {
     }
   }
 
+  const groups = groupMessagesByDate(messages)
+  // Quando há consultor atribuído, exibir o nome do lead como remetente das mensagens outbound
+  const consultantName = lead.assigned_to !== null ? lead.name : undefined
+
   return (
-    // Usa token alliance-chat em vez de bg-[#CCCCCC] hardcoded
     <div className="flex-1 flex flex-col overflow-hidden bg-alliance-chat">
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-3">
@@ -50,7 +80,6 @@ export function ChatArea({ messages, lead, onSend, loading }: ChatAreaProps) {
         {!loading && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <div className="w-14 h-14 rounded-2xl bg-white shadow-card flex items-center justify-center">
-              {/* stroke usa currentColor via classe Tailwind em vez de hex inline */}
               <svg
                 width="28"
                 height="28"
@@ -68,17 +97,27 @@ export function ChatArea({ messages, lead, onSend, loading }: ChatAreaProps) {
           </div>
         )}
 
-        {!loading && messages.map(msg => (
-          <MessageBubble
-            key={msg.id}
-            message={msg}
-            isIA={lead.assigned_to === null}
-          />
+        {!loading && groups.map(({ dateKey, messages: groupMsgs }) => (
+          <div key={dateKey} className="flex flex-col gap-3">
+            {/* Separador de data */}
+            <div className="text-caption text-gray-400 text-center py-2">
+              {formatDateLabel(dateKey)}
+            </div>
+            {groupMsgs.map(msg => (
+              <MessageBubble
+                key={msg.id}
+                message={msg}
+                isIA={lead.assigned_to === null}
+                consultantName={consultantName}
+              />
+            ))}
+          </div>
         ))}
+
         <div ref={bottomRef} />
       </div>
 
-      {/* Input — so quando automacao pausada, com AnimatePresence */}
+      {/* Input — so quando automacao pausada */}
       <AnimatePresence>
         {lead.automation_paused && (
           <motion.div

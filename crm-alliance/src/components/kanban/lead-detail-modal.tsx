@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Phone, MapPin, Home, Target, MessageSquare, Bot, UserCheck, Pause, Play, Loader2, X } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { staggerContainer, staggerItem } from '@/lib/animations'
 import type { Lead } from '@/lib/supabase/types'
 
 const STAGE_LABELS: Record<Lead['stage'], string> = {
@@ -40,7 +42,6 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
   const [assumeLoading, setAssumeLoading] = useState(false)
   const [pauseLoading, setPauseLoading] = useState(false)
 
-  // Esc fecha o Sheet
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => {
@@ -50,7 +51,6 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
     return () => document.removeEventListener('keydown', handler)
   }, [open, onClose])
 
-  // Reset loading states quando modal fecha
   useEffect(() => {
     if (!open) {
       setAssumeLoading(false)
@@ -95,8 +95,7 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
         <SheetContent
           side="right"
           showCloseButton={false}
-          style={{ width: 480, maxWidth: 480 }}
-          className="p-0 overflow-y-auto flex flex-col gap-0"
+          className="p-0 overflow-y-auto flex flex-col gap-0 w-[480px] max-w-[calc(100vw-2rem)]"
         >
           {/* Header */}
           <div className="px-6 pt-6 pb-5 flex-shrink-0 bg-alliance-dark">
@@ -130,11 +129,15 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
             </div>
           </div>
 
-          {/* Body */}
-          <div className="flex flex-col gap-5 px-6 py-5 flex-1">
-
+          {/* Body com stagger de entrada */}
+          <motion.div
+            variants={staggerContainer}
+            initial="initial"
+            animate={open ? 'animate' : 'initial'}
+            className="flex flex-col gap-5 px-6 py-5 flex-1"
+          >
             {/* Secao 1: Informacoes */}
-            <section>
+            <motion.section variants={staggerItem}>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Informacoes</p>
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5">
@@ -148,12 +151,12 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
                   </div>
                 )}
               </div>
-            </section>
+            </motion.section>
 
             <div className="border-t border-gray-100" />
 
             {/* Secao 2: Qualificacao */}
-            <section>
+            <motion.section variants={staggerItem}>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Qualificacao</p>
               <div className="grid grid-cols-2 gap-2">
                 {lead.intention && (
@@ -174,12 +177,12 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
                   <p className="text-xs text-gray-400 col-span-2">Nenhuma qualificacao registrada.</p>
                 )}
               </div>
-            </section>
+            </motion.section>
 
             <div className="border-t border-gray-100" />
 
             {/* Secao 3: Automacao */}
-            <section>
+            <motion.section variants={staggerItem}>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Automacao</p>
               <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
                 <div>
@@ -221,12 +224,12 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
                   </TooltipContent>
                 </Tooltip>
               </div>
-            </section>
+            </motion.section>
 
             <div className="border-t border-gray-100" />
 
             {/* Secao 4: Resumo IA */}
-            <section>
+            <motion.section variants={staggerItem}>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Resumo da IA</p>
               <div className="bg-alliance-dark/5 border border-alliance-dark/10 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -237,12 +240,12 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
                   {lead.summary ?? 'Nenhum resumo disponivel ainda.'}
                 </p>
               </div>
-            </section>
+            </motion.section>
 
             <div className="border-t border-gray-100" />
 
             {/* Secao 5: Metricas */}
-            <section>
+            <motion.section variants={staggerItem}>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Metricas</p>
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-gray-50 rounded-xl px-4 py-3 text-center">
@@ -262,12 +265,12 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
                   <span className="text-xs text-gray-500">ha {tempoNoStage} no sistema</span>
                 </div>
               </div>
-            </section>
+            </motion.section>
 
             <div className="border-t border-gray-100" />
 
             {/* Secao 6: Acoes */}
-            <section className="pb-2">
+            <motion.section variants={staggerItem} className="pb-2">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Acoes</p>
               <div className="flex gap-2">
                 <Tooltip>
@@ -291,8 +294,8 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
                   <TooltipContent side="top">Atribuir este lead ao seu perfil</TooltipContent>
                 </Tooltip>
               </div>
-            </section>
-          </div>
+            </motion.section>
+          </motion.div>
         </SheetContent>
       </Sheet>
     </TooltipProvider>

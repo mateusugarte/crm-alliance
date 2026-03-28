@@ -22,7 +22,6 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
   const [search, setSearch] = useState('')
   const [consultorFilter, setConsultorFilter] = useState<ConsultorFilter>('todos')
   const [filterOpen, setFilterOpen] = useState(false)
-  // kanbanBadge: contagem de leads que mudaram de stage via Realtime nesta sessao
   const [realtimeBadge, setRealtimeBadge] = useState(0)
   const filterRef = useRef<HTMLDivElement>(null)
 
@@ -49,20 +48,16 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
             const updated = payload.new as Lead
             setLeads(prev => {
               const existing = prev.find(l => l.id === updated.id)
-              // Se mudou de stage, incrementar badge
               if (existing && existing.stage !== updated.stage) {
                 setRealtimeBadge(n => n + 1)
-                // Toast informando a mudança de stage via Realtime
                 const colLabel = KANBAN_COLUMNS.find(c => c.id === updated.stage)?.label ?? updated.stage
                 toast.info(`${updated.name} movido para ${colLabel}`, { duration: 3000 })
               }
-              // Se lead foi assumido por consultor via Realtime, notificar
               if (existing && !existing.assigned_to && updated.assigned_to) {
                 toast.info(`${updated.name} foi assumido por um consultor`, { duration: 3000 })
               }
               return prev.map(l => l.id === updated.id ? updated : l)
             })
-            // Se o lead selecionado foi atualizado via Realtime, manter em sincronia
             setSelectedLead(prev => prev?.id === updated.id ? updated : prev)
           } else if (payload.eventType === 'DELETE') {
             const deleted = payload.old as { id: string }
@@ -164,7 +159,6 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
     }
   }, [leads, selectedLead])
 
-  // Wave G — Filtro local por busca + consultor
   const filteredLeads = leads.filter(lead => {
     const matchSearch =
       search === '' ||
@@ -195,9 +189,8 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
 
   return (
     <>
-      {/* Wave G — Barra de busca + filtro por consultor */}
+      {/* Barra de busca + filtro */}
       <div className="flex items-center gap-3 mb-4">
-        {/* Search */}
         <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 flex-1 max-w-xs shadow-sm">
           <Search size={14} className="text-gray-400 flex-shrink-0" />
           <input
@@ -218,7 +211,6 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
           )}
         </div>
 
-        {/* Filtro por consultor */}
         <div className="relative" ref={filterRef}>
           <button
             onClick={() => setFilterOpen(v => !v)}
@@ -262,7 +254,6 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
           )}
         </div>
 
-        {/* Wave H — Badge numérico de mudancas Realtime */}
         {realtimeBadge > 0 && (
           <button
             onClick={() => setRealtimeBadge(0)}
@@ -276,7 +267,6 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
           </button>
         )}
 
-        {/* Contador de resultados filtrados */}
         {(search || consultorFilter !== 'todos') && (
           <span className="text-xs text-gray-400 ml-auto">
             {filteredLeads.length} lead{filteredLeads.length !== 1 ? 's' : ''} encontrado{filteredLeads.length !== 1 ? 's' : ''}
@@ -291,6 +281,7 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
               key={col.id}
               column={col}
               leads={leadsPerStage(col.id)}
+              allLeads={filteredLeads}
               onLeadClick={setSelectedLead}
             />
           ))}

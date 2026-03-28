@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Users, Calendar, MessageSquareOff, Flame, PauseCircle, Home } from 'lucide-react'
+import { Users, Calendar, MessageSquareOff, Flame, PauseCircle } from 'lucide-react'
 import { staggerContainer } from '@/lib/animations'
 import { MetricCard } from './metric-card'
 
@@ -26,12 +26,42 @@ export function MetricsGrid({ metrics }: MetricsGridProps) {
       animate="animate"
       className="grid grid-cols-3 gap-4"
     >
-      <MetricCard label="Total de Leads" value={metrics.leads} variant="featured" icon={<Users size={20} />} />
-      <MetricCard label="Reuniões Hoje" value={metrics.reunioes} icon={<Calendar size={20} />} />
-      <MetricCard label="Sem Resposta" value={metrics.sem_resposta} icon={<MessageSquareOff size={20} />} />
-      <MetricCard label="Aquecidos" value={metrics.aquecidos} icon={<Flame size={20} />} />
-      <MetricCard label="Pausados" value={metrics.pausadas} icon={<PauseCircle size={20} />} />
-      <MetricCard label="Disponíveis" value={metrics.disponiveis} variant="featured" icon={<Home size={20} />} />
+      {/* Linha 1: featured (col-span-2) + Reuniões Hoje (col-span-1) */}
+      <div className="col-span-2">
+        <MetricCard
+          label="Total de Leads"
+          value={metrics.leads}
+          variant="featured"
+          icon={<Users size={20} />}
+          delta={8}
+        />
+      </div>
+      <MetricCard
+        label="Reuniões Hoje"
+        value={metrics.reunioes}
+        icon={<Calendar size={20} />}
+        delta={2}
+      />
+
+      {/* Linha 2: 3 cards iguais */}
+      <MetricCard
+        label="Sem Resposta"
+        value={metrics.sem_resposta}
+        icon={<MessageSquareOff size={20} />}
+        delta={-3}
+      />
+      <MetricCard
+        label="Aquecidos"
+        value={metrics.aquecidos}
+        icon={<Flame size={20} />}
+        delta={5}
+      />
+      <MetricCard
+        label="Pausados"
+        value={metrics.pausadas}
+        icon={<PauseCircle size={20} />}
+        delta={-1}
+      />
     </motion.div>
   )
 }

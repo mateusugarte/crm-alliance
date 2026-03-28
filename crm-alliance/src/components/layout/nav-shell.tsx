@@ -21,9 +21,27 @@ export default function NavShell() {
   const pathname = usePathname()
   const [kanbanBadge, setKanbanBadge] = useState(0)
   const [interacoesDot, setInteracoesDot] = useState(false)
+  const [userInitial, setUserInitial] = useState<string>('?')
+  const [userName, setUserName] = useState<string>('')
 
   useEffect(() => {
     const supabase = createClient()
+
+    // Buscar dados do usuário logado
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase
+        .from('user_profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single()
+        .then(({ data }) => {
+          const profile = data as { full_name: string } | null
+          const name = profile?.full_name ?? user.email ?? ''
+          setUserName(name)
+          setUserInitial((name[0] ?? '?').toUpperCase())
+        })
+    })
 
     const kanbanChannel = supabase
       .channel('nav-leads-realtime')
@@ -90,7 +108,7 @@ export default function NavShell() {
       <div className="mx-4 border-t border-white/10 mb-3" />
 
       {/* Nav items */}
-      <nav className="flex-1 flex flex-col gap-1 px-3">
+      <nav className="flex-1 flex flex-col gap-1 px-3 relative">
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname.startsWith(href)
           const isKanban = href === '/kanban'
@@ -101,15 +119,31 @@ export default function NavShell() {
               key={href}
               href={href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
+                'relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150',
                 isActive
-                  ? 'bg-white/15 text-white'
-                  // Corrigido: bg-white/[0.08] é a sintaxe válida no Tailwind v4
-                  // bg-white/8 não é gerado por padrão (8 não é múltiplo de 5)
-                  : 'text-white/50 hover:text-white hover:bg-white/[0.08]'
+                  ? 'text-white'
+                  : 'text-white/50 hover:text-white'
               )}
             >
-              <span className="relative flex-shrink-0">
+              {/* Fundo animado do item ativo — desliza entre itens (padrão Linear) */}
+              {isActive && (
+                <motion.div
+                  layoutId="nav-active-bg"
+                  className="absolute inset-0 rounded-xl bg-white/15"
+                  transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                />
+              )}
+
+              {/* Indicador lateral animado */}
+              {isActive && (
+                <motion.div
+                  layoutId="nav-active-indicator"
+                  className="absolute left-0 w-0.5 h-5 bg-alliance-blue rounded-r-full"
+                  transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                />
+              )}
+
+              <span className="relative z-10 flex-shrink-0">
                 <Icon
                   size={17}
                   className={isActive ? 'text-alliance-blue' : 'text-current'}
@@ -124,22 +158,24 @@ export default function NavShell() {
                 )}
               </span>
 
-              {label}
-
-              {isActive && (
-                <motion.div
-                  layoutId="nav-active"
-                  className="absolute left-0 w-0.5 h-5 bg-alliance-blue rounded-r-full"
-                />
-              )}
+              <span className="relative z-10">{label}</span>
             </Link>
           )
         })}
       </nav>
 
-      {/* Bottom */}
-      <div className="px-5 pb-6 pt-3 border-t border-white/10 mt-3">
-        <p className="text-white/25 text-xs">CRM v1.0</p>
+      {/* Bottom — avatar do usuário logado */}
+      <div className="px-4 pb-5 pt-3 border-t border-white/10 mt-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-full bg-alliance-blue/20 text-alliance-blue flex items-center justify-center text-xs font-bold flex-shrink-0">
+            {userInitial}
+          </div>
+          {userName && (
+            <span className="text-white/60 text-xs font-medium truncate leading-tight">
+              {userName}
+            </span>
+          )}
+        </div>
       </div>
     </motion.aside>
   )

@@ -216,6 +216,25 @@
 }
 
 /* ---------------------------------------------------------------------------
+ * Scrollbar customizada global — tom Alliance Blue
+ * Webkit (Chrome, Edge, Safari). Firefox usa scrollbar-width: thin.
+ * ------------------------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in oklch, var(--color-alliance-blue) 30%, transparent);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklch, var(--color-alliance-blue) 50%, transparent);
+}
+
+/* ---------------------------------------------------------------------------
  * Utilitários tipográficos semânticos — aplicam font-size + line-height +
  * font-weight em uma única classe.
  * Tailwind v4 não gera automaticamente font-weight junto com font-size
