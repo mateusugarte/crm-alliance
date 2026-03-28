@@ -63,8 +63,13 @@ export default async function AgendaPage() {
 
   return (
     <PageTransition>
-      <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-bold text-alliance-dark">Agenda</h1>
+      <div className="px-8 py-7 flex flex-col gap-6">
+        <div>
+          <p className="text-xs font-semibold text-alliance-blue/60 uppercase tracking-widest mb-1">
+            Reuniões
+          </p>
+          <h1 className="text-2xl font-bold text-alliance-dark">Agenda</h1>
+        </div>
         <AgendaClient meetings={meetings} leads={leads} />
       </div>
     </PageTransition>

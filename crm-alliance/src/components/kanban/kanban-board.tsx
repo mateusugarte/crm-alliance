@@ -29,10 +29,8 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
     const lead = leads.find(l => l.id === leadId)
     if (!lead || lead.stage === newStage) return
 
-    // Optimistic update
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, stage: newStage } : l))
 
-    // Persist to API
     try {
       await fetch(`/api/leads/${leadId}/move-stage`, {
         method: 'PATCH',
@@ -40,7 +38,6 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
         body: JSON.stringify({ stage: newStage }),
       })
     } catch {
-      // Rollback on error
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, stage: lead.stage } : l))
     }
   }, [leads])
@@ -50,7 +47,7 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
   return (
     <>
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="flex gap-3 overflow-x-auto h-full pb-1">
           {KANBAN_COLUMNS.map((col) => (
             <KanbanColumn
               key={col.id}
@@ -66,12 +63,8 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
         lead={selectedLead}
         open={selectedLead !== null}
         onClose={() => setSelectedLead(null)}
-        onAssume={() => {
-          // US-021 — implementado no alliance-backend
-        }}
-        onTogglePause={() => {
-          // US-021 — implementado no alliance-backend
-        }}
+        onAssume={() => {}}
+        onTogglePause={() => {}}
       />
     </>
   )

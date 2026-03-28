@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Phone, MapPin, Home, Target, MessageSquare, Bot } from 'lucide-react'
+import { Phone, MapPin, Home, Target, MessageSquare, Bot, UserCheck, Pause, Play } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { modalAnimationProps } from '@/lib/animations'
 import type { Lead } from '@/lib/supabase/types'
@@ -44,81 +44,102 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
     addSuffix: false,
   })
 
+  const stageColor = STAGE_COLORS[lead.stage]
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md p-0 overflow-hidden gap-0">
         <motion.div {...modalAnimationProps}>
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-alliance-dark">
-              {lead.name}
-            </DialogTitle>
-            <span
-              className="inline-flex w-fit items-center px-2 py-0.5 rounded-full text-xs font-semibold text-white"
-              style={{ backgroundColor: STAGE_COLORS[lead.stage] }}
-            >
-              {STAGE_LABELS[lead.stage]}
-            </span>
-          </DialogHeader>
+          {/* Header colorido */}
+          <div
+            className="px-6 pt-6 pb-5"
+            style={{ background: `linear-gradient(135deg, ${stageColor}15, ${stageColor}05)` }}
+          >
+            <DialogHeader>
+              <div className="flex items-start justify-between gap-3">
+                <DialogTitle className="text-xl font-bold text-alliance-dark leading-tight">
+                  {lead.name}
+                </DialogTitle>
+                <span
+                  className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold text-white flex-shrink-0 mt-0.5"
+                  style={{ backgroundColor: stageColor }}
+                >
+                  {STAGE_LABELS[lead.stage]}
+                </span>
+              </div>
+            </DialogHeader>
+          </div>
 
-          <div className="flex flex-col gap-4 mt-4">
+          {/* Corpo */}
+          <div className="flex flex-col gap-5 px-6 pb-6 pt-4">
             {/* Info básica */}
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Phone size={14} className="text-alliance-blue" />
-                {lead.phone}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 rounded-xl px-3 py-2.5">
+                <Phone size={13} className="text-alliance-blue flex-shrink-0" />
+                <span className="truncate text-xs">{lead.phone}</span>
               </div>
               {lead.city && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <MapPin size={14} className="text-alliance-blue" />
-                  {lead.city}
+                <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 rounded-xl px-3 py-2.5">
+                  <MapPin size={13} className="text-alliance-blue flex-shrink-0" />
+                  <span className="truncate text-xs">{lead.city}</span>
                 </div>
               )}
               {lead.imovel_interesse && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Home size={14} className="text-alliance-blue" />
-                  {lead.imovel_interesse}
+                <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 rounded-xl px-3 py-2.5">
+                  <Home size={13} className="text-alliance-blue flex-shrink-0" />
+                  <span className="truncate text-xs">{lead.imovel_interesse}</span>
                 </div>
               )}
               {lead.intention && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Target size={14} className="text-alliance-blue" />
-                  Intenção: {lead.intention === 'morar' ? 'Morar' : 'Investir'}
+                <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 rounded-xl px-3 py-2.5">
+                  <Target size={13} className="text-alliance-blue flex-shrink-0" />
+                  <span className="truncate text-xs">
+                    {lead.intention === 'morar' ? 'Morar' : 'Investir'}
+                  </span>
                 </div>
               )}
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <MessageSquare size={14} className="text-alliance-blue" />
-                {lead.interaction_count} interações · há {tempoNoStage} no stage
+              <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 rounded-xl px-3 py-2.5 col-span-2">
+                <MessageSquare size={13} className="text-alliance-blue flex-shrink-0" />
+                <span className="text-xs">
+                  {lead.interaction_count} interações · há {tempoNoStage} neste estágio
+                </span>
               </div>
             </div>
 
             {/* Resumo IA */}
-            <div className="bg-gray-50 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Bot size={14} className="text-alliance-dark" />
-                <span className="text-xs font-semibold text-alliance-dark">Resumo da IA</span>
+            <div className="bg-alliance-dark/5 border border-alliance-dark/10 rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Bot size={13} className="text-alliance-dark" />
+                <span className="text-xs font-bold text-alliance-dark uppercase tracking-wider">
+                  Resumo da IA
+                </span>
               </div>
               <p className="text-xs text-gray-600 leading-relaxed">
                 {lead.summary ?? 'Nenhum resumo disponível ainda.'}
               </p>
             </div>
 
-            {/* Botões */}
+            {/* Botões de ação */}
             <div className="flex gap-2">
               <button
                 onClick={onAssume}
-                className="flex-1 bg-alliance-dark text-white text-sm font-semibold py-2 rounded-xl hover:bg-alliance-dark/90 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 bg-alliance-dark text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-alliance-dark/90 transition-colors"
               >
-                Assumir conversa
+                <UserCheck size={15} />
+                Assumir
               </button>
               <button
                 onClick={onTogglePause}
-                className={`flex-1 text-sm font-semibold py-2 rounded-xl border transition-colors ${
+                className={`flex-1 flex items-center justify-center gap-2 text-sm font-semibold py-2.5 rounded-xl border transition-colors ${
                   lead.automation_paused
-                    ? 'border-alliance-blue text-alliance-blue bg-alliance-blue/10'
-                    : 'border-gray-300 text-gray-600 hover:border-alliance-dark hover:text-alliance-dark'
+                    ? 'border-alliance-blue bg-alliance-blue/10 text-alliance-blue hover:bg-alliance-blue/15'
+                    : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                 }`}
               >
-                {lead.automation_paused ? 'Retomar automação' : 'Pausar automação'}
+                {lead.automation_paused
+                  ? <><Play size={15} /> Retomar IA</>
+                  : <><Pause size={15} /> Pausar IA</>
+                }
               </button>
             </div>
           </div>

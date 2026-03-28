@@ -56,10 +56,17 @@ export default async function DashboardPage() {
 
   return (
     <PageTransition>
-      <div className="flex flex-col gap-6">
-        <h1 className="text-3xl font-bold text-alliance-blue">
-          BEM-VINDO, {userName}!
-        </h1>
+      <div className="px-8 py-7 flex flex-col gap-7">
+        {/* Header */}
+        <div>
+          <p className="text-xs font-semibold text-alliance-blue/60 uppercase tracking-widest mb-1">
+            Bem-vindo de volta
+          </p>
+          <h1 className="text-3xl font-bold text-alliance-dark">
+            {userName}
+          </h1>
+        </div>
+
         <MetricsGrid metrics={metrics} />
         <ChartsSection />
       </div>

@@ -24,13 +24,13 @@ export function MetricsGrid({ metrics }: MetricsGridProps) {
       variants={staggerContainer}
       initial="initial"
       animate="animate"
-      className="grid grid-cols-2 gap-4"
+      className="grid grid-cols-3 gap-4"
     >
-      <MetricCard label="Leads" value={metrics.leads} variant="featured" icon={<Users size={20} />} />
-      <MetricCard label="Reuniões do dia" value={metrics.reunioes} icon={<Calendar size={20} />} />
-      <MetricCard label="Sem resposta" value={metrics.sem_resposta} icon={<MessageSquareOff size={20} />} />
+      <MetricCard label="Total de Leads" value={metrics.leads} variant="featured" icon={<Users size={20} />} />
+      <MetricCard label="Reuniões Hoje" value={metrics.reunioes} icon={<Calendar size={20} />} />
+      <MetricCard label="Sem Resposta" value={metrics.sem_resposta} icon={<MessageSquareOff size={20} />} />
       <MetricCard label="Aquecidos" value={metrics.aquecidos} icon={<Flame size={20} />} />
-      <MetricCard label="Pausadas" value={metrics.pausadas} icon={<PauseCircle size={20} />} />
+      <MetricCard label="Pausados" value={metrics.pausadas} icon={<PauseCircle size={20} />} />
       <MetricCard label="Disponíveis" value={metrics.disponiveis} variant="featured" icon={<Home size={20} />} />
     </motion.div>
   )

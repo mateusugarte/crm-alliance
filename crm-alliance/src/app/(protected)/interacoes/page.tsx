@@ -55,7 +55,7 @@ export default async function InteracoesPage() {
   const { leads, messages } = await getLeadsWithInteractions()
 
   return (
-    <div className="h-full -m-6">
+    <div className="h-screen flex flex-col overflow-hidden">
       <InteracoesClient leads={leads} initialMessages={messages} />
     </div>
   )

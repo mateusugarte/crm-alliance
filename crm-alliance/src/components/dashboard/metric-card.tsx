@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { staggerItem, cardHover } from '@/lib/animations'
+import { staggerItem } from '@/lib/animations'
 
 interface MetricCardProps {
   label: string
@@ -36,20 +36,30 @@ export function MetricCard({ label, value, variant = 'default', icon }: MetricCa
   return (
     <motion.div
       variants={staggerItem}
-      {...cardHover}
-      className={`rounded-2xl p-5 flex flex-col gap-2 ${
+      whileHover={{ y: -2, transition: { duration: 0.15 } }}
+      className={`rounded-2xl px-6 py-5 flex flex-col gap-3 ${
         variant === 'featured'
           ? 'bg-alliance-dark text-white'
-          : 'bg-alliance-card text-alliance-dark'
+          : 'bg-white text-alliance-dark border border-gray-100 shadow-sm'
       }`}
     >
       <div className="flex items-center justify-between">
-        <span className={`text-sm font-medium ${variant === 'featured' ? 'text-white/80' : 'text-gray-500'}`}>
+        <span className={`text-xs font-semibold uppercase tracking-wider ${
+          variant === 'featured' ? 'text-white/60' : 'text-gray-400'
+        }`}>
           {label}
         </span>
-        {icon && <span className="opacity-70">{icon}</span>}
+        {icon && (
+          <span className={variant === 'featured' ? 'text-alliance-blue' : 'text-alliance-blue/60'}>
+            {icon}
+          </span>
+        )}
       </div>
-      <span className="text-4xl font-bold">{count}</span>
+      <span className={`text-4xl font-bold tabular-nums ${
+        variant === 'featured' ? 'text-white' : 'text-alliance-dark'
+      }`}>
+        {count}
+      </span>
     </motion.div>
   )
 }

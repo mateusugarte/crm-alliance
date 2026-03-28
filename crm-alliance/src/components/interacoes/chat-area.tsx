@@ -27,11 +27,11 @@ export function ChatArea({ messages, lead, onSend }: ChatAreaProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-alliance-chat overflow-hidden">
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+    <div className="flex-1 flex flex-col overflow-hidden" style={{ background: '#F4F6F9' }}>
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-3">
         {messages.length === 0 && (
-          <div className="text-center text-gray-500 text-sm py-8">
+          <div className="text-center text-gray-400 text-sm py-16">
             Nenhuma mensagem ainda
           </div>
         )}
@@ -47,22 +47,22 @@ export function ChatArea({ messages, lead, onSend }: ChatAreaProps) {
 
       {/* Input — só quando automação pausada */}
       {lead.automation_paused && (
-        <div className="p-3 bg-white border-t border-gray-100">
-          <div className="flex items-center gap-2">
+        <div className="px-6 py-4 bg-white border-t border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-3">
             <input
               type="text"
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSend()}
               placeholder="Escreva uma mensagem..."
-              className="flex-1 bg-alliance-input rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-alliance-blue/50"
+              className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-alliance-blue/30 focus:border-alliance-blue transition"
             />
             <button
               onClick={handleSend}
               disabled={!input.trim()}
-              className="w-9 h-9 bg-alliance-blue text-white rounded-full flex items-center justify-center hover:bg-alliance-blue/90 disabled:opacity-40 transition-colors"
+              className="w-10 h-10 bg-alliance-blue text-white rounded-full flex items-center justify-center hover:bg-alliance-dark disabled:opacity-40 transition-colors flex-shrink-0"
             >
-              <Send size={16} />
+              <Send size={15} />
             </button>
           </div>
         </div>
