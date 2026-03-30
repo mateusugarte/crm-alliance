@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import type { Database } from '@/lib/supabase/types'
 
 type LeadUpdate = Database['public']['Tables']['leads']['Update']
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   const secret = process.env.N8N_WEBHOOK_SECRET
   const incomingSecret = request.headers.get('x-webhook-secret')
 
-  if (secret && secret !== 'seu_secret_aleatorio_aqui' && incomingSecret !== secret) {
+  if (secret && incomingSecret !== secret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'lead_id required' }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  // SERVICE_ROLE_KEY para bypass RLS — N8N atualiza leads independente de assigned_to
+  const supabase = createServiceClient()
 
   const updates: LeadUpdate = { updated_at: new Date().toISOString() }
   if (body.stage) updates['stage'] = body.stage as LeadUpdate['stage']
