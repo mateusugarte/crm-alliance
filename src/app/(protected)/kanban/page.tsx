@@ -1,23 +1,27 @@
 import { createClient } from '@/lib/supabase/server'
 import { KanbanBoard } from '@/components/kanban/kanban-board'
+import { KanbanPageHeader } from '@/components/kanban/kanban-page-header'
 import PageTransition from '@/components/layout/page-transition'
 import type { Lead } from '@/lib/supabase/types'
 
-async function getLeads(): Promise<Lead[]> {
+async function getLeadsAndUser(): Promise<{ leads: Lead[]; currentUserId: string }> {
   try {
     const supabase = await createClient()
-    const { data } = await supabase
-      .from('leads')
-      .select('*')
-      .order('updated_at', { ascending: false })
-    return data ?? []
+    const [leadsResult, userResult] = await Promise.all([
+      supabase.from('leads').select('*').order('updated_at', { ascending: false }),
+      supabase.auth.getUser(),
+    ])
+    return {
+      leads: leadsResult.data ?? [],
+      currentUserId: userResult.data.user?.id ?? '',
+    }
   } catch {
-    return []
+    return { leads: [], currentUserId: '' }
   }
 }
 
 export default async function KanbanPage() {
-  const leads = await getLeads()
+  const { leads, currentUserId } = await getLeadsAndUser()
 
   return (
     <PageTransition>
@@ -30,19 +34,12 @@ export default async function KanbanPage() {
             </p>
             <h1 className="text-2xl font-bold text-alliance-dark">Leads</h1>
           </div>
-          <div className="flex gap-2">
-            <button className="px-4 py-2 text-sm font-medium border border-gray-200 rounded-xl hover:border-alliance-dark hover:text-alliance-dark transition-colors bg-white">
-              Etiquetas
-            </button>
-            <button className="px-4 py-2 text-sm font-semibold bg-alliance-dark text-white rounded-xl hover:bg-alliance-dark/90 transition-colors">
-              + Novo Lead
-            </button>
-          </div>
+          <KanbanPageHeader />
         </div>
 
         {/* Board — horizontal scroll */}
         <div className="flex-1 overflow-hidden px-8 pb-6">
-          <KanbanBoard initialLeads={leads} />
+          <KanbanBoard initialLeads={leads} currentUserId={currentUserId} />
         </div>
       </div>
     </PageTransition>

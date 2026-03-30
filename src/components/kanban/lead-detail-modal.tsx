@@ -19,13 +19,13 @@ const STAGE_LABELS: Record<Lead['stage'], string> = {
 }
 
 const STAGE_COLORS: Record<Lead['stage'], string> = {
-  lead_frio: '#1E90FF',
-  lead_morno: '#FF8C00',
-  lead_quente: '#FF4500',
-  follow_up: '#9B59B6',
-  reuniao_agendada: '#228B22',
-  visita_confirmada: '#E67E22',
-  cliente: '#2ECC71',
+  lead_frio: 'var(--color-stage-frio)',
+  lead_morno: 'var(--color-stage-morno)',
+  lead_quente: 'var(--color-stage-quente)',
+  follow_up: 'var(--color-stage-follow-up)',
+  reuniao_agendada: 'var(--color-stage-reuniao)',
+  visita_confirmada: 'var(--color-stage-visita)',
+  cliente: 'var(--color-stage-cliente)',
 }
 
 interface LeadDetailModalProps {

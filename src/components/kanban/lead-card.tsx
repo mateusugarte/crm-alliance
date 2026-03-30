@@ -8,6 +8,7 @@ import type { Lead } from '@/lib/supabase/types'
 interface LeadCardProps {
   lead: Lead
   onClick: () => void
+  isOverlay?: boolean
 }
 
 function formatPhone(phone: string): string {
@@ -15,51 +16,65 @@ function formatPhone(phone: string): string {
   return digits.replace(/(\d{2})(\d{4,5})(\d{4})/, '($1) $2-$3')
 }
 
-export function LeadCard({ lead, onClick }: LeadCardProps) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+export function LeadCard({ lead, onClick, isOverlay = false }: LeadCardProps) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: lead.id,
     data: { lead },
+    disabled: isOverlay,
   })
-
-  const style = transform
-    ? {
-        transform: `translate(${transform.x}px, ${transform.y}px) rotate(1.5deg) scale(1.02)`,
-        boxShadow: '0 16px 32px rgba(0,0,0,0.16)',
-        zIndex: 50,
-        position: 'relative' as const,
-      }
-    : undefined
 
   const displayName = lead.name?.trim() || formatPhone(lead.phone) || 'Lead sem nome'
 
+  // Placeholder ghost que fica na coluna enquanto o DragOverlay segue o cursor
+  if (isDragging) {
+    return (
+      <div
+        ref={setNodeRef}
+        {...listeners}
+        className={`rounded-xl border-2 border-dashed ${
+          lead.automation_paused ? 'border-orange-200' : 'border-gray-200'
+        } bg-gray-50/60`}
+        style={{ minHeight: '88px' }}
+      />
+    )
+  }
+
+  const borderClass = lead.automation_paused
+    ? 'border border-gray-100 [border-left:4px_solid_theme(colors.orange.400)]'
+    : 'border border-gray-100'
+
+  const overlayStyle = isOverlay
+    ? {
+        transform: 'rotate(2deg)',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.18)',
+        cursor: 'grabbing' as const,
+        pointerEvents: 'none' as const,
+      }
+    : undefined
+
   return (
     <motion.div
-      ref={setNodeRef}
-      style={style}
-      whileHover={{ y: -2, transition: { duration: 0.15 } }}
-      whileDrag={{ scale: 1.03, boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
-      className={`bg-white rounded-xl p-3.5 shadow-sm cursor-pointer active:cursor-grabbing select-none transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alliance-blue focus-visible:ring-offset-1 ${
-        isDragging ? 'opacity-40' : ''
-      } ${
-        lead.automation_paused
-          ? 'border border-gray-100 border-l-4 border-l-orange-400'
-          : 'border border-gray-100'
-      }`}
-      tabIndex={0}
-      role="button"
-      aria-label={`Ver detalhes de ${displayName}`}
-      onKeyDown={(e) => {
+      ref={isOverlay ? undefined : setNodeRef}
+      style={overlayStyle}
+      whileHover={isOverlay ? undefined : { y: -2, transition: { duration: 0.15 } }}
+      className={`bg-white rounded-xl p-3.5 shadow-sm select-none
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alliance-blue focus-visible:ring-offset-1
+        ${isOverlay ? '' : 'cursor-pointer active:cursor-grabbing hover:shadow-md transition-shadow'}
+        ${borderClass}`}
+      tabIndex={isOverlay ? -1 : 0}
+      role={isOverlay ? undefined : 'button'}
+      aria-label={isOverlay ? undefined : `Ver detalhes de ${displayName}`}
+      onKeyDown={isOverlay ? undefined : (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           onClick()
         }
       }}
-      {...attributes}
-      {...listeners}
-      onClick={(e) => {
+      onClick={isOverlay ? undefined : (e) => {
         e.stopPropagation()
         onClick()
       }}
+      {...(isOverlay ? {} : { ...attributes, ...listeners })}
     >
       <div className="flex flex-col gap-2">
         {/* Nome + badge pausado */}
@@ -97,11 +112,11 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
         {/* Badge IA / Consultor */}
         <div>
           {lead.assigned_to === null ? (
-            <span className="inline-flex items-center gap-1 bg-alliance-dark text-white text-xs font-medium px-2 py-0.5 rounded-full transition-colors duration-300">
+            <span className="inline-flex items-center gap-1 bg-alliance-dark text-white text-xs font-medium px-2 py-0.5 rounded-full">
               <Bot size={9} /> agente de IA
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full transition-colors duration-300">
+            <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
               Consultor
             </span>
           )}

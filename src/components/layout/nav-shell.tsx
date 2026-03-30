@@ -46,10 +46,10 @@ export default function NavShell() {
               key={href}
               href={href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
+                'relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 overflow-hidden',
                 isActive
                   ? 'bg-white/15 text-white'
-                  : 'text-white/50 hover:text-white hover:bg-white/8'
+                  : 'text-white/50 hover:text-white/80 hover:bg-white/5'
               )}
             >
               <Icon
@@ -60,7 +60,7 @@ export default function NavShell() {
               {isActive && (
                 <motion.div
                   layoutId="nav-active"
-                  className="absolute left-0 w-0.5 h-5 bg-alliance-blue rounded-r-full"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-alliance-blue rounded-r-full"
                 />
               )}
             </Link>
@@ -68,9 +68,20 @@ export default function NavShell() {
         })}
       </nav>
 
-      {/* Bottom */}
-      <div className="px-5 pb-6 pt-3 border-t border-white/10 mt-3">
-        <p className="text-white/25 text-xs">CRM v1.0</p>
+      {/* Bottom — status online */}
+      <div className="px-4 pb-5 pt-3 border-t border-white/10 mt-3">
+        <div className="flex items-center gap-2.5">
+          <div className="relative flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-alliance-blue/20 text-alliance-blue flex items-center justify-center text-xs font-bold">
+              A
+            </div>
+            <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-400 rounded-full border-2 border-alliance-dark" />
+          </div>
+          <div className="min-w-0 flex flex-col">
+            <span className="text-white/80 text-xs font-semibold truncate leading-tight">Consultor</span>
+            <span className="text-white/30 text-[10px] leading-tight">Online</span>
+          </div>
+        </div>
       </div>
     </motion.aside>
   )
