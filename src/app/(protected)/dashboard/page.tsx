@@ -7,38 +7,56 @@ import { ptBR } from 'date-fns/locale'
 
 import type { Lead, UserProfile } from '@/lib/supabase/types'
 
+function getGreeting(): string {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Bom dia'
+  if (hour < 18) return 'Boa tarde'
+  return 'Boa noite'
+}
+
+function getFormattedDate(): string {
+  return format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })
+}
+
 async function getUserName(): Promise<string> {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return 'CORRETOR'
+    if (!user) return 'Corretor'
 
     const { data } = await supabase
       .from('user_profiles')
-      .select('*')
+      .select('full_name')
       .eq('id', user.id)
       .single()
 
-    const profile = data as UserProfile | null
-    return profile?.full_name?.toUpperCase() ?? 'CORRETOR'
+    const profile = data as Pick<UserProfile, 'full_name'> | null
+    if (profile?.full_name) {
+      const firstName = profile.full_name.split(' ')[0]
+      return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase()
+    }
+    return user.email?.split('@')[0] ?? 'Corretor'
   } catch {
-    return 'CORRETOR'
+    return 'Corretor'
   }
 }
 
 async function getMetrics() {
   try {
     const supabase = await createClient()
-    const { data } = await supabase.from('leads').select('*')
-    const leads = (data ?? []) as Lead[]
-
     const today = new Date().toISOString().split('T')[0]
-    const { data: mtgs } = await supabase
-      .from('meetings')
-      .select('id')
-      .gte('datetime', today)
-      .lt('datetime', today + 'T23:59:59')
-      .eq('status', 'scheduled')
+
+    const [{ data: leadsData }, { data: mtgs }] = await Promise.all([
+      supabase.from('leads').select('stage, interaction_count, automation_paused'),
+      supabase
+        .from('meetings')
+        .select('id')
+        .gte('datetime', today)
+        .lt('datetime', today + 'T23:59:59')
+        .eq('status', 'scheduled'),
+    ])
+
+    const leads = (leadsData ?? []) as Pick<Lead, 'stage' | 'interaction_count' | 'automation_paused'>[]
 
     return {
       leads: leads.length,
@@ -103,18 +121,34 @@ export default async function DashboardPage() {
     getChartData(),
   ])
 
+  const greeting = getGreeting()
+  const dateLabel = getFormattedDate()
+
   return (
     <PageTransition>
-      <div className="px-8 py-7 flex flex-col gap-7">
+      <div className="px-8 py-7 flex flex-col gap-7 min-h-full">
+
         {/* Header */}
-        <div>
-          <p className="text-xs font-semibold text-alliance-blue/60 uppercase tracking-widest mb-1">
-            Bem-vindo de volta
-          </p>
-          <h1 className="text-3xl font-bold text-alliance-dark">
-            {userName}
-          </h1>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
+              {greeting}
+            </p>
+            <h1 className="text-[1.75rem] font-bold text-gray-900 leading-tight">
+              {userName} <span className="text-gray-300">👋</span>
+            </h1>
+          </div>
+          <div className="text-right mt-1">
+            <p className="text-xs text-gray-400 capitalize">{dateLabel}</p>
+            <div className="flex items-center gap-1.5 justify-end mt-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+              <span className="text-[11px] text-gray-400 font-medium">Sistema online</span>
+            </div>
+          </div>
         </div>
+
+        {/* Divider */}
+        <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent -mt-3" />
 
         <MetricsGrid metrics={metrics} />
         <ChartsSection reunioes={chartData.reunioes} leads={chartData.leads} />

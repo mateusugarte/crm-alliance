@@ -109,7 +109,10 @@ export function KanbanBoard({ initialLeads, currentUserId }: KanbanBoardProps) {
     }
   }, [leads, currentUserId])
 
-  const leadsPerStage = (stage: KanbanStage) => leads.filter(l => l.stage === stage)
+  const leadsPerStage = useCallback(
+    (stage: KanbanStage) => leads.filter(l => l.stage === stage),
+    [leads]
+  )
 
   return (
     <>

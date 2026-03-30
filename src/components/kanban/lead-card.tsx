@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { Pause, Bot, MapPin, Home } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -16,7 +17,7 @@ function formatPhone(phone: string): string {
   return digits.replace(/(\d{2})(\d{4,5})(\d{4})/, '($1) $2-$3')
 }
 
-export function LeadCard({ lead, onClick, isOverlay = false }: LeadCardProps) {
+export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = false }: LeadCardProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: lead.id,
     data: { lead },
@@ -124,4 +125,4 @@ export function LeadCard({ lead, onClick, isOverlay = false }: LeadCardProps) {
       </div>
     </motion.div>
   )
-}
+})

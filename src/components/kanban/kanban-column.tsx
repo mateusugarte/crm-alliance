@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { LeadCard } from './lead-card'
 import type { KanbanColumnConfig } from './types'
@@ -11,7 +12,7 @@ interface KanbanColumnProps {
   onLeadClick: (lead: Lead) => void
 }
 
-export function KanbanColumn({ column, leads, onLeadClick }: KanbanColumnProps) {
+export const KanbanColumn = memo(function KanbanColumn({ column, leads, onLeadClick }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
   const Icon = column.icon
 
@@ -67,4 +68,4 @@ export function KanbanColumn({ column, leads, onLeadClick }: KanbanColumnProps) 
       </div>
     </div>
   )
-}
+})
