@@ -89,7 +89,7 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
   }
 
   return (
-    <TooltipProvider delayDuration={400}>
+    <TooltipProvider delay={400}>
       <Sheet open={open} onOpenChange={(o) => { if (!o) onClose() }}>
         <SheetContent
           side="right"
@@ -112,7 +112,7 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
                   {STAGE_LABELS[lead.stage]}
                 </span>
                 <Tooltip>
-                  <TooltipTrigger asChild>
+                  <TooltipTrigger render={
                     <button
                       onClick={onClose}
                       className="text-white/60 hover:text-white transition-colors p-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 cursor-pointer"
@@ -120,7 +120,7 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
                     >
                       <X size={16} />
                     </button>
-                  </TooltipTrigger>
+                  } />
                   <TooltipContent side="left">Fechar (Esc)</TooltipContent>
                 </Tooltip>
               </div>
@@ -190,7 +190,7 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
                   </p>
                 </div>
                 <Tooltip>
-                  <TooltipTrigger asChild>
+                  <TooltipTrigger render={
                     <button
                       onClick={handleTogglePause}
                       disabled={pauseLoading}
@@ -210,7 +210,7 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
                       )}
                       {lead.automation_paused ? 'Retomar' : 'Pausar'}
                     </button>
-                  </TooltipTrigger>
+                  } />
                   <TooltipContent side="top">
                     {lead.automation_paused ? 'Retomar respostas automáticas da IA' : 'Pausar respostas automáticas da IA'}
                   </TooltipContent>
@@ -266,7 +266,7 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Ações</p>
               <div className="flex gap-2">
                 <Tooltip>
-                  <TooltipTrigger asChild>
+                  <TooltipTrigger render={
                     <button
                       onClick={handleAssume}
                       disabled={assumeLoading}
@@ -280,7 +280,7 @@ export function LeadDetailModal({ lead, open, onClose, onAssume, onTogglePause }
                       )}
                       {assumeLoading ? 'Assumindo...' : 'Assumir conversa'}
                     </button>
-                  </TooltipTrigger>
+                  } />
                   <TooltipContent side="top">Atribuir este lead ao seu perfil</TooltipContent>
                 </Tooltip>
               </div>
