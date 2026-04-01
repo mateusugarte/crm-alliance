@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await supabase
     .from('labels')
-    .insert({ name: body.name.trim(), color: body.color ?? '#6366F1' } as never)
+    .insert({ name: body.name.trim(), color: body.color ?? '#6366F1', created_by: user.id } as never)
     .select('id, name, color')
     .single()
 
