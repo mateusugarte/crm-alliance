@@ -190,6 +190,36 @@ export interface Database {
         }
         Update: Partial<Database['public']['Tables']['imoveis']['Insert']>
       }
+      labels: {
+        Row: {
+          id: string
+          name: string
+          color: string
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          color?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['labels']['Insert']>
+      }
+      lead_labels: {
+        Row: {
+          lead_id: string
+          label_id: string
+          created_at: string
+        }
+        Insert: {
+          lead_id: string
+          label_id: string
+          created_at?: string
+        }
+        Update: never
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -205,3 +235,5 @@ export type Meeting = Database['public']['Tables']['meetings']['Row']
 export type Broadcast = Database['public']['Tables']['broadcasts']['Row']
 export type BroadcastNumber = Database['public']['Tables']['broadcast_numbers']['Row']
 export type Imovel = Database['public']['Tables']['imoveis']['Row']
+export type Label = Database['public']['Tables']['labels']['Row']
+export type LeadLabel = Database['public']['Tables']['lead_labels']['Row']

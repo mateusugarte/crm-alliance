@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { MetricsGrid } from '@/components/dashboard/metrics-grid'
 import { ChartsSection } from '@/components/dashboard/charts-section'
-import PageTransition from '@/components/layout/page-transition'
 import { format, subDays, eachDayOfInterval } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -125,8 +124,7 @@ export default async function DashboardPage() {
   const dateLabel = getFormattedDate()
 
   return (
-    <PageTransition>
-      <div className="px-8 py-7 flex flex-col gap-7 min-h-full">
+    <div className="px-8 py-7 flex flex-col gap-7 min-h-full">
 
         {/* Header */}
         <div className="flex items-start justify-between">
@@ -153,6 +151,5 @@ export default async function DashboardPage() {
         <MetricsGrid metrics={metrics} />
         <ChartsSection reunioes={chartData.reunioes} leads={chartData.leads} />
       </div>
-    </PageTransition>
   )
 }

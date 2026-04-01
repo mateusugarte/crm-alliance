@@ -151,6 +151,11 @@ export function KanbanBoard({ initialLeads, currentUserId }: KanbanBoardProps) {
         onClose={() => setSelectedLeadId(null)}
         onAssume={() => selectedLead && handleAssume(selectedLead.id)}
         onTogglePause={() => selectedLead && handleTogglePause(selectedLead.id)}
+        onLeadUpdated={(updated) => setLeads(prev => prev.map(l => l.id === updated.id ? updated : l))}
+        onLeadDeleted={(leadId) => {
+          setLeads(prev => prev.filter(l => l.id !== leadId))
+          setSelectedLeadId(null)
+        }}
       />
     </>
   )

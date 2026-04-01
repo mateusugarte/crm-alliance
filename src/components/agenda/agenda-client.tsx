@@ -17,7 +17,8 @@ import {
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus, Calendar } from 'lucide-react'
 import { MeetingPill } from './meeting-pill'
-import { CreateMeetingDialog } from './create-meeting-dialog'
+import { MeetingFormPanel } from './meeting-form-panel'
+import { MeetingDetailPanel } from './meeting-detail-panel'
 import type { MeetingWithLead } from './types'
 
 const DAY_HEADERS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
@@ -36,7 +37,11 @@ interface AgendaClientProps {
 export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [meetings, setMeetings] = useState(initialMeetings)
-  const [dialogOpen, setDialogOpen] = useState(false)
+
+  // Panel state
+  const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithLead | null>(null)
+  const [editingMeeting, setEditingMeeting] = useState<MeetingWithLead | null>(null)
+  const [formOpen, setFormOpen] = useState(false)
 
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
@@ -50,29 +55,40 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
   const monthLabel = format(currentDate, 'MMMM yyyy', { locale: ptBR })
     .replace(/^\w/, c => c.toUpperCase())
 
-  const handleMeetingCreated = async () => {
-    try {
-      const res = await fetch('/api/meetings')
-      if (res.ok) {
-        const json = await res.json() as { data: Array<{ id: string; datetime: string; lead_id: string; assigned_to: string | null }> }
-        const updated = json.data.map(m => ({
-          id: m.id,
-          datetime: m.datetime,
-          lead_name: leads.find(l => l.id === m.lead_id)?.name ?? 'Lead',
-          consultant_name: 'Consultor',
-          consultant_color: '#0A2EAD',
-        }))
-        setMeetings(updated)
-      }
-    } catch {
-      // Keep existing meetings on error
-    }
-  }
-
   const totalMeetingsThisMonth = meetings.filter(m => {
     const d = new Date(m.datetime)
     return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear()
   }).length
+
+  const handleSaved = (saved: MeetingWithLead) => {
+    if (editingMeeting) {
+      setMeetings(prev => prev.map(m => m.id === saved.id ? saved : m))
+    } else {
+      setMeetings(prev => [...prev, saved])
+    }
+    setFormOpen(false)
+    setEditingMeeting(null)
+  }
+
+  const handleEdit = () => {
+    setEditingMeeting(selectedMeeting)
+    setSelectedMeeting(null)
+    setFormOpen(true)
+  }
+
+  const handleDeleted = (meetingId: string) => {
+    setMeetings(prev => prev.filter(m => m.id !== meetingId))
+  }
+
+  const handleOpenNew = () => {
+    setEditingMeeting(null)
+    setFormOpen(true)
+  }
+
+  const handleCloseForm = () => {
+    setFormOpen(false)
+    setEditingMeeting(null)
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -82,7 +98,7 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
           <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-200 shadow-sm p-1">
             <button
               onClick={() => setCurrentDate(d => subMonths(d, 1))}
-              className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
             >
               <ChevronLeft size={18} className="text-alliance-dark" />
             </button>
@@ -91,7 +107,7 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
             </span>
             <button
               onClick={() => setCurrentDate(d => addMonths(d, 1))}
-              className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
             >
               <ChevronRight size={18} className="text-alliance-dark" />
             </button>
@@ -106,8 +122,8 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
         </div>
 
         <button
-          onClick={() => setDialogOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-alliance-dark text-white text-sm font-semibold rounded-xl hover:bg-alliance-dark/90 transition-colors shadow-sm"
+          onClick={handleOpenNew}
+          className="flex items-center gap-2 px-4 py-2 bg-alliance-dark text-white text-sm font-semibold rounded-xl hover:bg-alliance-dark/90 transition-colors shadow-sm cursor-pointer"
         >
           <Plus size={15} />
           Nova Reunião
@@ -154,7 +170,11 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
                 </div>
                 <div className="flex flex-col gap-0.5">
                   {dayMeetings.slice(0, 2).map(m => (
-                    <MeetingPill key={m.id} meeting={m} />
+                    <MeetingPill
+                      key={m.id}
+                      meeting={m}
+                      onClick={() => setSelectedMeeting(m)}
+                    />
                   ))}
                   {dayMeetings.length > 2 && (
                     <span className="text-xs text-alliance-blue font-medium pl-1 cursor-pointer hover:underline">
@@ -168,11 +188,22 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
         </div>
       </div>
 
-      <CreateMeetingDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+      {/* Painel de detalhes da reunião */}
+      <MeetingDetailPanel
+        meeting={selectedMeeting}
+        open={selectedMeeting !== null}
+        onClose={() => setSelectedMeeting(null)}
+        onEdit={handleEdit}
+        onDeleted={handleDeleted}
+      />
+
+      {/* Painel de criação/edição de reunião */}
+      <MeetingFormPanel
+        open={formOpen}
+        onClose={handleCloseForm}
         leads={leads}
-        onCreated={handleMeetingCreated}
+        editMeeting={editingMeeting ?? undefined}
+        onSaved={handleSaved}
       />
     </div>
   )

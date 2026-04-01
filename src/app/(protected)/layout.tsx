@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import NavShell from '@/components/layout/nav-shell'
+import { AnimatedLayout } from '@/components/layout/animated-layout'
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -12,7 +13,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     <div className="flex h-screen overflow-hidden bg-[#F4F5F7]">
       <NavShell userInitial={initial} userName={displayName} />
       <main className="flex-1 overflow-auto">
-        {children}
+        <AnimatedLayout>{children}</AnimatedLayout>
       </main>
     </div>
   )
