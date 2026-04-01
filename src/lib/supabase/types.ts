@@ -82,6 +82,8 @@ export interface Database {
           id: string
           lead_id: string
           direction: 'inbound' | 'outbound'
+          sender_type: 'lead' | 'bot' | 'corretor'
+          sender_name: string | null
           content: string
           wa_message_id: string | null
           created_at: string
@@ -90,6 +92,8 @@ export interface Database {
           id?: string
           lead_id: string
           direction: 'inbound' | 'outbound'
+          sender_type?: 'lead' | 'bot' | 'corretor'
+          sender_name?: string | null
           content: string
           wa_message_id?: string | null
           created_at?: string
@@ -237,6 +241,7 @@ export interface Database {
 export type UserProfile = Database['public']['Tables']['user_profiles']['Row']
 export type Lead = Database['public']['Tables']['leads']['Row']
 export type Interaction = Database['public']['Tables']['interactions']['Row']
+export type SenderType = Interaction['sender_type']
 export type Meeting = Database['public']['Tables']['meetings']['Row']
 export type Broadcast = Database['public']['Tables']['broadcasts']['Row']
 export type BroadcastNumber = Database['public']['Tables']['broadcast_numbers']['Row']

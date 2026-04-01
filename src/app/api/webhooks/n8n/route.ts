@@ -6,6 +6,8 @@ type LeadUpdate = Database['public']['Tables']['leads']['Update']
 
 interface N8NInteraction {
   direction: 'inbound' | 'outbound'
+  sender_type: 'lead' | 'bot' | 'corretor'
+  sender_name?: string   // ex: "IA Alliance" para bot, nome do corretor para corretor
   content: string
   wa_message_id?: string
 }
@@ -34,9 +36,9 @@ export async function POST(request: NextRequest) {
   // SERVICE_ROLE_KEY — bypassa RLS para operações do n8n
   const supabase = createServiceClient()
 
-  // ── Atualiza o lead (stage, summary, updated_at) ──────────────────────────
+  // ── Atualiza lead (stage, summary, updated_at) ────────────────────────────
   const updates: LeadUpdate = { updated_at: new Date().toISOString() }
-  if (body.stage) updates['stage'] = body.stage as LeadUpdate['stage']
+  if (body.stage)   updates['stage']   = body.stage as LeadUpdate['stage']
   if (body.summary) updates['summary'] = body.summary
 
   const { error: leadError } = await supabase
@@ -50,16 +52,16 @@ export async function POST(request: NextRequest) {
 
   // ── Insere interação se enviada ───────────────────────────────────────────
   if (body.interaction) {
-    const { direction, content, wa_message_id } = body.interaction
+    const { direction, sender_type, sender_name, content, wa_message_id } = body.interaction
 
-    if (!direction || !content?.trim()) {
+    if (!direction || !sender_type || !content?.trim()) {
       return NextResponse.json(
-        { error: 'interaction.direction e interaction.content são obrigatórios' },
+        { error: 'interaction.direction, sender_type e content são obrigatórios' },
         { status: 400 }
       )
     }
 
-    // Evita duplicata pelo wa_message_id (deduplicação)
+    // Deduplicação pelo wa_message_id
     if (wa_message_id) {
       const { data: existing } = await supabase
         .from('interactions')
@@ -75,9 +77,11 @@ export async function POST(request: NextRequest) {
     const { error: interactionError } = await supabase
       .from('interactions')
       .insert({
-        lead_id: body.lead_id,
+        lead_id:      body.lead_id,
         direction,
-        content: content.trim(),
+        sender_type,
+        sender_name:  sender_name ?? (sender_type === 'bot' ? 'IA Alliance' : null),
+        content:      content.trim(),
         wa_message_id: wa_message_id ?? null,
       } as never)
 
@@ -85,12 +89,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: interactionError.message }, { status: 500 })
     }
 
-    // Incrementa interaction_count apenas para mensagens inbound
-    if (direction === 'inbound') {
+    // Incrementa interaction_count apenas para mensagens do lead
+    if (sender_type === 'lead') {
       await supabase.rpc('increment_interaction_count', { lead_uuid: body.lead_id })
         .then(({ error }) => {
           if (error) {
-            // Fallback manual se a função RPC não existir
+            // Fallback manual enquanto a RPC não existe
             supabase
               .from('leads')
               .select('interaction_count')

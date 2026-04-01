@@ -26,6 +26,8 @@ interface Label {
 interface Interaction {
   id: string
   direction: 'inbound' | 'outbound'
+  sender_type: 'lead' | 'bot' | 'corretor'
+  sender_name: string | null
   content: string
   wa_message_id: string | null
   created_at: string
@@ -499,7 +501,7 @@ export function LeadDetailModal({
       const res = await fetch(`/api/leads/${lead.id}/interactions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ direction: 'outbound', content: text }),
+        body: JSON.stringify({ content: text }),
       })
       if (!res.ok) throw new Error()
       const json = await res.json() as { data: Interaction }
@@ -811,29 +813,46 @@ export function LeadDetailModal({
                       </div>
                     ) : (
                       interactions.map((msg) => {
-                        const isOutbound = msg.direction === 'outbound'
+                        const isLeft = msg.sender_type === 'lead'
                         const time = format(new Date(msg.created_at), 'HH:mm', { locale: ptBR })
+
+                        // Estilos por remetente
+                        const bubbleStyle = {
+                          lead:     'bg-white rounded-bl-sm',
+                          bot:      'bg-[#DCF8C6] rounded-br-sm',
+                          corretor: 'bg-[#D0E8FF] rounded-br-sm',
+                        }[msg.sender_type]
+
+                        const labelStyle = {
+                          lead:     'text-gray-500',
+                          bot:      'text-emerald-700',
+                          corretor: 'text-alliance-blue',
+                        }[msg.sender_type]
+
+                        const senderLabel = {
+                          lead:     displayName,
+                          bot:      msg.sender_name ?? 'IA Alliance',
+                          corretor: msg.sender_name ?? 'Corretor',
+                        }[msg.sender_type]
+
                         return (
                           <div
                             key={msg.id}
-                            className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}
+                            className={`flex ${isLeft ? 'justify-start' : 'justify-end'}`}
                           >
-                            <div
-                              className={`relative max-w-[78%] rounded-2xl px-3 py-2 shadow-sm ${
-                                isOutbound
-                                  ? 'bg-[#DCF8C6] rounded-br-sm'
-                                  : 'bg-white rounded-bl-sm'
-                              }`}
-                            >
-                              {!isOutbound && (
-                                <p className="text-[10px] font-bold text-alliance-blue mb-0.5">Lead</p>
-                              )}
-                              {isOutbound && (
-                                <p className="text-[10px] font-bold text-emerald-700 mb-0.5">Você / Bot</p>
-                              )}
+                            <div className={`relative max-w-[78%] rounded-2xl px-3 py-2 shadow-sm ${bubbleStyle}`}>
+                              {/* Remetente */}
+                              <div className={`flex items-center gap-1 mb-0.5 ${labelStyle}`}>
+                                {msg.sender_type === 'bot' && (
+                                  <Bot size={10} className="flex-shrink-0" />
+                                )}
+                                <p className="text-[10px] font-bold leading-none">{senderLabel}</p>
+                              </div>
+                              {/* Conteúdo */}
                               <p className="text-sm text-gray-800 leading-snug whitespace-pre-wrap break-words pr-8">
                                 {msg.content}
                               </p>
+                              {/* Hora */}
                               <span className="absolute bottom-1.5 right-2 text-[10px] text-gray-400 leading-none">
                                 {time}
                               </span>
