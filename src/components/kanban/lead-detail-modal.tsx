@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatPhone } from '@/lib/format-phone'
 import {
   Phone, MapPin, Home, Target, MessageSquare, Bot, UserCheck,
-  Pause, Play, Loader2, X, Pencil, Trash2, Plus, Tag,
+  Pause, Play, Loader2, X, Pencil, Trash2, Plus, Send,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
@@ -21,6 +21,14 @@ interface Label {
   id: string
   name: string
   color: string
+}
+
+interface Interaction {
+  id: string
+  direction: 'inbound' | 'outbound'
+  content: string
+  wa_message_id: string | null
+  created_at: string
 }
 
 interface LeadFull extends Lead {
@@ -331,6 +339,11 @@ export function LeadDetailModal({
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [fullLead, setFullLead] = useState<LeadFull | null>(null)
   const [fetchingFull, setFetchingFull] = useState(false)
+  const [interactions, setInteractions] = useState<Interaction[]>([])
+  const [fetchingInteractions, setFetchingInteractions] = useState(false)
+  const [newMessage, setNewMessage] = useState('')
+  const [sendingMessage, setSendingMessage] = useState(false)
+  const chatEndRef = useRef<HTMLDivElement>(null)
 
   // Edit form state
   const [editName, setEditName] = useState('')
@@ -352,6 +365,24 @@ export function LeadDetailModal({
       .finally(() => setFetchingFull(false))
   }, [open, lead])
 
+  // Fetch interactions when modal opens
+  useEffect(() => {
+    if (!open || !lead) return
+    setFetchingInteractions(true)
+    fetch(`/api/leads/${lead.id}/interactions`)
+      .then(r => r.json() as Promise<{ data: Interaction[] }>)
+      .then(json => setInteractions(json.data ?? []))
+      .catch(() => setInteractions([]))
+      .finally(() => setFetchingInteractions(false))
+  }, [open, lead])
+
+  // Auto-scroll chat to bottom when interactions load or a new one arrives
+  useEffect(() => {
+    if (interactions.length > 0) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [interactions])
+
   // Reset all state when modal closes or lead changes
   useEffect(() => {
     if (!open) {
@@ -360,6 +391,8 @@ export function LeadDetailModal({
       setEditMode(false)
       setSaveLoading(false)
       setFullLead(null)
+      setInteractions([])
+      setNewMessage('')
     }
   }, [open])
 
@@ -455,6 +488,27 @@ export function LeadDetailModal({
       toast.error('Erro ao excluir lead')
     } finally {
       setDeleteLoading(false)
+    }
+  }
+
+  const handleSendMessage = async () => {
+    const text = newMessage.trim()
+    if (!text || sendingMessage || !lead) return
+    setSendingMessage(true)
+    try {
+      const res = await fetch(`/api/leads/${lead.id}/interactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ direction: 'outbound', content: text }),
+      })
+      if (!res.ok) throw new Error()
+      const json = await res.json() as { data: Interaction }
+      setInteractions(prev => [...prev, json.data])
+      setNewMessage('')
+    } catch {
+      toast.error('Erro ao enviar mensagem')
+    } finally {
+      setSendingMessage(false)
     }
   }
 
@@ -739,7 +793,92 @@ export function LeadDetailModal({
 
               <div className="border-t border-gray-100" />
 
-              {/* Seção 7: Ações */}
+              {/* Seção 7: Conversas WhatsApp */}
+              <section>
+                <SectionTitle>Conversas</SectionTitle>
+
+                {/* Área de mensagens */}
+                <div className="flex flex-col rounded-2xl overflow-hidden border border-gray-100" style={{ backgroundColor: '#ECE5DD' }}>
+                  {/* Chat body */}
+                  <div className="flex flex-col gap-1.5 p-3 max-h-72 overflow-y-auto">
+                    {fetchingInteractions ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 size={16} className="animate-spin text-gray-400" />
+                      </div>
+                    ) : interactions.length === 0 ? (
+                      <div className="flex items-center justify-center py-8">
+                        <p className="text-xs text-gray-400">Nenhuma conversa registrada ainda.</p>
+                      </div>
+                    ) : (
+                      interactions.map((msg) => {
+                        const isOutbound = msg.direction === 'outbound'
+                        const time = format(new Date(msg.created_at), 'HH:mm', { locale: ptBR })
+                        return (
+                          <div
+                            key={msg.id}
+                            className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div
+                              className={`relative max-w-[78%] rounded-2xl px-3 py-2 shadow-sm ${
+                                isOutbound
+                                  ? 'bg-[#DCF8C6] rounded-br-sm'
+                                  : 'bg-white rounded-bl-sm'
+                              }`}
+                            >
+                              {!isOutbound && (
+                                <p className="text-[10px] font-bold text-alliance-blue mb-0.5">Lead</p>
+                              )}
+                              {isOutbound && (
+                                <p className="text-[10px] font-bold text-emerald-700 mb-0.5">Você / Bot</p>
+                              )}
+                              <p className="text-sm text-gray-800 leading-snug whitespace-pre-wrap break-words pr-8">
+                                {msg.content}
+                              </p>
+                              <span className="absolute bottom-1.5 right-2 text-[10px] text-gray-400 leading-none">
+                                {time}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
+                    <div ref={chatEndRef} />
+                  </div>
+
+                  {/* Input de nova mensagem */}
+                  <div className="flex items-end gap-2 px-3 py-2.5 bg-[#F0F0F0] border-t border-gray-200">
+                    <textarea
+                      value={newMessage}
+                      onChange={e => setNewMessage(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          handleSendMessage()
+                        }
+                      }}
+                      placeholder="Digite uma mensagem..."
+                      rows={1}
+                      className="flex-1 text-sm bg-white rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 border border-gray-200 leading-snug max-h-24 overflow-y-auto"
+                      style={{ lineHeight: '1.4' }}
+                    />
+                    <button
+                      onClick={handleSendMessage}
+                      disabled={!newMessage.trim() || sendingMessage}
+                      className="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-alliance-dark text-white rounded-full hover:bg-alliance-dark/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alliance-dark"
+                      aria-label="Enviar mensagem"
+                    >
+                      {sendingMessage
+                        ? <Loader2 size={15} className="animate-spin" />
+                        : <Send size={15} />
+                      }
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              <div className="border-t border-gray-100" />
+
+              {/* Seção 8: Ações */}
               <section className="pb-2">
                 <SectionTitle>Ações</SectionTitle>
 
