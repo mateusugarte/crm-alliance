@@ -2,6 +2,7 @@
 
 import { Bot, PauseCircle, Phone } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { formatPhone } from '@/lib/format-phone'
 import type { LeadWithLastInteraction } from './types'
 
 interface ChatHeaderProps {
@@ -21,7 +22,7 @@ export function ChatHeader({ lead }: ChatHeaderProps) {
             <h2 className="font-bold text-alliance-dark text-sm">{lead.name}</h2>
             <p className="text-gray-400 text-xs flex items-center gap-1">
               <Phone size={10} />
-              {lead.phone}
+              {formatPhone(lead.phone)}
             </p>
           </div>
         </div>

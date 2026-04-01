@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { Smile } from 'lucide-react'
 import { MetricsGrid } from '@/components/dashboard/metrics-grid'
 import { ChartsSection } from '@/components/dashboard/charts-section'
 import { format, subDays, eachDayOfInterval } from 'date-fns'
@@ -132,8 +133,9 @@ export default async function DashboardPage() {
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
               {greeting}
             </p>
-            <h1 className="text-[1.75rem] font-bold text-gray-900 leading-tight">
-              {userName} <span className="text-gray-300">👋</span>
+            <h1 className="text-[1.75rem] font-bold text-gray-900 leading-tight flex items-center gap-2.5">
+              {userName}
+              <Smile size={26} className="text-alliance-blue flex-shrink-0" strokeWidth={1.75} />
             </h1>
           </div>
           <div className="text-right mt-1">

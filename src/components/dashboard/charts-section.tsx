@@ -17,7 +17,7 @@ export function ChartsSection({ reunioes, leads }: ChartsSectionProps) {
         title="Reuniões — últimos 7 dias"
         labels={reunioes.labels}
         data={reunioes.data}
-        color="#9B59B6"
+        color="#0A2EAD"
       />
       <ActivityChart
         title="Leads — últimos 7 dias"

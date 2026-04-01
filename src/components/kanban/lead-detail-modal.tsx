@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatPhone } from '@/lib/format-phone'
 import {
   Phone, MapPin, Home, Target, MessageSquare, Bot, UserCheck,
   Pause, Play, Loader2, X, Pencil, Trash2, Plus, Tag,
@@ -473,7 +474,7 @@ export function LeadDetailModal({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <h2 className="text-xl font-bold text-white leading-tight truncate">{displayName}</h2>
-                <p className="text-white/60 text-xs mt-0.5">{displayLead.phone}</p>
+                <p className="text-white/60 text-xs mt-0.5">{formatPhone(displayLead.phone)}</p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
                 <span
@@ -558,7 +559,7 @@ export function LeadDetailModal({
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
-                    <InfoChip icon={<Phone size={13} className="text-alliance-blue flex-shrink-0" />} text={displayLead.phone} />
+                    <InfoChip icon={<Phone size={13} className="text-alliance-blue flex-shrink-0" />} text={formatPhone(displayLead.phone)} />
                     {displayLead.city && (
                       <InfoChip icon={<MapPin size={13} className="text-alliance-blue flex-shrink-0" />} text={displayLead.city} />
                     )}

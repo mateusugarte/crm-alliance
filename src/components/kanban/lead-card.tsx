@@ -5,16 +5,12 @@ import { useDraggable } from '@dnd-kit/core'
 import { Pause, Bot, MapPin, Home } from 'lucide-react'
 import { motion } from 'framer-motion'
 import type { Lead } from '@/lib/supabase/types'
+import { formatPhone } from '@/lib/format-phone'
 
 interface LeadCardProps {
   lead: Lead
   onClick: () => void
   isOverlay?: boolean
-}
-
-function formatPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, '').replace(/^55/, '')
-  return digits.replace(/(\d{2})(\d{4,5})(\d{4})/, '($1) $2-$3')
 }
 
 export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = false }: LeadCardProps) {
