@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { BedDouble, Bath, Eye, EyeOff, Maximize, Pencil, Trash2 } from 'lucide-react'
+import { BedDouble, Bath, Eye, EyeOff, Maximize, Pencil, Trash2, Layers } from 'lucide-react'
 import { staggerItem } from '@/lib/animations'
 import { formatCurrency } from '@/lib/utils/format'
 import type { Imovel } from '@/lib/supabase/types'
@@ -27,7 +27,20 @@ export function ImovelCard({ imovel, isAdm = false, onToggle, onEdit, onDelete }
       <div className="p-5 flex flex-col gap-4 flex-1">
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-bold text-alliance-dark text-base leading-tight">{imovel.nome}</h3>
+          <div className="min-w-0">
+            <h3 className="font-bold text-alliance-dark text-base leading-tight">{imovel.nome}</h3>
+            <div className="flex items-center gap-1.5 mt-1">
+              <Layers size={11} className="text-gray-400 flex-shrink-0" />
+              <span className="text-xs text-gray-400">
+                {imovel.pavimento === 9 ? 'Cobertura' : `${imovel.pavimento}° Pavimento`}
+              </span>
+              {imovel.cobertura && (
+                <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-md">
+                  COB
+                </span>
+              )}
+            </div>
+          </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {imovel.disponivel ? (
               <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap">

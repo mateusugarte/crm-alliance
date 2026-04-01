@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Building2, X, Plus, Loader2 } from 'lucide-react'
+import { Building2, X, Plus, Loader2, Layers } from 'lucide-react'
 import { toast } from 'sonner'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
@@ -15,6 +15,34 @@ interface ImovelFormPanelProps {
   imovel?: Imovel
   isAdm: boolean
   onSaved: (imovel: Imovel) => void
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const PAVIMENTOS = Array.from({ length: 9 }, (_, i) => i + 1)
+
+/** Unidades disponíveis por pavimento */
+function getUnidades(pavimento: number): { value: number; label: string }[] {
+  if (pavimento === 9) {
+    return [
+      { value: 1, label: 'COB 1' },
+      { value: 2, label: 'COB 2' },
+    ]
+  }
+  return [
+    { value: 1, label: 'Apto 01' },
+    { value: 2, label: 'Apto 02' },
+    { value: 3, label: 'Apto 03' },
+    { value: 4, label: 'Apto 04' },
+  ]
+}
+
+/** Gera o nome de exibição com base em pavimento + unidade */
+function gerarNome(pavimento: number, numeroUnidade: number): string {
+  if (pavimento === 9) {
+    return `COB ${numeroUnidade}`
+  }
+  return `Apto 0${numeroUnidade}`
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -70,8 +98,12 @@ function TextInput({
 export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: ImovelFormPanelProps) {
   const isEdit = imovel !== undefined
 
-  // ── Form state ──
-  const [nome, setNome] = useState('')
+  // ── Pavimento / unidade ──
+  const [pavimento, setPavimento] = useState(1)
+  const [numeroUnidade, setNumeroUnidade] = useState(1)
+  const cobertura = pavimento === 9
+
+  // ── Demais campos ──
   const [metragem, setMetragem] = useState('')
   const [quartos, setQuartos] = useState('')
   const [suites, setSuites] = useState('')
@@ -87,7 +119,8 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
   // Populate fields when editing
   useEffect(() => {
     if (open && imovel) {
-      setNome(imovel.nome)
+      setPavimento(imovel.pavimento ?? 1)
+      setNumeroUnidade(imovel.numero_unidade ?? 1)
       setMetragem(String(imovel.metragem))
       setQuartos(String(imovel.quartos))
       setSuites(String(imovel.suites))
@@ -96,7 +129,8 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
       setDiferenciais(imovel.diferenciais ?? [])
       setDisponivel(imovel.disponivel)
     } else if (open && !imovel) {
-      setNome('')
+      setPavimento(1)
+      setNumeroUnidade(1)
       setMetragem('')
       setQuartos('')
       setSuites('')
@@ -107,6 +141,12 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
     }
     setNovoD('')
   }, [open, imovel])
+
+  // Quando pavimento muda, reseta unidade para 1 (válida em ambos os casos)
+  const handlePavimentoChange = (pav: number) => {
+    setPavimento(pav)
+    setNumeroUnidade(1)
+  }
 
   // ── Diferencial handlers ──
   const handleAddD = () => {
@@ -130,29 +170,21 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
 
   // ── Submit ──
   const handleSave = async () => {
-    if (!nome.trim()) {
-      toast.error('O nome do imóvel é obrigatório.')
-      return
-    }
     const metNum = parseFloat(metragem)
     const qtosNum = parseInt(quartos, 10)
     const suitesNum = parseInt(suites, 10)
 
-    if (isNaN(metNum) || metNum <= 0) {
-      toast.error('Informe uma metragem válida.')
-      return
-    }
-    if (isNaN(qtosNum) || qtosNum < 0) {
-      toast.error('Informe um número de quartos válido.')
-      return
-    }
-    if (isNaN(suitesNum) || suitesNum < 0) {
-      toast.error('Informe um número de suítes válido.')
-      return
-    }
+    if (isNaN(metNum) || metNum <= 0) { toast.error('Informe uma metragem válida.'); return }
+    if (isNaN(qtosNum) || qtosNum < 0) { toast.error('Informe um número de quartos válido.'); return }
+    if (isNaN(suitesNum) || suitesNum < 0) { toast.error('Informe um número de suítes válido.'); return }
+
+    const nome = gerarNome(pavimento, numeroUnidade)
 
     const payload = {
-      nome: nome.trim(),
+      nome,
+      pavimento,
+      numero_unidade: numeroUnidade,
+      cobertura,
       metragem: metNum,
       quartos: qtosNum,
       suites: suitesNum,
@@ -182,12 +214,14 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
       toast.success(isEdit ? 'Imóvel atualizado com sucesso.' : 'Imóvel criado com sucesso.')
       onSaved(json.data)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao salvar imóvel.'
-      toast.error(message)
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar imóvel.')
     } finally {
       setSaving(false)
     }
   }
+
+  const unidades = getUnidades(pavimento)
+  const nomePreview = gerarNome(pavimento, numeroUnidade)
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
@@ -206,9 +240,14 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
         >
           <div className="flex items-center gap-3 min-w-0">
             <Building2 size={20} className="text-white/80 flex-shrink-0" />
-            <h2 className="text-lg font-bold text-white leading-tight">
-              {isEdit ? 'Editar Imóvel' : 'Novo Imóvel'}
-            </h2>
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-white leading-tight">
+                {isEdit ? 'Editar Imóvel' : 'Novo Imóvel'}
+              </h2>
+              {nomePreview && (
+                <p className="text-white/50 text-xs mt-0.5">{nomePreview}</p>
+              )}
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -222,16 +261,56 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
         {/* Body */}
         <div className="flex-1 overflow-y-auto flex flex-col">
 
-          {/* Seção 1 — Identificação */}
+          {/* Seção 1 — Localização */}
           <div className="px-6 py-5 border-b border-gray-100">
-            <SectionTitle>Identificação</SectionTitle>
-            <div>
-              <FieldLabel required>Nome</FieldLabel>
-              <TextInput
-                value={nome}
-                onChange={setNome}
-                placeholder="Ex: Apartamento 05, Cobertura 03"
-              />
+            <SectionTitle>Localização</SectionTitle>
+
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              {/* Pavimento */}
+              <div>
+                <FieldLabel required>Pavimento</FieldLabel>
+                <select
+                  value={pavimento}
+                  onChange={(e) => handlePavimentoChange(Number(e.target.value))}
+                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-white transition-colors"
+                >
+                  {PAVIMENTOS.map((p) => (
+                    <option key={p} value={p}>
+                      {p === 9 ? 'Cobertura (9°)' : `${p}° Pavimento`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Unidade */}
+              <div>
+                <FieldLabel required>Unidade</FieldLabel>
+                <select
+                  value={numeroUnidade}
+                  onChange={(e) => setNumeroUnidade(Number(e.target.value))}
+                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-white transition-colors"
+                >
+                  {unidades.map((u) => (
+                    <option key={u.value} value={u.value}>{u.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Preview do nome + badge cobertura */}
+            <div className={cn(
+              'flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold',
+              cobertura
+                ? 'bg-amber-50 border-amber-200 text-amber-800'
+                : 'bg-alliance-blue/5 border-alliance-blue/20 text-alliance-dark'
+            )}>
+              <Layers size={14} className="flex-shrink-0" />
+              <span>{nomePreview}</span>
+              {cobertura && (
+                <span className="ml-auto text-xs font-bold bg-amber-200/60 text-amber-800 px-2 py-0.5 rounded-lg">
+                  Cobertura
+                </span>
+              )}
             </div>
           </div>
 

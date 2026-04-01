@@ -176,6 +176,9 @@ export interface Database {
           valor_min: number | null
           valor_max: number | null
           disponivel: boolean
+          pavimento: number
+          numero_unidade: number
+          cobertura: boolean
         }
         Insert: {
           id: string
@@ -187,6 +190,9 @@ export interface Database {
           valor_min?: number | null
           valor_max?: number | null
           disponivel?: boolean
+          pavimento?: number
+          numero_unidade?: number
+          cobertura?: boolean
         }
         Update: Partial<Database['public']['Tables']['imoveis']['Insert']>
       }

@@ -51,6 +51,9 @@ export async function POST(request: NextRequest) {
     valor_min: body.valor_min ?? null,
     valor_max: body.valor_max ?? null,
     disponivel: body.disponivel ?? true,
+    pavimento: body.pavimento ?? 1,
+    numero_unidade: body.numero_unidade ?? 1,
+    cobertura: body.cobertura ?? false,
   }
 
   const { data, error } = await supabase

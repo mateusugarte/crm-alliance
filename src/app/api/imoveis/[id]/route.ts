@@ -36,6 +36,9 @@ export async function PUT(
     ...(body.valor_min !== undefined && { valor_min: body.valor_min }),
     ...(body.valor_max !== undefined && { valor_max: body.valor_max }),
     ...(body.disponivel !== undefined && { disponivel: body.disponivel }),
+    ...(body.pavimento !== undefined && { pavimento: body.pavimento }),
+    ...(body.numero_unidade !== undefined && { numero_unidade: body.numero_unidade }),
+    ...(body.cobertura !== undefined && { cobertura: body.cobertura }),
   }
 
   const { data, error } = await supabase
