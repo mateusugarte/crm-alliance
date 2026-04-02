@@ -10,9 +10,10 @@ interface LeadsSidebarProps {
   leads: LeadWithLastInteraction[]
   activeLeadId: string | null
   onSelect: (id: string) => void
+  unreadCounts: Record<string, number>
 }
 
-export function LeadsSidebar({ leads, activeLeadId, onSelect }: LeadsSidebarProps) {
+export function LeadsSidebar({ leads, activeLeadId, onSelect, unreadCounts }: LeadsSidebarProps) {
   const [search, setSearch] = useState('')
 
   const filtered = leads.filter(l =>
@@ -76,9 +77,14 @@ export function LeadsSidebar({ leads, activeLeadId, onSelect }: LeadsSidebarProp
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1 mb-0.5">
                     <span className="font-semibold text-white text-sm truncate">{lead.name}</span>
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
                       {lead.automation_paused && <PauseCircle size={11} className="text-amber-400" />}
                       {!lead.assigned_to && !lead.automation_paused && <Bot size={11} className="text-white/40" />}
+                      {(unreadCounts[lead.id] ?? 0) > 0 && (
+                        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-alliance-blue px-1 text-[10px] font-bold text-white">
+                          {unreadCounts[lead.id]}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <p className="text-white/50 text-xs truncate">{lead.lastMessage}</p>

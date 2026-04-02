@@ -1,31 +1,92 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { LeadsSidebar } from './leads-sidebar'
 import { ChatHeader } from './chat-header'
 import { ChatArea } from './chat-area'
+import { createClient } from '@/lib/supabase/client'
 import type { LeadWithLastInteraction } from './types'
 import type { Interaction } from '@/lib/supabase/types'
+
+function playNotificationBeep() {
+  try {
+    const ctx = new AudioContext()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.frequency.value = 880
+    gain.gain.setValueAtTime(0.2, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25)
+    osc.start()
+    osc.stop(ctx.currentTime + 0.25)
+  } catch { /* silencia autoplay policy */ }
+}
 
 interface InteracoesClientProps {
   leads: LeadWithLastInteraction[]
   initialMessages: Interaction[]
 }
 
-export function InteracoesClient({ leads, initialMessages }: InteracoesClientProps) {
+export function InteracoesClient({ leads: initialLeads, initialMessages }: InteracoesClientProps) {
+  const [leads, setLeads] = useState<LeadWithLastInteraction[]>(initialLeads)
   const [activeLeadId, setActiveLeadId] = useState<string | null>(
-    leads.length > 0 ? leads[0].id : null
+    initialLeads.length > 0 ? initialLeads[0].id : null
   )
   const [messages, setMessages] = useState<Interaction[]>(initialMessages)
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
 
-  const activeLead = leads.find(l => l.id === activeLeadId) ?? null
+  // Ref para acesso ao valor atual dentro do closure da subscription
+  const activeLeadIdRef = useRef<string | null>(activeLeadId)
+  const leadIdsRef = useRef(new Set(initialLeads.map(l => l.id)))
+  useEffect(() => { activeLeadIdRef.current = activeLeadId }, [activeLeadId])
+
+  // Supabase Realtime — escuta INSERTs na tabela interactions
+  useEffect(() => {
+    const supabase = createClient()
+
+    const channel = supabase
+      .channel('interactions-live')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'interactions' },
+        (payload) => {
+          const msg = payload.new as Interaction
+          if (!leadIdsRef.current.has(msg.lead_id)) return
+
+          // Adiciona mensagem ao estado
+          setMessages(prev => [...prev, msg])
+
+          // Move lead para o topo com prévia atualizada
+          setLeads(prev => {
+            const idx = prev.findIndex(l => l.id === msg.lead_id)
+            if (idx < 0) return prev
+            const updated = { ...prev[idx], lastMessage: msg.content, lastMessageAt: msg.created_at }
+            return [updated, ...prev.filter(l => l.id !== msg.lead_id)]
+          })
+
+          // Som + badge apenas para mensagens inbound fora da conversa ativa
+          if (msg.direction === 'inbound' && msg.lead_id !== activeLeadIdRef.current) {
+            playNotificationBeep()
+            setUnreadCounts(prev => ({ ...prev, [msg.lead_id]: (prev[msg.lead_id] ?? 0) + 1 }))
+          }
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSelectLead = (id: string) => {
+    setActiveLeadId(id)
+    setUnreadCounts(prev => ({ ...prev, [id]: 0 }))
+  }
 
   const handleSend = async (text: string) => {
     if (!activeLeadId) return
 
-    // Optimistic update — mensagem aparece imediatamente
     const optimisticMsg: Interaction = {
       id: crypto.randomUUID(),
       lead_id: activeLeadId,
@@ -38,6 +99,14 @@ export function InteracoesClient({ leads, initialMessages }: InteracoesClientPro
     }
     setMessages(prev => [...prev, optimisticMsg])
 
+    // Move lead para o topo ao enviar
+    setLeads(prev => {
+      const idx = prev.findIndex(l => l.id === activeLeadId)
+      if (idx < 0) return prev
+      const updated = { ...prev[idx], lastMessage: text, lastMessageAt: new Date().toISOString() }
+      return [updated, ...prev.filter(l => l.id !== activeLeadId)]
+    })
+
     try {
       const res = await fetch(`/api/leads/${activeLeadId}/send-message`, {
         method: 'POST',
@@ -46,18 +115,20 @@ export function InteracoesClient({ leads, initialMessages }: InteracoesClientPro
       })
       if (!res.ok) throw new Error()
     } catch {
-      // Reverte o optimistic update em caso de erro
       setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
       toast.error('Erro ao enviar mensagem. Tente novamente.')
     }
   }
+
+  const activeLead = leads.find(l => l.id === activeLeadId) ?? null
 
   return (
     <div className="flex flex-1 overflow-hidden">
       <LeadsSidebar
         leads={leads}
         activeLeadId={activeLeadId}
-        onSelect={setActiveLeadId}
+        onSelect={handleSelectLead}
+        unreadCounts={unreadCounts}
       />
 
       {activeLead ? (

@@ -13,6 +13,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
 import type { Lead } from '@/lib/supabase/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -367,15 +368,35 @@ export function LeadDetailModal({
       .finally(() => setFetchingFull(false))
   }, [open, lead])
 
-  // Fetch interactions when modal opens
+  // Fetch interactions + subscribe Realtime when modal opens
   useEffect(() => {
     if (!open || !lead) return
+
     setFetchingInteractions(true)
     fetch(`/api/leads/${lead.id}/interactions`)
       .then(r => r.json() as Promise<{ data: Interaction[] }>)
       .then(json => setInteractions(json.data ?? []))
       .catch(() => setInteractions([]))
       .finally(() => setFetchingInteractions(false))
+
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`modal-interactions-${lead.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'interactions', filter: `lead_id=eq.${lead.id}` },
+        (payload) => {
+          setInteractions(prev => {
+            // evita duplicar caso o optimistic update já exista
+            const msg = payload.new as Interaction
+            if (prev.some(m => m.wa_message_id && m.wa_message_id === msg.wa_message_id)) return prev
+            return [...prev, msg]
+          })
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
   }, [open, lead])
 
   // Auto-scroll chat to bottom when interactions load or a new one arrives
