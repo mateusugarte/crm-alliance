@@ -12,6 +12,8 @@ interface MetricsData {
   aquecidos: number
   pausadas: number
   disponiveis: number
+  trend_leads?: number
+  trend_reunioes?: number
 }
 
 interface MetricsGridProps {
@@ -24,44 +26,60 @@ export function MetricsGrid({ metrics }: MetricsGridProps) {
       variants={staggerContainer}
       initial="initial"
       animate="animate"
-      className="grid grid-cols-3 gap-4"
+      className="grid gap-4"
+      style={{ gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'auto auto auto' }}
     >
-      <MetricCard
-        label="Total de Leads"
-        value={metrics.leads}
-        variant="featured"
-        icon={<Users size={16} />}
-      />
+      {/* Total de Leads — ocupa 2 linhas */}
+      <div style={{ gridRow: '1 / 3', gridColumn: '1' }}>
+        <MetricCard
+          label="Total de Leads"
+          value={metrics.leads}
+          variant="featured"
+          icon={<Users size={16} />}
+          trend={metrics.trend_leads}
+          className="h-full"
+        />
+      </div>
+
+      {/* Row 1 — col 2 e 3 */}
       <MetricCard
         label="Reuniões Hoje"
         value={metrics.reunioes}
         icon={<Calendar size={16} />}
-        accent="#9B59B6"
-      />
-      <MetricCard
-        label="Sem Resposta"
-        value={metrics.sem_resposta}
-        icon={<MessageSquareOff size={16} />}
-        accent="#EF4444"
+        accentColor="var(--color-stage-follow-up)"
+        trend={metrics.trend_reunioes}
       />
       <MetricCard
         label="Leads Quentes"
         value={metrics.aquecidos}
         icon={<Flame size={16} />}
-        accent="#FF4500"
+        accentColor="var(--color-stage-quente)"
+      />
+
+      {/* Row 2 — col 2 e 3 */}
+      <MetricCard
+        label="Sem Resposta"
+        value={metrics.sem_resposta}
+        icon={<MessageSquareOff size={16} />}
+        accentColor="var(--color-feedback-error)"
       />
       <MetricCard
         label="Pausados"
         value={metrics.pausadas}
         icon={<PauseCircle size={16} />}
-        accent="#F59E0B"
+        accentColor="var(--color-feedback-warning)"
       />
-      <MetricCard
-        label="Disponíveis"
-        value={metrics.disponiveis}
-        variant="featured"
-        icon={<Home size={16} />}
-      />
+
+      {/* Row 3 — full width */}
+      <div style={{ gridColumn: '1 / 4' }}>
+        <MetricCard
+          label="Disponíveis — visita ou reunião agendada"
+          value={metrics.disponiveis}
+          variant="wide"
+          icon={<Home size={16} />}
+          accentColor="var(--color-stage-reuniao)"
+        />
+      </div>
     </motion.div>
   )
 }

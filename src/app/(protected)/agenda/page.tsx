@@ -85,12 +85,12 @@ export default async function AgendaPage() {
   const { meetings, leads } = await getAgendaData()
 
   return (
-    <div className="px-8 py-7 flex flex-col gap-6">
-      <div>
-        <p className="text-xs font-semibold text-alliance-blue/60 uppercase tracking-widest mb-1">
+    <div className="px-8 py-7 flex flex-col gap-6 h-full overflow-hidden">
+      <div className="flex-shrink-0">
+        <p className="text-xs font-semibold text-alliance-blue/60 dark:text-alliance-blue/50 uppercase tracking-widest mb-1">
           Reuniões
         </p>
-        <h1 className="text-2xl font-bold text-alliance-dark">Agenda</h1>
+        <h1 className="text-2xl font-bold text-alliance-dark dark:text-white">Agenda</h1>
       </div>
       <AgendaClient meetings={meetings} leads={leads} />
     </div>
