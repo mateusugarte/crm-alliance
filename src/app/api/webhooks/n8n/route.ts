@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     // Incrementa interaction_count apenas para mensagens do lead
     if (sender_type === 'lead') {
-      await supabase.rpc('increment_interaction_count', { lead_uuid: body.lead_id })
+      await supabase.rpc('increment_interaction_count', { lead_uuid: body.lead_id } as never)
         .then(({ error }) => {
           if (error) {
             // Fallback manual enquanto a RPC não existe
@@ -101,10 +101,11 @@ export async function POST(request: NextRequest) {
               .eq('id', body.lead_id)
               .single()
               .then(({ data }) => {
-                if (data) {
+                const row = data as { interaction_count: number } | null
+                if (row) {
                   supabase
                     .from('leads')
-                    .update({ interaction_count: (data.interaction_count ?? 0) + 1 } as never)
+                    .update({ interaction_count: (row.interaction_count ?? 0) + 1 } as never)
                     .eq('id', body.lead_id)
                 }
               })

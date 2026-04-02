@@ -991,8 +991,6 @@ export function LeadDetailModal({
         </DialogContent>
       </Dialog>
 
-      {/* Labels icon — unused but kept for consistent import */}
-      <span className="hidden"><Tag size={1} /></span>
     </TooltipProvider>
   )
 }

@@ -51,7 +51,7 @@ export async function POST(
       lead_id: id,
       direction: 'outbound',
       sender_type: 'corretor',
-      sender_name: profile?.full_name ?? 'Corretor',
+      sender_name: (profile as { full_name: string } | null)?.full_name ?? 'Corretor',
       content: body.content.trim(),
     } as never)
     .select(SELECT_FIELDS)

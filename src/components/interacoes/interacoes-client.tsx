@@ -30,6 +30,8 @@ export function InteracoesClient({ leads, initialMessages }: InteracoesClientPro
       id: crypto.randomUUID(),
       lead_id: activeLeadId,
       direction: 'outbound',
+      sender_type: 'corretor',
+      sender_name: null,
       content: text,
       created_at: new Date().toISOString(),
       wa_message_id: null,
