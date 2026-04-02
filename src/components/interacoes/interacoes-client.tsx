@@ -135,7 +135,10 @@ export function InteracoesClient({ leads: initialLeads, initialMessages }: Inter
         <div className="flex-1 flex flex-col overflow-hidden">
           <ChatHeader lead={activeLead} />
           <ChatArea
-            messages={messages.filter(m => m.lead_id === activeLeadId)}
+            messages={messages
+              .filter(m => m.lead_id === activeLeadId)
+              .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+            }
             lead={activeLead}
             onSend={handleSend}
           />

@@ -22,14 +22,16 @@ async function getLeadsWithInteractions(): Promise<{ leads: LeadWithLastInteract
       .from('interactions')
       .select('*')
       .in('lead_id', leadIds)
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: true })
       .limit(500)
 
     const interactions = (interactionsData ?? []) as Interaction[]
 
+    // Itera do fim para o início: última mensagem de cada lead fica mapeada
     const lastByLead = new Map<string, Interaction>()
-    for (const i of interactions) {
-      if (!lastByLead.has(i.lead_id)) lastByLead.set(i.lead_id, i)
+    for (let i = interactions.length - 1; i >= 0; i--) {
+      const msg = interactions[i]
+      if (!lastByLead.has(msg.lead_id)) lastByLead.set(msg.lead_id, msg)
     }
 
     const leadsWithLast: LeadWithLastInteraction[] = leads.map(l => {
