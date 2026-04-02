@@ -7,7 +7,7 @@ import { LeadsSidebar } from './leads-sidebar'
 import { ChatHeader } from './chat-header'
 import { ChatArea } from './chat-area'
 import { createClient } from '@/lib/supabase/client'
-import type { LeadWithLastInteraction } from './types'
+import type { LeadWithLastInteraction, LeadContact } from './types'
 import type { Interaction } from '@/lib/supabase/types'
 
 function playNotificationBeep() {
@@ -26,21 +26,25 @@ function playNotificationBeep() {
 }
 
 interface InteracoesClientProps {
-  leads: LeadWithLastInteraction[]
+  conversations: LeadWithLastInteraction[]
+  contacts: LeadContact[]
   initialMessages: Interaction[]
 }
 
-export function InteracoesClient({ leads: initialLeads, initialMessages }: InteracoesClientProps) {
-  const [leads, setLeads] = useState<LeadWithLastInteraction[]>(initialLeads)
+export function InteracoesClient({ conversations: initialConversations, contacts, initialMessages }: InteracoesClientProps) {
+  const [conversations, setConversations] = useState<LeadWithLastInteraction[]>(initialConversations)
   const [activeLeadId, setActiveLeadId] = useState<string | null>(
-    initialLeads.length > 0 ? initialLeads[0].id : null
+    initialConversations.length > 0 ? initialConversations[0].id : null
   )
   const [messages, setMessages] = useState<Interaction[]>(initialMessages)
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
 
   // Ref para acesso ao valor atual dentro do closure da subscription
   const activeLeadIdRef = useRef<string | null>(activeLeadId)
-  const leadIdsRef = useRef(new Set(initialLeads.map(l => l.id)))
+  const allLeadIdsRef = useRef(new Set([
+    ...initialConversations.map(l => l.id),
+    ...contacts.map(l => l.id),
+  ]))
   useEffect(() => { activeLeadIdRef.current = activeLeadId }, [activeLeadId])
 
   // Supabase Realtime — escuta INSERTs na tabela interactions
@@ -54,13 +58,13 @@ export function InteracoesClient({ leads: initialLeads, initialMessages }: Inter
         { event: 'INSERT', schema: 'public', table: 'interactions' },
         (payload) => {
           const msg = payload.new as Interaction
-          if (!leadIdsRef.current.has(msg.lead_id)) return
+          if (!allLeadIdsRef.current.has(msg.lead_id)) return
 
           // Adiciona mensagem ao estado
           setMessages(prev => [...prev, msg])
 
-          // Move lead para o topo com prévia atualizada
-          setLeads(prev => {
+          // Move conversa para o topo com prévia atualizada
+          setConversations(prev => {
             const idx = prev.findIndex(l => l.id === msg.lead_id)
             if (idx < 0) return prev
             const updated = { ...prev[idx], lastMessage: msg.content, lastMessageAt: msg.created_at }
@@ -77,7 +81,7 @@ export function InteracoesClient({ leads: initialLeads, initialMessages }: Inter
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSelectLead = (id: string) => {
     setActiveLeadId(id)
@@ -99,8 +103,8 @@ export function InteracoesClient({ leads: initialLeads, initialMessages }: Inter
     }
     setMessages(prev => [...prev, optimisticMsg])
 
-    // Move lead para o topo ao enviar
-    setLeads(prev => {
+    // Move conversa para o topo ao enviar
+    setConversations(prev => {
       const idx = prev.findIndex(l => l.id === activeLeadId)
       if (idx < 0) return prev
       const updated = { ...prev[idx], lastMessage: text, lastMessageAt: new Date().toISOString() }
@@ -120,12 +124,18 @@ export function InteracoesClient({ leads: initialLeads, initialMessages }: Inter
     }
   }
 
-  const activeLead = leads.find(l => l.id === activeLeadId) ?? null
+  // Busca lead ativo tanto nas conversas quanto nos contatos
+  const activeLead =
+    conversations.find(l => l.id === activeLeadId) ??
+    (contacts.find(l => l.id === activeLeadId)
+      ? { ...(contacts.find(l => l.id === activeLeadId)!), lastMessage: null, lastMessageAt: null }
+      : null)
 
   return (
     <div className="flex flex-1 overflow-hidden">
       <LeadsSidebar
-        leads={leads}
+        conversations={conversations}
+        contacts={contacts}
         activeLeadId={activeLeadId}
         onSelect={handleSelectLead}
         unreadCounts={unreadCounts}

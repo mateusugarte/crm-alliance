@@ -1,8 +1,8 @@
 import { InteracoesClient } from '@/components/interacoes/interacoes-client'
-import type { LeadWithLastInteraction } from '@/components/interacoes/types'
+import type { LeadWithLastInteraction, LeadContact } from '@/components/interacoes/types'
 import type { Lead, Interaction } from '@/lib/supabase/types'
 
-async function getLeadsWithInteractions(): Promise<{ leads: LeadWithLastInteraction[], messages: Interaction[] }> {
+async function getLeadsData(): Promise<{ conversations: LeadWithLastInteraction[], contacts: LeadContact[], messages: Interaction[] }> {
   try {
     const { createClient } = await import('@/lib/supabase/server')
     const supabase = await createClient()
@@ -14,7 +14,7 @@ async function getLeadsWithInteractions(): Promise<{ leads: LeadWithLastInteract
       .limit(50)
 
     const leads = (leadsData ?? []) as Lead[]
-    if (leads.length === 0) return { leads: [], messages: [] }
+    if (leads.length === 0) return { conversations: [], contacts: [], messages: [] }
 
     const leadIds = leads.map(l => l.id)
 
@@ -34,31 +34,47 @@ async function getLeadsWithInteractions(): Promise<{ leads: LeadWithLastInteract
       if (!lastByLead.has(msg.lead_id)) lastByLead.set(msg.lead_id, msg)
     }
 
-    const leadsWithLast: LeadWithLastInteraction[] = leads.map(l => {
-      const last = lastByLead.get(l.id)
-      return {
-        id: l.id,
-        name: l.name,
-        phone: l.phone,
-        automation_paused: l.automation_paused,
-        assigned_to: l.assigned_to,
-        lastMessage: last?.content ?? 'Sem mensagens',
-        lastMessageAt: last?.created_at ?? new Date().toISOString(),
-      }
-    }).sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime())
+    const conversations: LeadWithLastInteraction[] = []
+    const contacts: LeadContact[] = []
 
-    return { leads: leadsWithLast, messages: interactions }
+    for (const l of leads) {
+      const last = lastByLead.get(l.id)
+      if (last) {
+        conversations.push({
+          id: l.id,
+          name: l.name,
+          phone: l.phone,
+          automation_paused: l.automation_paused,
+          assigned_to: l.assigned_to,
+          lastMessage: last.content,
+          lastMessageAt: last.created_at,
+        })
+      } else {
+        contacts.push({
+          id: l.id,
+          name: l.name,
+          phone: l.phone,
+          automation_paused: l.automation_paused,
+          assigned_to: l.assigned_to,
+        })
+      }
+    }
+
+    conversations.sort((a, b) => new Date(b.lastMessageAt!).getTime() - new Date(a.lastMessageAt!).getTime())
+    contacts.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+
+    return { conversations, contacts, messages: interactions }
   } catch {
-    return { leads: [], messages: [] }
+    return { conversations: [], contacts: [], messages: [] }
   }
 }
 
 export default async function InteracoesPage() {
-  const { leads, messages } = await getLeadsWithInteractions()
+  const { conversations, contacts, messages } = await getLeadsData()
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      <InteracoesClient leads={leads} initialMessages={messages} />
+      <InteracoesClient conversations={conversations} contacts={contacts} initialMessages={messages} />
     </div>
   )
 }
