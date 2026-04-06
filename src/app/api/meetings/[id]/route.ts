@@ -16,7 +16,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from('meetings')
-    .select('id, datetime, notes, status, lead_id, assigned_to')
+    .select('id, title, datetime, notes, status, lead_id, assigned_to')
     .eq('id', id)
     .single()
 
@@ -34,6 +34,7 @@ export async function PUT(
 
   const { id } = await params
   const body = await request.json() as Partial<{
+    title: string
     datetime: string
     notes: string
     lead_id: string
@@ -41,17 +42,18 @@ export async function PUT(
   }>
 
   const update: MeetingUpdate = {
+    ...(body.title    !== undefined && { title: body.title }),
     ...(body.datetime !== undefined && { datetime: body.datetime }),
-    ...(body.notes !== undefined && { notes: body.notes }),
-    ...(body.lead_id !== undefined && { lead_id: body.lead_id }),
-    ...(body.status !== undefined && { status: body.status }),
+    ...(body.notes    !== undefined && { notes: body.notes }),
+    ...(body.lead_id  !== undefined && { lead_id: body.lead_id }),
+    ...(body.status   !== undefined && { status: body.status }),
   }
 
   const { data, error } = await supabase
     .from('meetings')
     .update(update as never)
     .eq('id', id)
-    .select('id, datetime, notes, status, lead_id, assigned_to')
+    .select('id, title, datetime, notes, status, lead_id, assigned_to')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

@@ -1,4 +1,4 @@
-const BASE_URL = 'https://graph.facebook.com/v18.0'
+const BASE_URL = 'https://graph.facebook.com/v21.0'
 
 interface SendTextResult {
   success: boolean

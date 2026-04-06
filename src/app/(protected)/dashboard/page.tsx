@@ -159,12 +159,12 @@ async function getTodayMeetings(): Promise<TodayMeeting[]> {
     const [{ data: leadsData }, { data: profilesData }] = await Promise.all([
       supabase.from('leads').select('id, name').in('id', leadIds),
       userIds.length
-        ? supabase.from('user_profiles').select('id, full_name, color').in('id', userIds)
+        ? supabase.from('user_profiles').select('id, full_name, badge_color').in('id', userIds)
         : Promise.resolve({ data: [] }),
     ])
 
     const leadMap = new Map((leadsData ?? []).map((l: { id: string; name: string }) => [l.id, l.name]))
-    const profileMap = new Map((profilesData ?? []).map((p: { id: string; full_name: string; color: string }) => [p.id, p]))
+    const profileMap = new Map((profilesData ?? []).map((p: { id: string; full_name: string; badge_color: string }) => [p.id, p]))
 
     return data.map(m => {
       const profile = m.assigned_to ? profileMap.get(m.assigned_to) : null
@@ -173,7 +173,7 @@ async function getTodayMeetings(): Promise<TodayMeeting[]> {
         datetime: m.datetime,
         lead_name: leadMap.get(m.lead_id) ?? 'Lead',
         consultant_name: (profile as { full_name: string } | null)?.full_name ?? 'Não atribuído',
-        consultant_color: (profile as { color: string } | null)?.color ?? '#1E90FF',
+        consultant_color: (profile as { badge_color: string } | null)?.badge_color ?? '#1E90FF',
       }
     })
   } catch {

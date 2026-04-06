@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import type { Database } from '@/lib/supabase/types'
-
-type LeadUpdate = Database['public']['Tables']['leads']['Update']
 
 const VALID_STAGES = ['lead_frio', 'lead_morno', 'lead_quente', 'follow_up', 'reuniao_agendada', 'visita_confirmada', 'cliente'] as const
 
@@ -21,9 +18,8 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid stage' }, { status: 400 })
   }
 
-  const update: LeadUpdate = { stage: body.stage as LeadUpdate['stage'], updated_at: new Date().toISOString() }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('leads') as any).update(update).eq('id', id)
+  const { error } = await supabase
+    .rpc('move_lead_stage', { lead_uuid: id, new_stage: body.stage } as never)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

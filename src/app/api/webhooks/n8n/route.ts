@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   const secret = process.env.N8N_WEBHOOK_SECRET
   const incomingSecret = request.headers.get('x-webhook-secret')
 
-  if (secret && incomingSecret !== secret) {
+  if (!secret || incomingSecret !== secret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -92,25 +92,6 @@ export async function POST(request: NextRequest) {
     // Incrementa interaction_count apenas para mensagens do lead
     if (sender_type === 'lead') {
       await supabase.rpc('increment_interaction_count', { lead_uuid: body.lead_id } as never)
-        .then(({ error }) => {
-          if (error) {
-            // Fallback manual enquanto a RPC não existe
-            supabase
-              .from('leads')
-              .select('interaction_count')
-              .eq('id', body.lead_id)
-              .single()
-              .then(({ data }) => {
-                const row = data as { interaction_count: number } | null
-                if (row) {
-                  supabase
-                    .from('leads')
-                    .update({ interaction_count: (row.interaction_count ?? 0) + 1 } as never)
-                    .eq('id', body.lead_id)
-                }
-              })
-          }
-        })
     }
   }
 

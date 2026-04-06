@@ -20,42 +20,37 @@ export async function POST(request: NextRequest) {
   const appSecret = process.env.WHATSAPP_APP_SECRET
   const signature = request.headers.get('x-hub-signature-256')
 
-  // Validar HMAC SHA256
-  if (appSecret && appSecret !== 'abc123...') {
-    if (!signature) return NextResponse.json({ error: 'Missing signature' }, { status: 403 })
+  if (!appSecret) {
+    return NextResponse.json({ error: 'WHATSAPP_APP_SECRET not configured' }, { status: 500 })
+  }
 
-    const body = await request.text()
-    const expected = 'sha256=' + crypto.createHmac('sha256', appSecret).update(body).digest('hex')
+  if (!signature) {
+    return NextResponse.json({ error: 'Missing signature' }, { status: 403 })
+  }
 
-    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 403 })
-    }
+  const body = await request.text()
+  const expected = 'sha256=' + crypto.createHmac('sha256', appSecret).update(body).digest('hex')
 
-    // Repassar ao N8N
-    const n8nUrl = process.env.N8N_WEBHOOK_URL
-    const n8nSecret = process.env.N8N_WEBHOOK_SECRET
+  if (
+    signature.length !== expected.length ||
+    !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
+  ) {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 403 })
+  }
 
-    if (n8nUrl && n8nUrl !== 'https://seu-n8n.railway.app/webhook/alliance') {
-      await fetch(n8nUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(n8nSecret ? { 'x-webhook-secret': n8nSecret } : {}),
-        },
-        body,
-      })
-    }
-  } else {
-    // Sem validação HMAC em dev — apenas repassar
-    const body = await request.text()
-    const n8nUrl = process.env.N8N_WEBHOOK_URL
-    if (n8nUrl && n8nUrl !== 'https://seu-n8n.railway.app/webhook/alliance') {
-      await fetch(n8nUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-      })
-    }
+  // Repassar ao N8N
+  const n8nUrl = process.env.N8N_WEBHOOK_URL
+  const n8nSecret = process.env.N8N_WEBHOOK_SECRET
+
+  if (n8nUrl) {
+    await fetch(n8nUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(n8nSecret ? { 'x-webhook-secret': n8nSecret } : {}),
+      },
+      body,
+    })
   }
 
   return NextResponse.json({ status: 'ok' })

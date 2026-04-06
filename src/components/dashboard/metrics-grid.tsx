@@ -26,60 +26,59 @@ export function MetricsGrid({ metrics }: MetricsGridProps) {
       variants={staggerContainer}
       initial="initial"
       animate="animate"
-      className="grid gap-4"
-      style={{ gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'auto auto auto' }}
+      className="flex flex-col gap-4"
     >
-      {/* Total de Leads — ocupa 2 linhas */}
-      <div style={{ gridRow: '1 / 3', gridColumn: '1' }}>
+      {/* Linha 1: Featured + 2 cards */}
+      <div className="grid grid-cols-3 gap-4">
+        {/* Total de Leads — ocupa 2 linhas via row-span */}
+        <div className="row-span-2">
+          <MetricCard
+            label="Total de Leads"
+            value={metrics.leads}
+            variant="featured"
+            icon={<Users size={16} />}
+            trend={metrics.trend_leads}
+            className="h-full"
+          />
+        </div>
+
         <MetricCard
-          label="Total de Leads"
-          value={metrics.leads}
-          variant="featured"
-          icon={<Users size={16} />}
-          trend={metrics.trend_leads}
-          className="h-full"
+          label="Reuniões Hoje"
+          value={metrics.reunioes}
+          icon={<Calendar size={16} />}
+          accentColor="var(--color-stage-follow-up)"
+          trend={metrics.trend_reunioes}
+        />
+        <MetricCard
+          label="Leads Quentes"
+          value={metrics.aquecidos}
+          icon={<Flame size={16} />}
+          accentColor="var(--color-stage-quente)"
+        />
+
+        {/* Linha 2: col 2 e 3 (col 1 está ocupada pelo featured) */}
+        <MetricCard
+          label="Sem Resposta"
+          value={metrics.sem_resposta}
+          icon={<MessageSquareOff size={16} />}
+          accentColor="var(--color-feedback-error)"
+        />
+        <MetricCard
+          label="Pausados"
+          value={metrics.pausadas}
+          icon={<PauseCircle size={16} />}
+          accentColor="var(--color-feedback-warning)"
         />
       </div>
 
-      {/* Row 1 — col 2 e 3 */}
+      {/* Linha 3: full width */}
       <MetricCard
-        label="Reuniões Hoje"
-        value={metrics.reunioes}
-        icon={<Calendar size={16} />}
-        accentColor="var(--color-stage-follow-up)"
-        trend={metrics.trend_reunioes}
+        label="Disponíveis — visita ou reunião agendada"
+        value={metrics.disponiveis}
+        variant="wide"
+        icon={<Home size={16} />}
+        accentColor="var(--color-stage-reuniao)"
       />
-      <MetricCard
-        label="Leads Quentes"
-        value={metrics.aquecidos}
-        icon={<Flame size={16} />}
-        accentColor="var(--color-stage-quente)"
-      />
-
-      {/* Row 2 — col 2 e 3 */}
-      <MetricCard
-        label="Sem Resposta"
-        value={metrics.sem_resposta}
-        icon={<MessageSquareOff size={16} />}
-        accentColor="var(--color-feedback-error)"
-      />
-      <MetricCard
-        label="Pausados"
-        value={metrics.pausadas}
-        icon={<PauseCircle size={16} />}
-        accentColor="var(--color-feedback-warning)"
-      />
-
-      {/* Row 3 — full width */}
-      <div style={{ gridColumn: '1 / 4' }}>
-        <MetricCard
-          label="Disponíveis — visita ou reunião agendada"
-          value={metrics.disponiveis}
-          variant="wide"
-          icon={<Home size={16} />}
-          accentColor="var(--color-stage-reuniao)"
-        />
-      </div>
     </motion.div>
   )
 }

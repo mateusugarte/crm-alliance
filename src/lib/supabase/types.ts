@@ -105,6 +105,7 @@ export interface Database {
           id: string
           lead_id: string
           assigned_to: string | null
+          title: string | null
           datetime: string
           notes: string | null
           status: 'scheduled' | 'completed' | 'cancelled'
@@ -114,12 +115,26 @@ export interface Database {
           id?: string
           lead_id: string
           assigned_to?: string | null
+          title?: string | null
           datetime: string
           notes?: string | null
           status?: 'scheduled' | 'completed' | 'cancelled'
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['meetings']['Insert']>
+      }
+      lead_read_state: {
+        Row: {
+          lead_id: string
+          user_id: string
+          last_read_at: string
+        }
+        Insert: {
+          lead_id: string
+          user_id: string
+          last_read_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['lead_read_state']['Insert']>
       }
       broadcasts: {
         Row: {
@@ -232,7 +247,28 @@ export interface Database {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      increment_interaction_count: {
+        Args: { lead_uuid: string }
+        Returns: undefined
+      }
+      toggle_automation_pause: {
+        Args: { lead_uuid: string }
+        Returns: boolean
+      }
+      move_lead_stage: {
+        Args: { lead_uuid: string; new_stage: string }
+        Returns: undefined
+      }
+      toggle_imovel_disponivel: {
+        Args: { imovel_uuid: string }
+        Returns: boolean
+      }
+      mark_lead_read: {
+        Args: { lead_uuid: string }
+        Returns: undefined
+      }
+    }
     Enums: Record<string, never>
   }
 }
@@ -248,3 +284,4 @@ export type BroadcastNumber = Database['public']['Tables']['broadcast_numbers'][
 export type Imovel = Database['public']['Tables']['imoveis']['Row']
 export type Label = Database['public']['Tables']['labels']['Row']
 export type LeadLabel = Database['public']['Tables']['lead_labels']['Row']
+export type LeadReadState = Database['public']['Tables']['lead_read_state']['Row']

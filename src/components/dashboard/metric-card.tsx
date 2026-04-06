@@ -141,8 +141,7 @@ export function MetricCard({ label, value, variant = 'default', icon, accentColo
         </div>
         <div className="flex items-end gap-2.5">
           <span
-            className="text-[2.5rem] font-bold tabular-nums leading-none dark:text-white"
-            style={{ color: '#111827' }}
+            className="text-[2.5rem] font-bold tabular-nums leading-none text-gray-900 dark:text-white"
           >
             {count}
           </span>

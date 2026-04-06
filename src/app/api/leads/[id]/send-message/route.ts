@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendTextMessage } from '@/lib/whatsapp/send'
 import type { Database } from '@/lib/supabase/types'
 
 type InteractionInsert = Database['public']['Tables']['interactions']['Insert']
@@ -41,29 +42,8 @@ export async function POST(
 
   if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 })
 
-  // Enviar via Meta API (requer WHATSAPP_ACCESS_TOKEN configurado)
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID
-
-  if (accessToken && phoneNumberId && accessToken !== 'EAABs...') {
-    try {
-      await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          to: leadRow.phone,
-          type: 'text',
-          text: { body: body.content.trim() },
-        }),
-      })
-    } catch {
-      // Log em produção — não bloquear a resposta
-    }
-  }
+  // Enviar via Meta API
+  await sendTextMessage(leadRow.phone, body.content.trim())
 
   return NextResponse.json({ data: { sent: true } })
 }
