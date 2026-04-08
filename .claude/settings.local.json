@@ -1,0 +1,14 @@
+{
+  "autoMemoryEnabled": true,
+  "autoMemoryDirectory": "C:\\Users\\User\\Documents\\Obsidian Vault\\CRM Alliance\\claude-memory",
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Read(**)",
+      "Write(**)",
+      "Edit(**)",
+      "Glob(**)",
+      "Grep(**)"
+    ]
+  }
+}

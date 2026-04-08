@@ -36,6 +36,7 @@ export interface Database {
           wa_contact_id: string | null
           city: string | null
           stage:
+            | 'nao_respondeu'
             | 'lead_frio'
             | 'lead_morno'
             | 'lead_quente'
@@ -59,6 +60,7 @@ export interface Database {
           wa_contact_id?: string | null
           city?: string | null
           stage?:
+            | 'nao_respondeu'
             | 'lead_frio'
             | 'lead_morno'
             | 'lead_quente'

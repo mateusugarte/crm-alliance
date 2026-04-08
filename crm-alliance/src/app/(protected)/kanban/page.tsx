@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { KanbanBoard } from '@/components/kanban/kanban-board'
+import { KanbanPageHeader } from '@/components/kanban/kanban-page-header'
 import PageTransition from '@/components/layout/page-transition'
 import { EmptyState } from '@/components/layout/empty-state'
 import { ErrorState } from '@/components/layout/error-state'
@@ -40,14 +41,7 @@ export default async function KanbanPage() {
             {/* Título de página: text-title semântico */}
             <h1 className="text-title text-alliance-dark">Leads</h1>
           </div>
-          <div className="flex gap-2">
-            <button className="px-4 py-2 text-body font-medium border border-gray-200 rounded-xl hover:border-alliance-dark hover:text-alliance-dark transition-colors bg-white cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alliance-blue">
-              Etiquetas
-            </button>
-            <button className="px-4 py-2 text-body font-semibold bg-alliance-dark text-white rounded-xl hover:bg-alliance-dark/90 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alliance-blue focus-visible:ring-offset-2">
-              + Novo Lead
-            </button>
-          </div>
+          <KanbanPageHeader />
         </div>
 
         {/* Error state */}

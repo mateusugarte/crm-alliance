@@ -35,6 +35,7 @@
   --color-stage-reuniao: #228B22;
   --color-stage-visita: #E67E22;
   --color-stage-cliente: #2ECC71;
+  --color-stage-nao-respondeu: #6B7280;
 
   /* Feedback tokens */
   --color-feedback-success: #16A34A;

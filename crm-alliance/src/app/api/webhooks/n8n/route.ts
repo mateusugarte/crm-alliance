@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import type { Database } from '@/lib/supabase/types'
 
 type LeadUpdate = Database['public']['Tables']['leads']['Update']
@@ -24,7 +24,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'lead_id required' }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  // SEC-03: usar SERVICE_ROLE_KEY para bypasaar RLS
+  // O N8N atualiza leads independente de assigned_to — ANON_KEY bloqueava silenciosamente
+  const supabase = createServiceClient()
 
   const updates: LeadUpdate = { updated_at: new Date().toISOString() }
   if (body.stage) updates['stage'] = body.stage as LeadUpdate['stage']
@@ -35,7 +37,10 @@ export async function POST(request: NextRequest) {
     .update(updates as never)
     .eq('id', body.lead_id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[webhook/n8n] Erro ao atualizar lead:', error.message)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 
   return NextResponse.json({ data: { updated: true } })
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 
-// GET — verificação do webhook Meta
+// GET — verificacao do webhook Meta
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const mode = searchParams.get('hub.mode')
@@ -18,24 +18,35 @@ export async function GET(request: NextRequest) {
 // POST — receber mensagens da Meta
 export async function POST(request: NextRequest) {
   const appSecret = process.env.WHATSAPP_APP_SECRET
+
+  // SEC-02: fail-safe — rejeitar se APP_SECRET nao estiver configurado em producao
+  if (!appSecret) {
+    console.error('[webhook/whatsapp] WHATSAPP_APP_SECRET nao configurado — rejeitando POST')
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 })
+  }
+
   const signature = request.headers.get('x-hub-signature-256')
+  const body = await request.text()
 
-  // Validar HMAC SHA256
-  if (appSecret && appSecret !== 'abc123...') {
-    if (!signature) return NextResponse.json({ error: 'Missing signature' }, { status: 403 })
+  if (!signature) {
+    return NextResponse.json({ error: 'Missing signature' }, { status: 403 })
+  }
 
-    const body = await request.text()
-    const expected = 'sha256=' + crypto.createHmac('sha256', appSecret).update(body).digest('hex')
+  const expected = 'sha256=' + crypto.createHmac('sha256', appSecret).update(body).digest('hex')
 
-    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 403 })
-    }
+  // timingSafeEqual exige buffers do mesmo tamanho
+  const sigBuf = Buffer.from(signature)
+  const expBuf = Buffer.from(expected)
+  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 403 })
+  }
 
-    // Repassar ao N8N
-    const n8nUrl = process.env.N8N_WEBHOOK_URL
-    const n8nSecret = process.env.N8N_WEBHOOK_SECRET
+  // Repassar ao N8N
+  const n8nUrl = process.env.N8N_WEBHOOK_URL
+  const n8nSecret = process.env.N8N_WEBHOOK_SECRET
 
-    if (n8nUrl && n8nUrl !== 'https://seu-n8n.railway.app/webhook/alliance') {
+  if (n8nUrl) {
+    try {
       await fetch(n8nUrl, {
         method: 'POST',
         headers: {
@@ -44,17 +55,8 @@ export async function POST(request: NextRequest) {
         },
         body,
       })
-    }
-  } else {
-    // Sem validação HMAC em dev — apenas repassar
-    const body = await request.text()
-    const n8nUrl = process.env.N8N_WEBHOOK_URL
-    if (n8nUrl && n8nUrl !== 'https://seu-n8n.railway.app/webhook/alliance') {
-      await fetch(n8nUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-      })
+    } catch (err) {
+      console.error('[webhook/whatsapp] Falha ao repassar para N8N:', err)
     }
   }
 

@@ -18,8 +18,15 @@ type ConsultorFilter = 'todos' | 'ia' | 'consultor'
 
 export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads)
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+
+  // Derivado: sempre reflete o estado mais recente de leads sem estado duplicado
+  const selectedLead = leads.find(l => l.id === selectedLeadId) ?? null
+
+  // Ref para acessar selectedLeadId dentro do callback do Realtime sem recriar o canal
+  const selectedLeadIdRef = useRef<string | null>(null)
+  selectedLeadIdRef.current = selectedLeadId
   const [consultorFilter, setConsultorFilter] = useState<ConsultorFilter>('todos')
   const [filterOpen, setFilterOpen] = useState(false)
   const [realtimeBadge, setRealtimeBadge] = useState(0)
@@ -58,11 +65,10 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
               }
               return prev.map(l => l.id === updated.id ? updated : l)
             })
-            setSelectedLead(prev => prev?.id === updated.id ? updated : prev)
           } else if (payload.eventType === 'DELETE') {
             const deleted = payload.old as { id: string }
             setLeads(prev => prev.filter(l => l.id !== deleted.id))
-            setSelectedLead(prev => prev?.id === deleted.id ? null : prev)
+            if (deleted.id === selectedLeadIdRef.current) setSelectedLeadId(null)
           }
         }
       )
@@ -117,10 +123,8 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
     if (!lead) return
 
     const newState = !lead.automation_paused
+    // selectedLead e derivado de leads — basta atualizar leads
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, automation_paused: newState } : l))
-    if (selectedLead?.id === leadId) {
-      setSelectedLead(prev => prev ? { ...prev, automation_paused: newState } : null)
-    }
 
     try {
       const res = await fetch(`/api/leads/${leadId}/pause`, { method: 'POST' })
@@ -128,12 +132,9 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
       toast.success(newState ? 'IA pausada' : 'IA retomada')
     } catch {
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, automation_paused: lead.automation_paused } : l))
-      if (selectedLead?.id === leadId) {
-        setSelectedLead(prev => prev ? { ...prev, automation_paused: lead.automation_paused } : null)
-      }
       toast.error('Erro ao atualizar automacao.')
     }
-  }, [leads, selectedLead])
+  }, [leads])
 
   const handleAssume = useCallback(async (leadId: string) => {
     const lead = leads.find(l => l.id === leadId)
@@ -146,18 +147,16 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
       const json = await res.json() as { data: { assigned_to: string; badge_color: string } }
       const { assigned_to } = json.data
 
+      // selectedLead e derivado de leads — basta atualizar leads
       setLeads(prev => prev.map(l =>
         l.id === leadId ? { ...l, assigned_to } : l
       ))
-      if (selectedLead?.id === leadId) {
-        setSelectedLead(prev => prev ? { ...prev, assigned_to } : null)
-      }
 
       toast.success('Voce assumiu esta conversa')
     } catch {
       toast.error('Erro ao assumir conversa. Tente novamente.')
     }
-  }, [leads, selectedLead])
+  }, [leads])
 
   const filteredLeads = leads.filter(lead => {
     const matchSearch =
@@ -282,7 +281,7 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
               column={col}
               leads={leadsPerStage(col.id)}
               allLeads={filteredLeads}
-              onLeadClick={setSelectedLead}
+              onLeadClick={(lead) => setSelectedLeadId(lead.id)}
             />
           ))}
         </div>
@@ -291,7 +290,7 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
       <LeadDetailModal
         lead={selectedLead}
         open={selectedLead !== null}
-        onClose={() => setSelectedLead(null)}
+        onClose={() => setSelectedLeadId(null)}
         onAssume={() => selectedLead && handleAssume(selectedLead.id)}
         onTogglePause={() => selectedLead && handleTogglePause(selectedLead.id)}
       />
