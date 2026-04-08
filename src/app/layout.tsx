@@ -6,8 +6,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'CRM Alliance',
-  description: 'Sistema de Gestão Alliance Investimentos',
+  title: 'Alliance System',
+  description: 'Plataforma de Gestão Alliance Investimentos',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Anti-flash: aplica tema antes do primeiro render */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem('crm-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}`,
+            __html: `try{if(localStorage.getItem('crm-theme')!=='light')document.documentElement.classList.add('dark')}catch(e){document.documentElement.classList.add('dark')}`,
           }}
         />
       </head>

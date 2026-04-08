@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
 import {
   LayoutDashboard, Kanban, Calendar, Building2, MessageSquare,
   Settings, PanelLeftClose, PanelLeftOpen,
@@ -10,6 +11,8 @@ import {
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from './theme-toggle'
 import { useEffect, useState } from 'react'
+
+const LOGO_URL = 'https://lmvdruvmpybutmmidrfp.supabase.co/storage/v1/object/public/la%20reserva/Branco.png'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -49,13 +52,18 @@ export default function NavShell({ userInitial = 'C', userName = 'consultor' }: 
       style={{ background: 'linear-gradient(180deg, #071f7a 0%, #0A2EAD 45%, #0d35c4 100%)' }}
     >
       {/* Logo */}
-      <div className="px-3 pt-6 pb-4 flex-shrink-0">
+      <div className="px-3 pt-5 pb-4 flex-shrink-0">
         <div className="flex items-center gap-2.5 overflow-hidden">
+          {/* Ícone colapsado: logo pequena */}
           <div className="w-7 h-7 flex-shrink-0 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
-              <path d="M12 2L22 9.5L12 22L2 9.5L12 2Z" fill="white" fillOpacity="0.9" />
-              <path d="M12 2L22 9.5L12 22L2 9.5L12 2Z" fill="none" stroke="white" strokeOpacity="0.3" strokeWidth="0.5" />
-            </svg>
+            <Image
+              src={LOGO_URL}
+              alt="Alliance"
+              width={28}
+              height={28}
+              className="object-contain"
+              style={{ filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.25))' }}
+            />
           </div>
           <AnimatePresence initial={false}>
             {!collapsed && (
@@ -66,11 +74,11 @@ export default function NavShell({ userInitial = 'C', userName = 'consultor' }: 
                 transition={{ duration: 0.14 }}
                 className="overflow-hidden"
               >
-                <span className="font-bold text-white text-[16px] tracking-tight leading-none block whitespace-nowrap">
+                <span className="font-bold text-white text-[15px] tracking-tight leading-none block whitespace-nowrap">
                   Alliance
                 </span>
                 <span className="text-white/40 text-[9px] font-medium tracking-[0.2em] uppercase mt-0.5 block whitespace-nowrap">
-                  La Reserva
+                  System
                 </span>
               </motion.div>
             )}
