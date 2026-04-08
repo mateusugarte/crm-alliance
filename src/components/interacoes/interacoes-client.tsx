@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { LeadsSidebar } from './leads-sidebar'
 import { ChatHeader } from './chat-header'
 import { ChatArea } from './chat-area'
+import { LeadInfoPanel } from './lead-info-panel'
 import { createClient } from '@/lib/supabase/client'
 import type { LeadWithLastInteraction, LeadContact } from './types'
 import type { Interaction } from '@/lib/supabase/types'
@@ -29,15 +30,17 @@ interface InteracoesClientProps {
   conversations: LeadWithLastInteraction[]
   contacts: LeadContact[]
   initialMessages: Interaction[]
+  currentUserId: string
 }
 
-export function InteracoesClient({ conversations: initialConversations, contacts, initialMessages }: InteracoesClientProps) {
+export function InteracoesClient({ conversations: initialConversations, contacts, initialMessages, currentUserId }: InteracoesClientProps) {
   const [conversations, setConversations] = useState<LeadWithLastInteraction[]>(initialConversations)
   const [activeLeadId, setActiveLeadId] = useState<string | null>(
     initialConversations.length > 0 ? initialConversations[0].id : null
   )
   const [messages, setMessages] = useState<Interaction[]>(initialMessages)
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
+  const [isPanelOpen, setIsPanelOpen] = useState(false)
 
   // Ref para acesso ao valor atual dentro do closure da subscription
   const activeLeadIdRef = useRef<string | null>(activeLeadId)
@@ -86,6 +89,13 @@ export function InteracoesClient({ conversations: initialConversations, contacts
   const handleSelectLead = (id: string) => {
     setActiveLeadId(id)
     setUnreadCounts(prev => ({ ...prev, [id]: 0 }))
+    setIsPanelOpen(false)
+  }
+
+  const handleLeadUpdated = (updated: Partial<LeadWithLastInteraction>) => {
+    setConversations(prev =>
+      prev.map(l => l.id === activeLeadId ? { ...l, ...updated } : l)
+    )
   }
 
   const handleSend = async (text: string) => {
@@ -142,8 +152,8 @@ export function InteracoesClient({ conversations: initialConversations, contacts
       />
 
       {activeLead ? (
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <ChatHeader lead={activeLead} />
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          <ChatHeader lead={activeLead} onInfoClick={() => setIsPanelOpen(true)} />
           <ChatArea
             messages={messages
               .filter(m => m.lead_id === activeLeadId)
@@ -151,6 +161,13 @@ export function InteracoesClient({ conversations: initialConversations, contacts
             }
             lead={activeLead}
             onSend={handleSend}
+          />
+          <LeadInfoPanel
+            lead={activeLead}
+            open={isPanelOpen}
+            onClose={() => setIsPanelOpen(false)}
+            onLeadUpdated={handleLeadUpdated}
+            currentUserId={currentUserId}
           />
         </div>
       ) : (

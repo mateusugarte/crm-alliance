@@ -54,9 +54,9 @@ export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = fals
       ref={isOverlay ? undefined : setNodeRef}
       style={overlayStyle}
       whileHover={isOverlay ? undefined : { y: -2, transition: { duration: 0.15 } }}
-      className={`bg-white rounded-xl p-3.5 shadow-sm select-none
+      className={`bg-white dark:bg-white/5 rounded-xl p-3.5 shadow-sm dark:shadow-none select-none
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alliance-blue focus-visible:ring-offset-1
-        ${isOverlay ? '' : 'cursor-pointer active:cursor-grabbing hover:shadow-md transition-shadow'}
+        ${isOverlay ? '' : 'cursor-pointer active:cursor-grabbing hover:shadow-md dark:hover:bg-white/8 transition-all'}
         ${borderClass}`}
       tabIndex={isOverlay ? -1 : 0}
       role={isOverlay ? undefined : 'button'}
@@ -76,7 +76,7 @@ export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = fals
       <div className="flex flex-col gap-2">
         {/* Nome + badge pausado */}
         <div className="flex items-start justify-between gap-1">
-          <span className="font-semibold text-sm text-alliance-dark leading-tight">
+          <span className="font-semibold text-sm text-alliance-dark dark:text-white leading-tight">
             {displayName}
           </span>
           {lead.automation_paused && (
@@ -90,7 +90,7 @@ export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = fals
         {/* Detalhes */}
         <div className="flex flex-col gap-0.5">
           {lead.city && (
-            <span className="text-xs text-gray-400 flex items-center gap-1">
+            <span className="text-xs text-gray-400 dark:text-white/35 flex items-center gap-1">
               <MapPin size={10} className="flex-shrink-0" />
               {lead.city}
             </span>
@@ -104,7 +104,7 @@ export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = fals
         </div>
 
         {/* Separator */}
-        <div className="border-t border-gray-50" />
+        <div className="border-t border-gray-50 dark:border-white/5" />
 
         {/* Badge IA / Consultor */}
         <div>
@@ -113,7 +113,7 @@ export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = fals
               <Bot size={9} /> agente de IA
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-1 bg-gray-100 dark:bg-white/8 text-gray-600 dark:text-white/50 text-xs font-medium px-2 py-0.5 rounded-full">
               Consultor
             </span>
           )}

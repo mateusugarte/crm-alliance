@@ -38,40 +38,26 @@ export function LeadsSidebar({ conversations, contacts, activeLeadId, onSelect, 
   const [search, setSearch] = useState('')
 
   const filterConversations = conversations.filter(l =>
-    l.name.toLowerCase().includes(search.toLowerCase()) ||
-    l.phone.includes(search)
+    l.name.toLowerCase().includes(search.toLowerCase()) || l.phone.includes(search)
   )
-
   const filterContacts = contacts.filter(l =>
-    l.name.toLowerCase().includes(search.toLowerCase()) ||
-    l.phone.includes(search)
+    l.name.toLowerCase().includes(search.toLowerCase()) || l.phone.includes(search)
   )
 
   return (
-    <div
-      className="w-72 min-w-72 flex flex-col overflow-hidden"
-      style={{
-        background: '#0D0F14',
-        borderRight: '1px solid rgba(255,255,255,0.05)',
-      }}
-    >
+    <div className="w-72 min-w-72 bg-alliance-dark flex flex-col overflow-hidden border-r border-white/5">
       {/* Header */}
       <div className="px-4 pt-5 pb-4 flex-shrink-0">
         <div className="flex items-center gap-2 mb-1">
-          <MessagesSquare size={14} className="text-white/30" />
-          <p className="text-white/30 text-[10px] font-bold uppercase tracking-widest">
-            Interações
-          </p>
+          <MessagesSquare size={13} className="text-white/30" />
+          <p className="text-white/30 text-[9px] font-bold uppercase tracking-[0.2em]">Interações</p>
         </div>
         <span className="font-bold text-white text-lg tracking-tight">Conversas</span>
       </div>
 
       {/* Search */}
       <div className="px-3 pb-3 flex-shrink-0">
-        <div
-          className="flex items-center gap-2 rounded-xl px-3 py-2.5"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}
-        >
+        <div className="flex items-center gap-2 rounded-xl px-3 py-2.5 bg-white/8 border border-white/8">
           <Search size={13} className="text-white/30 flex-shrink-0" />
           <input
             type="text"
@@ -83,17 +69,16 @@ export function LeadsSidebar({ conversations, contacts, activeLeadId, onSelect, 
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="mx-4 mb-1 flex-shrink-0" style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
+      <div className="mx-4 mb-1 h-px bg-white/8 flex-shrink-0" />
 
       {/* Lista */}
       <div className="flex-1 overflow-y-auto">
 
-        {/* Seção Conversas */}
+        {/* Conversas */}
         {filterConversations.length > 0 && (
           <>
             <p className="px-4 pt-3 pb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-white/25">
-              Conversas • {filterConversations.length}
+              Conversas · {filterConversations.length}
             </p>
             {filterConversations.map((lead, i) => {
               const isActive = lead.id === activeLeadId
@@ -103,32 +88,27 @@ export function LeadsSidebar({ conversations, contacts, activeLeadId, onSelect, 
                   key={lead.id}
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.03, duration: 0.2 }}
+                  transition={{ delay: i * 0.02, duration: 0.2 }}
                   onClick={() => onSelect(lead.id)}
-                  className="w-full text-left px-3 py-2.5 flex items-start gap-3 transition-colors duration-150 relative"
+                  className="w-full text-left px-3 py-2.5 flex items-start gap-3 transition-colors duration-150 cursor-pointer"
                   style={{
-                    background: isActive ? 'rgba(30,144,255,0.10)' : 'transparent',
+                    background: isActive ? 'rgba(30,144,255,0.15)' : undefined,
                     borderLeft: `2px solid ${isActive ? '#1E90FF' : 'transparent'}`,
                   }}
-                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
-                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = '' }}
                 >
-                  {/* Avatar */}
                   <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white select-none relative"
+                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white relative"
                     style={{ background: getAvatarColor(lead.name) }}
                   >
                     {getInitials(lead.name)}
                     {unread > 0 && (
-                      <span
-                        className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full text-[9px] font-bold text-white"
-                        style={{ background: '#1E90FF' }}
-                      >
+                      <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full text-[9px] font-bold text-white bg-alliance-blue">
                         {unread}
                       </span>
                     )}
                   </div>
-
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1 mb-0.5">
                       <span className={`text-sm truncate ${isActive ? 'font-bold text-white' : 'font-semibold text-white/80'}`}>
@@ -154,12 +134,12 @@ export function LeadsSidebar({ conversations, contacts, activeLeadId, onSelect, 
           </>
         )}
 
-        {/* Seção Contatos */}
+        {/* Contatos */}
         {filterContacts.length > 0 && (
           <>
-            <div className="mx-4 mt-3 mb-1" style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
+            <div className="mx-4 mt-3 mb-1 h-px bg-white/8" />
             <p className="px-4 pt-2 pb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-white/25">
-              Contatos • {filterContacts.length}
+              Contatos · {filterContacts.length}
             </p>
             {filterContacts.map((lead, i) => {
               const isActive = lead.id === activeLeadId
@@ -168,20 +148,17 @@ export function LeadsSidebar({ conversations, contacts, activeLeadId, onSelect, 
                   key={lead.id}
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.03, duration: 0.2 }}
+                  transition={{ delay: i * 0.02, duration: 0.2 }}
                   onClick={() => onSelect(lead.id)}
-                  className="w-full text-left px-3 py-2 flex items-center gap-3 transition-colors duration-150"
+                  className="w-full text-left px-3 py-2 flex items-center gap-3 transition-colors duration-150 cursor-pointer"
                   style={{
-                    background: isActive ? 'rgba(30,144,255,0.10)' : 'transparent',
+                    background: isActive ? 'rgba(30,144,255,0.15)' : undefined,
                     borderLeft: `2px solid ${isActive ? '#1E90FF' : 'transparent'}`,
                   }}
-                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
-                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = '' }}
                 >
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.08)' }}
-                  >
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 bg-white/8 border border-white/10">
                     <User size={14} className="text-white/40" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -200,17 +177,10 @@ export function LeadsSidebar({ conversations, contacts, activeLeadId, onSelect, 
           </>
         )}
 
-        {/* Estado vazio */}
         <AnimatePresence>
           {filterConversations.length === 0 && filterContacts.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-16 px-4"
-            >
-              <p className="text-white/20 text-sm">
-                {search ? 'Nenhum resultado' : 'Nenhum lead ainda'}
-              </p>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16 px-4">
+              <p className="text-white/20 text-sm">{search ? 'Nenhum resultado' : 'Nenhum lead ainda'}</p>
             </motion.div>
           )}
         </AnimatePresence>

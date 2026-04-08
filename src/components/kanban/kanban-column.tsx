@@ -18,9 +18,9 @@ export const KanbanColumn = memo(function KanbanColumn({ column, leads, onLeadCl
 
   return (
     <div
-      className="rounded-2xl min-w-[260px] max-w-[260px] flex flex-col h-full transition-all duration-150"
+      className="rounded-2xl min-w-[260px] max-w-[260px] flex flex-col h-full transition-all duration-150 bg-[#F9FAFB] dark:bg-white/[0.03]"
       style={{
-        backgroundColor: isOver ? column.color + '10' : '#F9FAFB',
+        backgroundColor: isOver ? column.color + '10' : undefined,
         outline: isOver ? `2px dashed ${column.color}` : undefined,
       }}
     >
@@ -61,7 +61,7 @@ export const KanbanColumn = memo(function KanbanColumn({ column, leads, onLeadCl
           />
         ))}
         {leads.length === 0 && (
-          <div className="text-center text-xs text-gray-400 py-10 border-2 border-dashed border-gray-200 rounded-xl">
+          <div className="text-center text-xs text-gray-400 dark:text-white/20 py-10 border-2 border-dashed border-gray-200 dark:border-white/8 rounded-xl">
             Arraste um lead aqui
           </div>
         )}

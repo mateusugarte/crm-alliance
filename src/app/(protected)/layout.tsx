@@ -10,7 +10,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   const initial = displayName.charAt(0).toUpperCase()
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F4F5F7]">
+    <div className="flex h-screen overflow-hidden bg-[#F4F5F7] dark:bg-[#0B0D12]">
       <NavShell userInitial={initial} userName={displayName} />
       <main className="flex-1 overflow-auto">
         <AnimatedLayout>{children}</AnimatedLayout>
