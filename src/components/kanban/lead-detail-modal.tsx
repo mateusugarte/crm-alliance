@@ -51,6 +51,7 @@ interface LeadDetailModalProps {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STAGE_LABELS: Record<Lead['stage'], string> = {
+  nao_respondeu: 'Não Respondeu',
   lead_frio: 'Lead Frio',
   lead_morno: 'Lead Morno',
   lead_quente: 'Lead Quente',
@@ -61,6 +62,7 @@ const STAGE_LABELS: Record<Lead['stage'], string> = {
 }
 
 const STAGE_COLORS: Record<Lead['stage'], string> = {
+  nao_respondeu: 'var(--color-stage-nao-respondeu)',
   lead_frio: 'var(--color-stage-frio)',
   lead_morno: 'var(--color-stage-morno)',
   lead_quente: 'var(--color-stage-quente)',
