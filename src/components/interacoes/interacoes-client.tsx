@@ -158,16 +158,20 @@ export function InteracoesClient({ conversations: initialConversations, contacts
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="flex-1 flex flex-col items-center justify-center gap-4 bg-alliance-col/40"
+          className="flex-1 flex flex-col items-center justify-center gap-4"
+          style={{ background: '#0A0C10' }}
         >
-          <div className="w-20 h-20 rounded-3xl bg-white shadow-sm flex items-center justify-center text-alliance-blue/40">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <div
+            className="w-20 h-20 rounded-3xl flex items-center justify-center"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
             </svg>
           </div>
           <div className="text-center">
-            <p className="text-sm font-semibold text-gray-500">Nenhuma conversa selecionada</p>
-            <p className="text-xs text-gray-400 mt-1">Escolha um lead na lista ao lado</p>
+            <p className="text-sm font-semibold text-white/30">Nenhuma conversa selecionada</p>
+            <p className="text-xs text-white/15 mt-1">Escolha um lead na lista ao lado</p>
           </div>
         </motion.div>
       )}

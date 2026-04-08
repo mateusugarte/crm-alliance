@@ -1,7 +1,8 @@
 'use client'
 
-import { Bot, PauseCircle, Search, User } from 'lucide-react'
+import { Bot, PauseCircle, Search, User, MessagesSquare } from 'lucide-react'
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { LeadWithLastInteraction, LeadContact } from './types'
@@ -12,6 +13,25 @@ interface LeadsSidebarProps {
   activeLeadId: string | null
   onSelect: (id: string) => void
   unreadCounts: Record<string, number>
+}
+
+function getAvatarColor(name: string): string {
+  const colors = [
+    'linear-gradient(135deg, #1E90FF 0%, #0A2EAD 100%)',
+    'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
+    'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+    'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+    'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+    'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)',
+    'linear-gradient(135deg, #14B8A6 0%, #0D9488 100%)',
+  ]
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  return colors[Math.abs(hash) % colors.length]
+}
+
+function getInitials(name: string): string {
+  return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
 }
 
 export function LeadsSidebar({ conversations, contacts, activeLeadId, onSelect, unreadCounts }: LeadsSidebarProps) {
@@ -28,76 +48,107 @@ export function LeadsSidebar({ conversations, contacts, activeLeadId, onSelect, 
   )
 
   return (
-    <div className="w-72 min-w-72 bg-alliance-dark flex flex-col overflow-hidden">
+    <div
+      className="w-72 min-w-72 flex flex-col overflow-hidden"
+      style={{
+        background: '#0D0F14',
+        borderRight: '1px solid rgba(255,255,255,0.05)',
+      }}
+    >
       {/* Header */}
-      <div className="px-4 pt-5 pb-3 flex-shrink-0">
-        <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-1">
-          Interações
-        </p>
+      <div className="px-4 pt-5 pb-4 flex-shrink-0">
+        <div className="flex items-center gap-2 mb-1">
+          <MessagesSquare size={14} className="text-white/30" />
+          <p className="text-white/30 text-[10px] font-bold uppercase tracking-widest">
+            Interações
+          </p>
+        </div>
         <span className="font-bold text-white text-lg tracking-tight">Conversas</span>
       </div>
 
       {/* Search */}
       <div className="px-3 pb-3 flex-shrink-0">
-        <div className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2">
-          <Search size={14} className="text-white/40 flex-shrink-0" />
+        <div
+          className="flex items-center gap-2 rounded-xl px-3 py-2.5"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}
+        >
+          <Search size={13} className="text-white/30 flex-shrink-0" />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar lead..."
-            className="flex-1 bg-transparent text-white text-sm placeholder-white/30 outline-none"
+            className="flex-1 bg-transparent text-white text-sm placeholder:text-white/25 outline-none"
           />
         </div>
       </div>
 
       {/* Divider */}
-      <div className="mx-4 border-t border-white/10 mb-1 flex-shrink-0" />
+      <div className="mx-4 mb-1 flex-shrink-0" style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
 
       {/* Lista */}
       <div className="flex-1 overflow-y-auto">
+
         {/* Seção Conversas */}
         {filterConversations.length > 0 && (
           <>
-            <p className="px-4 pt-3 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/30">
-              Conversas
+            <p className="px-4 pt-3 pb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-white/25">
+              Conversas • {filterConversations.length}
             </p>
-            {filterConversations.map(lead => {
+            {filterConversations.map((lead, i) => {
               const isActive = lead.id === activeLeadId
+              const unread = unreadCounts[lead.id] ?? 0
               return (
-                <button
+                <motion.button
                   key={lead.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.03, duration: 0.2 }}
                   onClick={() => onSelect(lead.id)}
-                  className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-all duration-150 border-l-2 ${
-                    isActive
-                      ? 'bg-white/12 border-alliance-blue'
-                      : 'hover:bg-white/8 border-transparent'
-                  }`}
+                  className="w-full text-left px-3 py-2.5 flex items-start gap-3 transition-colors duration-150 relative"
+                  style={{
+                    background: isActive ? 'rgba(30,144,255,0.10)' : 'transparent',
+                    borderLeft: `2px solid ${isActive ? '#1E90FF' : 'transparent'}`,
+                  }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
                 >
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold ${
-                    isActive ? 'bg-alliance-blue text-white' : 'bg-white/15 text-white'
-                  }`}>
-                    {lead.name.charAt(0).toUpperCase()}
+                  {/* Avatar */}
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white select-none relative"
+                    style={{ background: getAvatarColor(lead.name) }}
+                  >
+                    {getInitials(lead.name)}
+                    {unread > 0 && (
+                      <span
+                        className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full text-[9px] font-bold text-white"
+                        style={{ background: '#1E90FF' }}
+                      >
+                        {unread}
+                      </span>
+                    )}
                   </div>
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1 mb-0.5">
-                      <span className="font-semibold text-white text-sm truncate">{lead.name}</span>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        {lead.automation_paused && <PauseCircle size={11} className="text-amber-400" />}
-                        {!lead.assigned_to && !lead.automation_paused && <Bot size={11} className="text-white/40" />}
-                        {(unreadCounts[lead.id] ?? 0) > 0 && (
-                          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-alliance-blue px-1 text-[10px] font-bold text-white">
-                            {unreadCounts[lead.id]}
-                          </span>
-                        )}
+                      <span className={`text-sm truncate ${isActive ? 'font-bold text-white' : 'font-semibold text-white/80'}`}>
+                        {lead.name}
+                      </span>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {lead.automation_paused
+                          ? <PauseCircle size={11} className="text-amber-400/70" />
+                          : <Bot size={11} className="text-white/25" />
+                        }
                       </div>
                     </div>
-                    <p className="text-white/50 text-xs truncate">{lead.lastMessage}</p>
-                    <p className="text-white/30 text-xs mt-0.5">
-                      {formatDistanceToNow(new Date(lead.lastMessageAt!), { locale: ptBR, addSuffix: true })}
-                    </p>
+                    <p className="text-white/35 text-xs truncate leading-tight">{lead.lastMessage}</p>
+                    {lead.lastMessageAt && (
+                      <p className="text-white/20 text-[10px] mt-0.5">
+                        {formatDistanceToNow(new Date(lead.lastMessageAt), { locale: ptBR, addSuffix: true })}
+                      </p>
+                    )}
                   </div>
-                </button>
+                </motion.button>
               )
             })}
           </>
@@ -106,49 +157,63 @@ export function LeadsSidebar({ conversations, contacts, activeLeadId, onSelect, 
         {/* Seção Contatos */}
         {filterContacts.length > 0 && (
           <>
-            <div className="mx-4 mt-3 mb-1 border-t border-white/10" />
-            <p className="px-4 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/30">
-              Contatos
+            <div className="mx-4 mt-3 mb-1" style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
+            <p className="px-4 pt-2 pb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-white/25">
+              Contatos • {filterContacts.length}
             </p>
-            {filterContacts.map(lead => {
+            {filterContacts.map((lead, i) => {
               const isActive = lead.id === activeLeadId
               return (
-                <button
+                <motion.button
                   key={lead.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.03, duration: 0.2 }}
                   onClick={() => onSelect(lead.id)}
-                  className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-all duration-150 border-l-2 ${
-                    isActive
-                      ? 'bg-white/12 border-alliance-blue'
-                      : 'hover:bg-white/8 border-transparent'
-                  }`}
+                  className="w-full text-left px-3 py-2 flex items-center gap-3 transition-colors duration-150"
+                  style={{
+                    background: isActive ? 'rgba(30,144,255,0.10)' : 'transparent',
+                    borderLeft: `2px solid ${isActive ? '#1E90FF' : 'transparent'}`,
+                  }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${
-                    isActive ? 'bg-alliance-blue text-white' : 'bg-white/10 text-white/60'
-                  }`}>
-                    <User size={14} />
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  >
+                    <User size={14} className="text-white/40" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
-                      <span className="font-medium text-white/70 text-sm truncate">{lead.name}</span>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        {lead.automation_paused && <PauseCircle size={11} className="text-amber-400" />}
-                        {!lead.assigned_to && !lead.automation_paused && <Bot size={11} className="text-white/30" />}
-                      </div>
+                      <span className="font-medium text-white/55 text-sm truncate">{lead.name}</span>
+                      {lead.automation_paused
+                        ? <PauseCircle size={11} className="text-amber-400/50 flex-shrink-0" />
+                        : <Bot size={11} className="text-white/20 flex-shrink-0" />
+                      }
                     </div>
-                    <p className="text-white/30 text-xs">{lead.phone}</p>
+                    <p className="text-white/25 text-xs">{lead.phone}</p>
                   </div>
-                </button>
+                </motion.button>
               )
             })}
           </>
         )}
 
         {/* Estado vazio */}
-        {filterConversations.length === 0 && filterContacts.length === 0 && (
-          <div className="text-center text-white/30 text-sm py-12 px-4">
-            {search ? 'Nenhum resultado' : 'Nenhum lead ainda'}
-          </div>
-        )}
+        <AnimatePresence>
+          {filterConversations.length === 0 && filterContacts.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-16 px-4"
+            >
+              <p className="text-white/20 text-sm">
+                {search ? 'Nenhum resultado' : 'Nenhum lead ainda'}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

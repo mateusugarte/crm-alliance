@@ -54,15 +54,15 @@ export default function NavShell({ userInitial = 'C', userName = 'consultor' }: 
       {/* Logo */}
       <div className="px-3 pt-5 pb-4 flex-shrink-0">
         <div className="flex items-center gap-2.5 overflow-hidden">
-          {/* Ícone colapsado: logo pequena */}
-          <div className="w-7 h-7 flex-shrink-0 flex items-center justify-center">
+          {/* Ícone colapsado: logo */}
+          <div className="w-9 h-9 flex-shrink-0 flex items-center justify-center">
             <Image
               src={LOGO_URL}
               alt="Alliance"
-              width={28}
-              height={28}
+              width={36}
+              height={36}
               className="object-contain"
-              style={{ filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.25))' }}
+              style={{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.3))' }}
             />
           </div>
           <AnimatePresence initial={false}>
