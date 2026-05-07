@@ -1,9 +1,10 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { BedDouble, Bath, Eye, EyeOff, Maximize, Pencil, Trash2, Layers } from 'lucide-react'
+import { BedDouble, Bath, Maximize, Pencil, Trash2, Layers, DollarSign } from 'lucide-react'
 import { staggerItem } from '@/lib/animations'
 import { formatCurrency } from '@/lib/utils/format'
+import { cn } from '@/lib/utils'
 import type { Imovel } from '@/lib/supabase/types'
 
 interface ImovelCardProps {
@@ -12,116 +13,71 @@ interface ImovelCardProps {
   onToggle?: (id: string) => void
   onEdit?: (imovel: Imovel) => void
   onDelete?: (id: string) => void
+  onRegistrarVenda?: (imovel: Imovel) => void
 }
 
-export function ImovelCard({ imovel, isAdm = false, onToggle, onEdit, onDelete }: ImovelCardProps) {
+export function ImovelCard({
+  imovel,
+  isAdm = false,
+  onToggle,
+  onEdit,
+  onDelete,
+  onRegistrarVenda,
+}: ImovelCardProps) {
   return (
     <motion.div
       variants={staggerItem}
-      whileHover={{ y: -3, transition: { duration: 0.15 } }}
-      className="group bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden"
+      className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden"
     >
-      {/* Topo colorido */}
-      <div className={`h-2 w-full ${imovel.disponivel ? 'bg-alliance-blue' : 'bg-gray-300'}`} />
+      {/* Barra de status: verde = disponível, âmbar = reservado */}
+      <div className={cn('h-1.5 w-full', imovel.disponivel ? 'bg-emerald-500' : 'bg-amber-400')} />
 
-      <div className="p-5 flex flex-col gap-4 flex-1">
-        {/* Header */}
+      <div className="p-4 flex flex-col gap-3 flex-1">
+        {/* Header: nome + badge */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h3 className="font-bold text-alliance-dark text-base leading-tight">{imovel.nome}</h3>
-            <div className="flex items-center gap-1.5 mt-1">
-              <Layers size={11} className="text-gray-400 flex-shrink-0" />
-              <span className="text-xs text-gray-400">
-                {imovel.pavimento === 9 ? 'Cobertura' : `${imovel.pavimento}° Pavimento`}
+            <h3 className="font-bold text-alliance-dark text-sm leading-tight">{imovel.nome}</h3>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <Layers size={10} className="text-gray-400 flex-shrink-0" />
+              <span className="text-[11px] text-gray-400">
+                {imovel.pavimento === 9 ? 'Cobertura' : `${imovel.pavimento}° Pav.`}
               </span>
-              {imovel.cobertura && (
-                <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-md">
-                  COB
-                </span>
-              )}
             </div>
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            {imovel.disponivel ? (
-              <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap">
-                <Eye size={11} /> Disponível
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 border border-gray-200 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap">
-                <EyeOff size={11} /> Indisponível
-              </span>
-            )}
-            {isAdm && onToggle && (
-              <button
-                onClick={() => onToggle(imovel.id)}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-0.5 cursor-pointer focus-visible:outline-none"
-                title={imovel.disponivel ? 'Marcar indisponível' : 'Marcar disponível'}
-              >
-                {imovel.disponivel ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-            )}
-            {isAdm && (
-              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                {onEdit && (
-                  <button
-                    onClick={() => onEdit(imovel)}
-                    className="text-gray-400 hover:text-alliance-blue transition-colors p-0.5 cursor-pointer focus-visible:outline-none"
-                    title="Editar imóvel"
-                  >
-                    <Pencil size={13} />
-                  </button>
-                )}
-                {onDelete && (
-                  <button
-                    onClick={() => onDelete(imovel.id)}
-                    className="text-gray-400 hover:text-red-500 transition-colors p-0.5 cursor-pointer focus-visible:outline-none"
-                    title="Excluir imóvel"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+          <span className={cn(
+            'inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0',
+            imovel.disponivel
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : 'bg-amber-50 text-amber-700 border border-amber-200'
+          )}>
+            {imovel.disponivel ? 'Disponível' : 'Reservado'}
+          </span>
         </div>
 
-        {/* Metragem destaque */}
-        <div className="flex items-center gap-2">
-          <Maximize size={16} className="text-alliance-blue" />
-          <span className="text-2xl font-bold text-alliance-blue">
+        {/* Metragem */}
+        <div className="flex items-center gap-1.5">
+          <Maximize size={13} className="text-alliance-blue" />
+          <span className="text-lg font-bold text-alliance-blue">
             {imovel.metragem.toLocaleString('pt-BR')} m²
           </span>
         </div>
 
         {/* Quartos e suítes */}
-        <div className="flex items-center gap-4 text-sm text-gray-600">
-          <span className="flex items-center gap-1.5">
-            <BedDouble size={15} className="text-alliance-dark" />
-            {imovel.quartos} quartos
+        <div className="flex items-center gap-3 text-xs text-gray-600">
+          <span className="flex items-center gap-1">
+            <BedDouble size={12} className="text-alliance-dark" />
+            {imovel.quartos} qts
           </span>
-          <span className="w-px h-4 bg-gray-200" />
-          <span className="flex items-center gap-1.5">
-            <Bath size={15} className="text-alliance-dark" />
+          <span className="w-px h-3 bg-gray-200" />
+          <span className="flex items-center gap-1">
+            <Bath size={12} className="text-alliance-dark" />
             {imovel.suites} suítes
           </span>
         </div>
 
-        {/* Diferenciais */}
-        <ul className="flex flex-col gap-1.5">
-          {imovel.diferenciais.map((d) => (
-            <li key={d} className="text-xs text-gray-500 flex items-start gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-alliance-blue inline-block flex-shrink-0 mt-1" />
-              {d}
-            </li>
-          ))}
-        </ul>
-
         {/* Valor */}
-        <div className="mt-auto pt-4 border-t border-gray-100">
-          <span className="text-xs text-gray-400 block mb-1 font-medium uppercase tracking-wider">
-            Faixa de valor
-          </span>
-          <span className="font-bold text-alliance-dark text-sm">
+        <div className="pt-2 border-t border-gray-100 mt-auto">
+          <span className="text-xs font-semibold text-alliance-dark">
             {imovel.valor_min != null && imovel.valor_max != null
               ? `${formatCurrency(imovel.valor_min)} – ${formatCurrency(imovel.valor_max)}`
               : imovel.valor_min != null
@@ -131,6 +87,57 @@ export function ImovelCard({ imovel, isAdm = false, onToggle, onEdit, onDelete }
                   : 'Consulte o corretor'}
           </span>
         </div>
+
+        {/* Ações ADM — sempre visíveis */}
+        {isAdm && (
+          <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100">
+            {/* Toggle disponibilidade */}
+            {onToggle && (
+              <button
+                onClick={() => onToggle(imovel.id)}
+                className={cn(
+                  'flex-1 text-[11px] font-semibold py-1.5 rounded-lg transition-colors cursor-pointer focus-visible:outline-none border',
+                  imovel.disponivel
+                    ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200'
+                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200'
+                )}
+              >
+                {imovel.disponivel ? 'Marcar Reservado' : 'Marcar Disponível'}
+              </button>
+            )}
+            {/* Registrar venda */}
+            {onRegistrarVenda && (
+              <button
+                onClick={() => onRegistrarVenda(imovel)}
+                title="Registrar venda"
+                className="flex items-center gap-1 text-[11px] font-semibold py-1.5 px-2.5 rounded-lg bg-alliance-dark text-white hover:bg-alliance-dark/90 transition-colors cursor-pointer focus-visible:outline-none"
+              >
+                <DollarSign size={11} />
+                Venda
+              </button>
+            )}
+            {/* Editar */}
+            {onEdit && (
+              <button
+                onClick={() => onEdit(imovel)}
+                title="Editar"
+                className="p-1.5 text-gray-400 hover:text-alliance-blue transition-colors cursor-pointer rounded-lg focus-visible:outline-none"
+              >
+                <Pencil size={13} />
+              </button>
+            )}
+            {/* Excluir */}
+            {onDelete && (
+              <button
+                onClick={() => onDelete(imovel.id)}
+                title="Excluir"
+                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors cursor-pointer rounded-lg focus-visible:outline-none"
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </motion.div>
   )

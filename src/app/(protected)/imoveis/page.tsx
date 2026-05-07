@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { ImovelGrid } from '@/components/imoveis/imovel-grid'
-import type { Imovel, UserProfile } from '@/lib/supabase/types'
+import type { Imovel, Venda, UserProfile } from '@/lib/supabase/types'
 
 async function getUserRole(): Promise<'adm' | 'corretor'> {
   try {
@@ -31,8 +31,26 @@ async function getImoveis(): Promise<Imovel[]> {
   }
 }
 
+async function getVendas(): Promise<Venda[]> {
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('vendas')
+      .select('*')
+      .order('created_at', { ascending: false })
+    return (data ?? []) as Venda[]
+  } catch {
+    // Tabela pode não existir ainda (migration pendente)
+    return []
+  }
+}
+
 export default async function ImoveisPage() {
-  const [role, imoveis] = await Promise.all([getUserRole(), getImoveis()])
+  const [role, imoveis, vendas] = await Promise.all([
+    getUserRole(),
+    getImoveis(),
+    getVendas(),
+  ])
 
   return (
     <div className="px-8 py-7 flex flex-col gap-6">
@@ -43,7 +61,7 @@ export default async function ImoveisPage() {
         <h1 className="text-2xl font-bold text-alliance-dark">Imóveis La Reserva</h1>
         <p className="text-gray-400 text-sm mt-1">Castelo, ES — 34 unidades exclusivas de alto padrão</p>
       </div>
-      <ImovelGrid imoveis={imoveis} isAdm={role === 'adm'} />
+      <ImovelGrid imoveis={imoveis} vendas={vendas} isAdm={role === 'adm'} />
     </div>
   )
 }

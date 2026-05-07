@@ -197,6 +197,7 @@ export interface Database {
           valor_min: number | null
           valor_max: number | null
           disponivel: boolean
+          vendido: boolean
           pavimento: number
           numero_unidade: number
           cobertura: boolean
@@ -211,11 +212,51 @@ export interface Database {
           valor_min?: number | null
           valor_max?: number | null
           disponivel?: boolean
+          vendido?: boolean
           pavimento?: number
           numero_unidade?: number
           cobertura?: boolean
         }
         Update: Partial<Database['public']['Tables']['imoveis']['Insert']>
+      }
+      vendas: {
+        Row: {
+          id: string
+          imovel_id: string
+          comprador_nome: string
+          comprador_telefone: string
+          comprador_email: string | null
+          unidade_comprada: string
+          tem_entrada: boolean
+          valor_entrada: number | null
+          tem_financiamento: boolean
+          valor_financiado: number | null
+          parcelas_financiamento: number | null
+          tem_parcelamento_direto: boolean
+          parcelas_direto: number | null
+          valor_parcela_direto: number | null
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          imovel_id: string
+          comprador_nome: string
+          comprador_telefone: string
+          comprador_email?: string | null
+          unidade_comprada: string
+          tem_entrada?: boolean
+          valor_entrada?: number | null
+          tem_financiamento?: boolean
+          valor_financiado?: number | null
+          parcelas_financiamento?: number | null
+          tem_parcelamento_direto?: boolean
+          parcelas_direto?: number | null
+          valor_parcela_direto?: number | null
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['vendas']['Insert']>
       }
       labels: {
         Row: {
@@ -287,3 +328,4 @@ export type Imovel = Database['public']['Tables']['imoveis']['Row']
 export type Label = Database['public']['Tables']['labels']['Row']
 export type LeadLabel = Database['public']['Tables']['lead_labels']['Row']
 export type LeadReadState = Database['public']['Tables']['lead_read_state']['Row']
+export type Venda = Database['public']['Tables']['vendas']['Row']

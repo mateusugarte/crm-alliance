@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import { Snowflake, Flame, Zap, CalendarCheck, RefreshCw, CheckCircle2, MessageCircleOff } from 'lucide-react'
+import type { Lead } from '@/lib/supabase/types'
 
 export type KanbanStage =
   | 'nao_respondeu'
@@ -26,3 +27,23 @@ export const KANBAN_COLUMNS: KanbanColumnConfig[] = [
   { id: 'follow_up',         label: 'Follow Up',         color: '#9B59B6', icon: RefreshCw },
   { id: 'visita_confirmada', label: 'Visita Confirmada', color: '#E67E22', icon: CheckCircle2 },
 ]
+
+export interface Label {
+  id: string
+  name: string
+  color: string
+}
+
+export interface Interaction {
+  id: string
+  direction: 'inbound' | 'outbound'
+  sender_type: 'lead' | 'bot' | 'corretor'
+  sender_name: string | null
+  content: string
+  wa_message_id: string | null
+  created_at: string
+}
+
+export interface LeadFull extends Lead {
+  labels?: Label[]
+}
