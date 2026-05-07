@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
-import { Plus, Building2, Crown } from 'lucide-react'
+import { Plus, Building2, Crown, Clock } from 'lucide-react'
+import Link from 'next/link'
 import { staggerContainer } from '@/lib/animations'
 import { ImovelCard } from './imovel-card'
 import { ImovelFormPanel } from './imovel-form-panel'
@@ -48,6 +49,8 @@ export function ImovelGrid({ imoveis: initialImoveis, vendas: initialVendas, isA
   const activeImoveis = imoveis.filter(i => !i.vendido)
   // Imóveis vendidos para a seção inferior
   const vendidosImoveis = imoveis.filter(i => i.vendido)
+  // Contagem de reservados (indisponíveis sem venda formal)
+  const reservedCount = imoveis.filter(i => !i.disponivel && !i.vendido).length
 
   // ── Toggle disponibilidade ──
   const handleToggle = async (id: string) => {
@@ -112,8 +115,20 @@ export function ImovelGrid({ imoveis: initialImoveis, vendas: initialVendas, isA
   return (
     <>
       {/* Toolbar */}
-      {isAdm && (
-        <div className="flex justify-end mb-5">
+      <div className="flex items-center justify-between mb-5">
+        <Link
+          href="/imoveis/reservados"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors focus-visible:outline-none"
+        >
+          <Clock size={15} />
+          Imóveis Reservados
+          {reservedCount > 0 && (
+            <span className="bg-amber-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+              {reservedCount}
+            </span>
+          )}
+        </Link>
+        {isAdm && (
           <button
             onClick={() => { setEditingImovel(null); setFormOpen(true) }}
             className="flex items-center gap-2 px-4 py-2 bg-alliance-dark text-white text-sm font-semibold rounded-xl hover:bg-alliance-dark/90 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alliance-dark"
@@ -121,8 +136,8 @@ export function ImovelGrid({ imoveis: initialImoveis, vendas: initialVendas, isA
             <Plus size={15} />
             Novo Imóvel
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Kanban: colunas por bloco */}
       <div className="flex gap-4 overflow-x-auto pb-4 -mx-1 px-1">
