@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Send, Loader2, Zap, PauseCircle } from 'lucide-react'
+import { Send, Loader2, Zap, PauseCircle, PlusCircle, X, ChevronDown } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { format, isToday, isYesterday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -13,6 +13,7 @@ interface ChatAreaProps {
   messages: Interaction[]
   lead: LeadWithLastInteraction
   onSend?: (text: string) => Promise<void>
+  onMessageAdded?: (msg: Interaction) => void
 }
 
 function getDateLabel(dateStr: string): string {
@@ -37,11 +38,49 @@ function groupMessagesByDate(messages: Interaction[]) {
   return groups
 }
 
-export function ChatArea({ messages, lead, onSend }: ChatAreaProps) {
+export function ChatArea({ messages, lead, onSend, onMessageAdded }: ChatAreaProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [input, setInput] = useState('')
   const [isSending, setIsSending] = useState(false)
+
+  // Histórico manual
+  const isManualLead = !lead.wa_contact_id
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [histSender, setHistSender] = useState<'lead' | 'corretor'>('lead')
+  const [histContent, setHistContent] = useState('')
+  const [histDate, setHistDate] = useState('')
+  const [savingHistory, setSavingHistory] = useState(false)
+
+  const handleSaveHistory = async () => {
+    if (!histContent.trim()) return
+    setSavingHistory(true)
+    try {
+      const body: Record<string, unknown> = {
+        content: histContent.trim(),
+        sender_type: histSender,
+        direction: histSender === 'lead' ? 'inbound' : 'outbound',
+      }
+      if (histDate) body.created_at = new Date(histDate).toISOString()
+
+      const res = await fetch(`/api/leads/${lead.id}/interactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) throw new Error()
+      const json = await res.json() as { data: Interaction }
+      onMessageAdded?.(json.data)
+      setHistContent('')
+      setHistDate('')
+      setHistSender('lead')
+      setHistoryOpen(false)
+    } catch {
+      // toast already handled by caller or show here
+    } finally {
+      setSavingHistory(false)
+    }
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -118,6 +157,74 @@ export function ChatArea({ messages, lead, onSend }: ChatAreaProps) {
         )}
         <div ref={bottomRef} />
       </div>
+
+      {/* Botão de histórico manual */}
+      {isManualLead && (
+        <div className="flex-shrink-0 px-4 pb-2">
+          {!historyOpen ? (
+            <button
+              onClick={() => setHistoryOpen(true)}
+              className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-white/30 hover:text-white/60 border border-dashed border-white/10 hover:border-white/20 rounded-xl transition-colors cursor-pointer"
+            >
+              <PlusCircle size={12} />
+              Adicionar mensagem histórica
+            </button>
+          ) : (
+            <div className="bg-white/4 border border-white/8 rounded-xl p-3 flex flex-col gap-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-white/50">Mensagem histórica</span>
+                <button onClick={() => setHistoryOpen(false)} className="text-white/30 hover:text-white/60 cursor-pointer">
+                  <X size={13} />
+                </button>
+              </div>
+
+              {/* Toggle sender */}
+              <div className="flex rounded-lg overflow-hidden border border-white/10">
+                {(['lead', 'corretor'] as const).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setHistSender(s)}
+                    className={`flex-1 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                      histSender === s
+                        ? 'bg-white/15 text-white'
+                        : 'text-white/30 hover:bg-white/5'
+                    }`}
+                  >
+                    {s === 'lead' ? 'Lead' : 'Corretor'}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                value={histContent}
+                onChange={e => setHistContent(e.target.value)}
+                placeholder="Conteúdo da mensagem..."
+                rows={2}
+                className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-xs text-white placeholder:text-white/20 outline-none resize-none"
+              />
+
+              <div className="relative">
+                <input
+                  type="datetime-local"
+                  value={histDate}
+                  onChange={e => setHistDate(e.target.value)}
+                  className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-xs text-white/60 outline-none [color-scheme:dark]"
+                  placeholder="Data e hora (opcional)"
+                />
+              </div>
+
+              <button
+                onClick={handleSaveHistory}
+                disabled={savingHistory || !histContent.trim()}
+                className="flex items-center justify-center gap-1.5 py-2 text-xs font-semibold bg-alliance-blue text-white rounded-lg hover:bg-alliance-blue/90 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {savingHistory && <Loader2 size={11} className="animate-spin" />}
+                Salvar mensagem
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Banner IA ativa */}
       <AnimatePresence>

@@ -32,28 +32,50 @@ export async function POST(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
-  const body = await request.json() as { content?: string }
+  const body = await request.json() as {
+    content?: string
+    sender_type?: 'lead' | 'bot' | 'corretor'
+    direction?: 'inbound' | 'outbound'
+    created_at?: string
+  }
 
   if (!body.content?.trim()) {
     return NextResponse.json({ error: 'content é obrigatório' }, { status: 400 })
   }
 
-  // Busca o nome do corretor para exibição no chat
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('full_name')
-    .eq('id', user.id)
-    .single()
+  const senderType = body.sender_type ?? 'corretor'
+  const direction = body.direction ?? (senderType === 'lead' ? 'inbound' : 'outbound')
+
+  // Nome do remetente
+  let senderName: string | null = null
+  if (senderType === 'corretor') {
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .single()
+    senderName = (profile as { full_name: string } | null)?.full_name ?? 'Corretor'
+  } else if (senderType === 'lead') {
+    const { data: lead } = await supabase
+      .from('leads')
+      .select('name')
+      .eq('id', id)
+      .single()
+    senderName = (lead as { name: string } | null)?.name ?? null
+  }
+
+  const insert: Record<string, unknown> = {
+    lead_id: id,
+    direction,
+    sender_type: senderType,
+    sender_name: senderName,
+    content: body.content.trim(),
+  }
+  if (body.created_at) insert.created_at = body.created_at
 
   const { data, error } = await supabase
     .from('interactions')
-    .insert({
-      lead_id: id,
-      direction: 'outbound',
-      sender_type: 'corretor',
-      sender_name: (profile as { full_name: string } | null)?.full_name ?? 'Corretor',
-      content: body.content.trim(),
-    } as never)
+    .insert(insert as never)
     .select(SELECT_FIELDS)
     .single()
 

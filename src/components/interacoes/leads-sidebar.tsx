@@ -1,6 +1,6 @@
 'use client'
 
-import { Bot, PauseCircle, Search, User, MessagesSquare } from 'lucide-react'
+import { Bot, PauseCircle, Search, User, MessagesSquare, Plus, PenLine } from 'lucide-react'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { formatDistanceToNow } from 'date-fns'
@@ -13,6 +13,7 @@ interface LeadsSidebarProps {
   activeLeadId: string | null
   onSelect: (id: string) => void
   unreadCounts: Record<string, number>
+  onCreateLead?: () => void
 }
 
 function getAvatarColor(name: string): string {
@@ -34,7 +35,7 @@ function getInitials(name: string): string {
   return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
 }
 
-export function LeadsSidebar({ conversations, contacts, activeLeadId, onSelect, unreadCounts }: LeadsSidebarProps) {
+export function LeadsSidebar({ conversations, contacts, activeLeadId, onSelect, unreadCounts, onCreateLead }: LeadsSidebarProps) {
   const [search, setSearch] = useState('')
 
   const filterConversations = conversations.filter(l =>
@@ -52,7 +53,18 @@ export function LeadsSidebar({ conversations, contacts, activeLeadId, onSelect, 
           <MessagesSquare size={13} className="text-white/30" />
           <p className="text-white/30 text-[9px] font-bold uppercase tracking-[0.2em]">Interações</p>
         </div>
-        <span className="font-bold text-white text-lg tracking-tight">Conversas</span>
+        <div className="flex items-center justify-between">
+          <span className="font-bold text-white text-lg tracking-tight">Conversas</span>
+          {onCreateLead && (
+            <button
+              onClick={onCreateLead}
+              title="Novo lead manual"
+              className="w-7 h-7 rounded-lg flex items-center justify-center bg-white/8 hover:bg-white/15 border border-white/10 text-white/50 hover:text-white transition-colors cursor-pointer focus-visible:outline-none"
+            >
+              <Plus size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search */}
@@ -83,6 +95,7 @@ export function LeadsSidebar({ conversations, contacts, activeLeadId, onSelect, 
             {filterConversations.map((lead, i) => {
               const isActive = lead.id === activeLeadId
               const unread = unreadCounts[lead.id] ?? 0
+              const isManual = !lead.wa_contact_id
               return (
                 <motion.button
                   key={lead.id}
@@ -111,9 +124,14 @@ export function LeadsSidebar({ conversations, contacts, activeLeadId, onSelect, 
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1 mb-0.5">
-                      <span className={`text-sm truncate ${isActive ? 'font-bold text-white' : 'font-semibold text-white/80'}`}>
-                        {lead.name}
-                      </span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className={`text-sm truncate ${isActive ? 'font-bold text-white' : 'font-semibold text-white/80'}`}>
+                          {lead.name}
+                        </span>
+                        {isManual && (
+                          <PenLine size={10} className="text-amber-400/80 flex-shrink-0" aria-label="Lead manual" />
+                        )}
+                      </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         {lead.automation_paused
                           ? <PauseCircle size={11} className="text-amber-400/70" />
@@ -143,6 +161,7 @@ export function LeadsSidebar({ conversations, contacts, activeLeadId, onSelect, 
             </p>
             {filterContacts.map((lead, i) => {
               const isActive = lead.id === activeLeadId
+              const isManual = !lead.wa_contact_id
               return (
                 <motion.button
                   key={lead.id}
@@ -162,11 +181,14 @@ export function LeadsSidebar({ conversations, contacts, activeLeadId, onSelect, 
                     <User size={14} className="text-white/40" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1.5">
                       <span className="font-medium text-white/55 text-sm truncate">{lead.name}</span>
+                      {isManual && (
+                        <PenLine size={10} className="text-amber-400/60 flex-shrink-0" aria-label="Lead manual" />
+                      )}
                       {lead.automation_paused
-                        ? <PauseCircle size={11} className="text-amber-400/50 flex-shrink-0" />
-                        : <Bot size={11} className="text-white/20 flex-shrink-0" />
+                        ? <PauseCircle size={11} className="text-amber-400/50 flex-shrink-0 ml-auto" />
+                        : <Bot size={11} className="text-white/20 flex-shrink-0 ml-auto" />
                       }
                     </div>
                     <p className="text-white/25 text-xs">{lead.phone}</p>

@@ -2,6 +2,7 @@ export interface LeadWithLastInteraction {
   id: string
   name: string
   phone: string
+  wa_contact_id: string | null
   automation_paused: boolean
   assigned_to: string | null
   lastMessage: string | null
@@ -19,5 +20,5 @@ export interface LeadWithLastInteraction {
 // Lead sem mensagens — exibido na seção Contatos
 export type LeadContact = Pick<
   LeadWithLastInteraction,
-  'id' | 'name' | 'phone' | 'automation_paused' | 'assigned_to' | 'stage' | 'city' | 'intention' | 'imovel_interesse' | 'summary' | 'interaction_count' | 'created_at'
+  'id' | 'name' | 'phone' | 'wa_contact_id' | 'automation_paused' | 'assigned_to' | 'stage' | 'city' | 'intention' | 'imovel_interesse' | 'summary' | 'interaction_count' | 'created_at'
 >

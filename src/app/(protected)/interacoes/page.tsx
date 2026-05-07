@@ -45,6 +45,7 @@ async function getLeadsData(): Promise<{ conversations: LeadWithLastInteraction[
         id: l.id,
         name: l.name,
         phone: l.phone,
+        wa_contact_id: l.wa_contact_id,
         automation_paused: l.automation_paused,
         assigned_to: l.assigned_to,
         stage: l.stage,

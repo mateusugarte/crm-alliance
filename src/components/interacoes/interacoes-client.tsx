@@ -7,9 +7,10 @@ import { LeadsSidebar } from './leads-sidebar'
 import { ChatHeader } from './chat-header'
 import { ChatArea } from './chat-area'
 import { LeadInfoPanel } from './lead-info-panel'
+import { LeadCreateForm } from './lead-create-form'
 import { createClient } from '@/lib/supabase/client'
 import type { LeadWithLastInteraction, LeadContact } from './types'
-import type { Interaction } from '@/lib/supabase/types'
+import type { Interaction, Lead } from '@/lib/supabase/types'
 
 function playNotificationBeep() {
   try {
@@ -39,8 +40,10 @@ export function InteracoesClient({ conversations: initialConversations, contacts
     initialConversations.length > 0 ? initialConversations[0].id : null
   )
   const [messages, setMessages] = useState<Interaction[]>(initialMessages)
+  const [allContacts, setAllContacts] = useState<LeadContact[]>(contacts)
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
   const [isPanelOpen, setIsPanelOpen] = useState(false)
+  const [createFormOpen, setCreateFormOpen] = useState(false)
 
   // Ref para acesso ao valor atual dentro do closure da subscription
   const activeLeadIdRef = useRef<string | null>(activeLeadId)
@@ -92,6 +95,28 @@ export function InteracoesClient({ conversations: initialConversations, contacts
     setIsPanelOpen(false)
   }
 
+  const handleLeadCreated = (lead: Lead) => {
+    const newContact: LeadContact = {
+      id: lead.id,
+      name: lead.name,
+      phone: lead.phone,
+      wa_contact_id: lead.wa_contact_id,
+      automation_paused: lead.automation_paused,
+      assigned_to: lead.assigned_to,
+      stage: lead.stage,
+      city: lead.city,
+      intention: lead.intention,
+      imovel_interesse: lead.imovel_interesse,
+      summary: lead.summary,
+      interaction_count: lead.interaction_count,
+      created_at: lead.created_at,
+    }
+    allLeadIdsRef.current.add(lead.id)
+    setAllContacts(prev => [newContact, ...prev])
+    setActiveLeadId(lead.id)
+    setCreateFormOpen(false)
+  }
+
   const handleLeadUpdated = (updated: Partial<LeadWithLastInteraction>) => {
     setConversations(prev =>
       prev.map(l => l.id === activeLeadId ? { ...l, ...updated } : l)
@@ -137,18 +162,24 @@ export function InteracoesClient({ conversations: initialConversations, contacts
   // Busca lead ativo tanto nas conversas quanto nos contatos
   const activeLead =
     conversations.find(l => l.id === activeLeadId) ??
-    (contacts.find(l => l.id === activeLeadId)
-      ? { ...(contacts.find(l => l.id === activeLeadId)!), lastMessage: null, lastMessageAt: null }
+    (allContacts.find(l => l.id === activeLeadId)
+      ? { ...(allContacts.find(l => l.id === activeLeadId)!), lastMessage: null, lastMessageAt: null }
       : null)
 
   return (
     <div className="flex flex-1 overflow-hidden">
       <LeadsSidebar
         conversations={conversations}
-        contacts={contacts}
+        contacts={allContacts}
         activeLeadId={activeLeadId}
         onSelect={handleSelectLead}
         unreadCounts={unreadCounts}
+        onCreateLead={() => setCreateFormOpen(true)}
+      />
+      <LeadCreateForm
+        open={createFormOpen}
+        onClose={() => setCreateFormOpen(false)}
+        onCreated={handleLeadCreated}
       />
 
       {activeLead ? (
@@ -161,6 +192,7 @@ export function InteracoesClient({ conversations: initialConversations, contacts
             }
             lead={activeLead}
             onSend={handleSend}
+            onMessageAdded={msg => setMessages(prev => [...prev, msg])}
           />
           <LeadInfoPanel
             lead={activeLead}
