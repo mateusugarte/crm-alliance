@@ -27,9 +27,9 @@ async function getReservados(): Promise<Imovel[]> {
       .from('imoveis')
       .select('*')
       .eq('disponivel', false)
-      .eq('vendido', false)
       .order('nome')
-    return (data ?? []) as Imovel[]
+    // Filtra vendidos em JS — robusto mesmo se a coluna ainda não existir no banco
+    return ((data ?? []) as Imovel[]).filter(i => !i.vendido)
   } catch {
     return []
   }
