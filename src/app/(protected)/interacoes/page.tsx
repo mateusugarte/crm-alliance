@@ -74,7 +74,7 @@ async function getLeadsData(): Promise<{
     }
 
     // Busca etiquetas dos contatos (sem conversas)
-    let leadLabelsMap: Record<string, Label[]> = {}
+    const leadLabelsMap: Record<string, Label[]> = {}
     if (contactLeadIds.length > 0) {
       const { data: llData } = await supabase
         .from('lead_labels')
