@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   DndContext,
   DragOverlay,
@@ -11,6 +12,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { toast } from 'sonner'
+import { startOfDay, endOfDay, startOfWeek, startOfMonth } from 'date-fns'
 import { KanbanColumn } from './kanban-column'
 import { LeadCard } from './lead-card'
 import { LeadDetailModal } from './lead-detail-modal'
@@ -26,6 +28,33 @@ export function KanbanBoard({ initialLeads, currentUserId }: KanbanBoardProps) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads)
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
+
+  const searchParams = useSearchParams()
+  const period = searchParams.get('period') ?? 'semana'
+  const from = searchParams.get('from') ?? undefined
+  const to = searchParams.get('to') ?? undefined
+
+  const filteredLeads = useMemo(() => {
+    const now = new Date()
+    let start: Date, end: Date
+    switch (period) {
+      case 'hoje':
+        start = startOfDay(now); end = endOfDay(now); break
+      case 'mes':
+        start = startOfMonth(now); end = endOfDay(now); break
+      case 'personalizado':
+        if (from && to) {
+          start = startOfDay(new Date(from)); end = endOfDay(new Date(to)); break
+        }
+        // falls through
+      default:
+        start = startOfWeek(now, { weekStartsOn: 1 }); end = endOfDay(now)
+    }
+    return leads.filter(l => {
+      const d = new Date(l.created_at)
+      return d >= start && d <= end
+    })
+  }, [leads, period, from, to])
 
   // Derivado — nunca fica stale porque lê diretamente do array autoritativo
   const selectedLead = selectedLeadId ? (leads.find(l => l.id === selectedLeadId) ?? null) : null
@@ -110,8 +139,8 @@ export function KanbanBoard({ initialLeads, currentUserId }: KanbanBoardProps) {
   }, [leads, currentUserId])
 
   const leadsPerStage = useCallback(
-    (stage: KanbanStage) => leads.filter(l => l.stage === stage),
-    [leads]
+    (stage: KanbanStage) => filteredLeads.filter(l => l.stage === stage),
+    [filteredLeads]
   )
 
   return (

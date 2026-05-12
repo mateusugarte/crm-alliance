@@ -26,19 +26,20 @@ async function getLeadsData(): Promise<{
 
     const leadIds = leads.map(l => l.id)
 
-    // DESC para pegar as mensagens mais recentes primeiro — importante para o preview correto
+    // ASC — ordem cronológica para o ChatArea
     const { data: interactionsData } = await supabase
       .from('interactions')
       .select('*')
       .in('lead_id', leadIds)
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: true })
+      .limit(2000)
 
-    // Mensagens para o ChatArea precisam estar em ordem ASC
-    const interactions = ((interactionsData ?? []) as Interaction[]).reverse()
+    const interactions = (interactionsData ?? []) as Interaction[]
 
-    // Iteração forward sobre o array DESC — primeiro por lead = mais recente
+    // Itera de trás para frente para pegar a mensagem mais recente de cada lead
     const lastByLead = new Map<string, Interaction>()
-    for (const msg of (interactionsData ?? []) as Interaction[]) {
+    for (let i = interactions.length - 1; i >= 0; i--) {
+      const msg = interactions[i]
       if (!lastByLead.has(msg.lead_id)) lastByLead.set(msg.lead_id, msg)
     }
 

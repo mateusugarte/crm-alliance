@@ -5,34 +5,14 @@ import { Suspense } from 'react'
 import { KanbanBoard } from '@/components/kanban/kanban-board'
 import { KanbanPageHeader } from '@/components/kanban/kanban-page-header'
 import { DateFilter } from '@/components/ui/date-filter'
-import { startOfDay, endOfDay, startOfWeek, startOfMonth } from 'date-fns'
 import type { Lead } from '@/lib/supabase/types'
 
-function getDateRange(period: string, from?: string, to?: string): { start: Date; end: Date } {
-  const now = new Date()
-  switch (period) {
-    case 'hoje':
-      return { start: startOfDay(now), end: endOfDay(now) }
-    case 'mes':
-      return { start: startOfMonth(now), end: endOfDay(now) }
-    case 'personalizado':
-      if (from && to) {
-        return { start: startOfDay(new Date(from)), end: endOfDay(new Date(to)) }
-      }
-    // falls through to semana
-    default:
-      return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfDay(now) }
-  }
-}
-
-async function getLeadsAndUser(start: Date, end: Date): Promise<{ leads: Lead[]; currentUserId: string }> {
+async function getLeadsAndUser(): Promise<{ leads: Lead[]; currentUserId: string }> {
   try {
     const supabase = await createClient()
     const [leadsResult, userResult] = await Promise.all([
       supabase.from('leads')
         .select('*')
-        .gte('created_at', start.toISOString())
-        .lte('created_at', end.toISOString())
         .order('updated_at', { ascending: false }),
       supabase.auth.getUser(),
     ])
@@ -45,14 +25,8 @@ async function getLeadsAndUser(start: Date, end: Date): Promise<{ leads: Lead[];
   }
 }
 
-export default async function KanbanPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ period?: string; from?: string; to?: string }>
-}) {
-  const params = await searchParams
-  const { start, end } = getDateRange(params.period ?? 'semana', params.from, params.to)
-  const { leads, currentUserId } = await getLeadsAndUser(start, end)
+export default async function KanbanPage() {
+  const { leads, currentUserId } = await getLeadsAndUser()
 
   return (
     <div className="flex flex-col h-full">
@@ -74,7 +48,9 @@ export default async function KanbanPage({
 
       {/* Board — horizontal scroll */}
       <div className="flex-1 overflow-hidden px-8 pb-6">
-        <KanbanBoard initialLeads={leads} currentUserId={currentUserId} />
+        <Suspense fallback={null}>
+          <KanbanBoard initialLeads={leads} currentUserId={currentUserId} />
+        </Suspense>
       </div>
     </div>
   )

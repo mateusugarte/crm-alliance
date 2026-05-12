@@ -114,7 +114,7 @@ export function ChatArea({ messages, lead, onSend, onMessageAdded }: ChatAreaPro
   const groups = groupMessagesByDate(messages)
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-[#F0F2F5] dark:bg-[#0A0C10]">
+    <div className="flex-1 flex flex-col overflow-hidden bg-[#F0F2F5]">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-2">
         {messages.length === 0 ? (
@@ -247,7 +247,7 @@ export function ChatArea({ messages, lead, onSend, onMessageAdded }: ChatAreaPro
       </AnimatePresence>
 
       {/* Input */}
-      <div className="px-4 py-3 flex-shrink-0 bg-white dark:bg-[#0F1117] border-t border-gray-100 dark:border-white/5">
+      <div className="px-4 py-3 flex-shrink-0 bg-white border-t border-gray-100">
         <div className="flex items-end gap-3 rounded-2xl px-4 py-2.5 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/8">
           {!lead.automation_paused ? (
             <div className="flex-1 flex items-center gap-2 py-0.5">

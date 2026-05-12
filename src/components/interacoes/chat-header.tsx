@@ -31,11 +31,11 @@ function getAvatarColor(name: string) {
 export function ChatHeader({ lead, onInfoClick }: ChatHeaderProps) {
   return (
     <TooltipProvider delay={400}>
-      <div className="bg-white dark:bg-[#0F1117] px-5 py-3.5 flex items-center justify-between border-b border-gray-100 dark:border-white/5 flex-shrink-0 shadow-sm dark:shadow-none">
+      <div className="bg-white px-5 py-3.5 flex items-center justify-between border-b border-gray-100 flex-shrink-0 shadow-sm">
         {/* Avatar + info — clicável */}
         <button
           onClick={onInfoClick}
-          className="flex items-center gap-3 text-left group cursor-pointer rounded-xl px-2 py-1.5 -mx-2 -my-1.5 hover:bg-gray-50 dark:hover:bg-white/4 transition-colors duration-150"
+          className="flex items-center gap-3 text-left group cursor-pointer rounded-xl px-2 py-1.5 -mx-2 -my-1.5 hover:bg-gray-50 transition-colors duration-150"
         >
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 select-none"
@@ -45,10 +45,10 @@ export function ChatHeader({ lead, onInfoClick }: ChatHeaderProps) {
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <h2 className="font-bold text-gray-900 dark:text-white text-sm leading-tight">{lead.name}</h2>
-              <ChevronRight size={13} className="text-gray-300 dark:text-white/25 group-hover:text-gray-500 dark:group-hover:text-white/50 transition-colors" />
+              <h2 className="font-bold text-gray-900 text-sm leading-tight">{lead.name}</h2>
+              <ChevronRight size={13} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
             </div>
-            <p className="text-gray-400 dark:text-white/35 text-xs flex items-center gap-1 mt-0.5">
+            <p className="text-gray-400 text-xs flex items-center gap-1 mt-0.5">
               <Phone size={10} />
               {formatPhone(lead.phone)}
             </p>
