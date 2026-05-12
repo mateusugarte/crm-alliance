@@ -1,3 +1,9 @@
+export interface Label {
+  id: string
+  name: string
+  color: string
+}
+
 export interface LeadWithLastInteraction {
   id: string
   name: string
@@ -21,4 +27,4 @@ export interface LeadWithLastInteraction {
 export type LeadContact = Pick<
   LeadWithLastInteraction,
   'id' | 'name' | 'phone' | 'wa_contact_id' | 'automation_paused' | 'assigned_to' | 'stage' | 'city' | 'intention' | 'imovel_interesse' | 'summary' | 'interaction_count' | 'created_at'
->
+> & { labels?: Label[] }

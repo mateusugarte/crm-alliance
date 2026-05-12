@@ -9,7 +9,7 @@ import { ChatArea } from './chat-area'
 import { LeadInfoPanel } from './lead-info-panel'
 import { LeadCreateForm } from './lead-create-form'
 import { createClient } from '@/lib/supabase/client'
-import type { LeadWithLastInteraction, LeadContact } from './types'
+import type { LeadWithLastInteraction, LeadContact, Label } from './types'
 import type { Interaction, Lead } from '@/lib/supabase/types'
 
 function playNotificationBeep() {
@@ -32,9 +32,10 @@ interface InteracoesClientProps {
   contacts: LeadContact[]
   initialMessages: Interaction[]
   currentUserId: string
+  allLabels: Label[]
 }
 
-export function InteracoesClient({ conversations: initialConversations, contacts, initialMessages, currentUserId }: InteracoesClientProps) {
+export function InteracoesClient({ conversations: initialConversations, contacts, initialMessages, currentUserId, allLabels }: InteracoesClientProps) {
   const [conversations, setConversations] = useState<LeadWithLastInteraction[]>(initialConversations)
   const [activeLeadId, setActiveLeadId] = useState<string | null>(
     initialConversations.length > 0 ? initialConversations[0].id : null
@@ -175,6 +176,7 @@ export function InteracoesClient({ conversations: initialConversations, contacts
         onSelect={handleSelectLead}
         unreadCounts={unreadCounts}
         onCreateLead={() => setCreateFormOpen(true)}
+        allLabels={allLabels}
       />
       <LeadCreateForm
         open={createFormOpen}

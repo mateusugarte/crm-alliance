@@ -1,8 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { Smile } from 'lucide-react'
+import { Suspense } from 'react'
 import { MetricsGrid } from '@/components/dashboard/metrics-grid'
 import { ChartsSection } from '@/components/dashboard/charts-section'
-import { format, subDays, eachDayOfInterval, startOfDay, endOfDay } from 'date-fns'
+import { DateFilter } from '@/components/ui/date-filter'
+import {
+  format, subDays, eachDayOfInterval,
+  startOfDay, endOfDay, startOfWeek, startOfMonth,
+} from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 import type { Lead, UserProfile } from '@/lib/supabase/types'
@@ -33,6 +38,23 @@ function getFormattedDate(): string {
   return format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })
 }
 
+function getDateRange(period: string, from?: string, to?: string): { start: Date; end: Date } {
+  const now = new Date()
+  switch (period) {
+    case 'hoje':
+      return { start: startOfDay(now), end: endOfDay(now) }
+    case 'mes':
+      return { start: startOfMonth(now), end: endOfDay(now) }
+    case 'personalizado':
+      if (from && to) {
+        return { start: startOfDay(new Date(from)), end: endOfDay(new Date(to)) }
+      }
+      // falls through to semana
+    default:
+      return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfDay(now) }
+  }
+}
+
 async function getUserName(): Promise<string> {
   try {
     const supabase = await createClient()
@@ -56,20 +78,36 @@ async function getUserName(): Promise<string> {
   }
 }
 
-async function getMetrics() {
+async function getMetrics(start: Date, end: Date) {
   try {
     const supabase = await createClient()
-    const now = new Date()
-    const todayStart = startOfDay(now).toISOString()
-    const todayEnd = endOfDay(now).toISOString()
-    const weekAgo = subDays(now, 7).toISOString()
-    const twoWeeksAgo = subDays(now, 14).toISOString()
+    const todayStart = startOfDay(new Date()).toISOString()
+    const todayEnd = endOfDay(new Date()).toISOString()
+
+    // Período anterior de mesmo tamanho para comparação de tendência
+    const durationMs = end.getTime() - start.getTime()
+    const prevEnd = new Date(start.getTime() - 1)
+    const prevStart = new Date(start.getTime() - durationMs)
 
     const [{ data: leadsData }, { data: mtgs }, { data: prevLeads }, { data: prevMtgs }] = await Promise.all([
-      supabase.from('leads').select('stage, interaction_count, automation_paused'),
-      supabase.from('meetings').select('id').gte('datetime', todayStart).lte('datetime', todayEnd).eq('status', 'scheduled'),
-      supabase.from('leads').select('id').gte('created_at', twoWeeksAgo).lt('created_at', weekAgo),
-      supabase.from('meetings').select('id').gte('datetime', twoWeeksAgo).lt('datetime', weekAgo).eq('status', 'scheduled'),
+      supabase.from('leads')
+        .select('stage, interaction_count, automation_paused')
+        .gte('created_at', start.toISOString())
+        .lte('created_at', end.toISOString()),
+      supabase.from('meetings')
+        .select('id')
+        .gte('datetime', todayStart)
+        .lte('datetime', todayEnd)
+        .eq('status', 'scheduled'),
+      supabase.from('leads')
+        .select('id')
+        .gte('created_at', prevStart.toISOString())
+        .lte('created_at', prevEnd.toISOString()),
+      supabase.from('meetings')
+        .select('id')
+        .gte('datetime', prevStart.toISOString())
+        .lte('datetime', prevEnd.toISOString())
+        .eq('status', 'scheduled'),
     ])
 
     const leads = (leadsData ?? []) as Pick<Lead, 'stage' | 'interaction_count' | 'automation_paused'>[]
@@ -96,17 +134,20 @@ async function getMetrics() {
   }
 }
 
-async function getChartData() {
+async function getChartData(start: Date, end: Date) {
   try {
     const supabase = await createClient()
-    const now = new Date()
-    const sevenDaysAgo = subDays(now, 6)
-    const days = eachDayOfInterval({ start: sevenDaysAgo, end: now })
-    const labels = days.map(d => format(d, 'EEE', { locale: ptBR }).replace('.', ''))
+    const days = eachDayOfInterval({ start, end }).slice(0, 31)
+    const displayFormat = days.length <= 7 ? 'EEE' : 'dd/MM'
+    const labels = days.map(d => format(d, displayFormat, { locale: ptBR }).replace('.', ''))
 
     const [{ data: mtgRows }, { data: leadRows }] = await Promise.all([
-      supabase.from('meetings').select('datetime').gte('datetime', sevenDaysAgo.toISOString()),
-      supabase.from('leads').select('created_at').gte('created_at', sevenDaysAgo.toISOString()),
+      supabase.from('meetings').select('datetime')
+        .gte('datetime', start.toISOString())
+        .lte('datetime', end.toISOString()),
+      supabase.from('leads').select('created_at')
+        .gte('created_at', start.toISOString())
+        .lte('created_at', end.toISOString()),
     ])
 
     const countByDay = (rows: Array<{ [key: string]: string }>, field: string) =>
@@ -206,11 +247,18 @@ async function getPipelineDistribution(): Promise<PipelineStage[]> {
   }
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string; from?: string; to?: string }>
+}) {
+  const params = await searchParams
+  const { start, end } = getDateRange(params.period ?? 'semana', params.from, params.to)
+
   const [userName, metrics, chartData, todayMeetings, pipeline] = await Promise.all([
     getUserName(),
-    getMetrics(),
-    getChartData(),
+    getMetrics(start, end),
+    getChartData(start, end),
     getTodayMeetings(),
     getPipelineDistribution(),
   ])
@@ -231,12 +279,17 @@ export default async function DashboardPage() {
             <Smile size={26} className="text-alliance-blue flex-shrink-0" strokeWidth={1.75} />
           </h1>
         </div>
-        <div className="text-right mt-1">
-          <p className="text-xs text-gray-400 dark:text-white/40 capitalize">{dateLabel}</p>
-          <div className="flex items-center gap-1.5 justify-end mt-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-            <span className="text-[11px] text-gray-400 dark:text-white/30 font-medium">Sistema online</span>
+        <div className="flex flex-col items-end gap-2 mt-1">
+          <div className="text-right">
+            <p className="text-xs text-gray-400 dark:text-white/40 capitalize">{dateLabel}</p>
+            <div className="flex items-center gap-1.5 justify-end mt-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+              <span className="text-[11px] text-gray-400 dark:text-white/30 font-medium">Sistema online</span>
+            </div>
           </div>
+          <Suspense fallback={null}>
+            <DateFilter />
+          </Suspense>
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { memo } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { Pause, Bot, MapPin, Home } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { isYesterday } from 'date-fns'
 import type { Lead } from '@/lib/supabase/types'
 import { formatPhone } from '@/lib/format-phone'
 
@@ -21,6 +22,7 @@ export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = fals
   })
 
   const displayName = lead.name?.trim() || formatPhone(lead.phone) || 'Lead sem nome'
+  const isBeforeAI = isYesterday(new Date(lead.created_at))
 
   // Placeholder ghost que fica na coluna enquanto o DragOverlay segue o cursor
   if (isDragging) {
@@ -79,6 +81,11 @@ export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = fals
           <span className="font-semibold text-sm text-alliance-dark dark:text-white leading-tight">
             {displayName}
           </span>
+          {isBeforeAI && (
+            <span className="inline-flex items-center gap-0.5 bg-amber-50 text-amber-600 border border-amber-200 text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap">
+              antes da IA
+            </span>
+          )}
           {lead.automation_paused && (
             <span className="inline-flex items-center gap-0.5 bg-orange-100 text-orange-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap">
               <Pause size={9} />
