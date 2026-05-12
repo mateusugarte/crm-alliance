@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server'
 import { Smile } from 'lucide-react'
 import { Suspense } from 'react'

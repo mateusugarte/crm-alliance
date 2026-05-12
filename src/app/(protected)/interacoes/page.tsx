@@ -15,34 +15,30 @@ async function getLeadsData(): Promise<{
     const { data: { user } } = await supabase.auth.getUser()
     const currentUserId = user?.id ?? ''
 
+    // Sem limite — garante que conversas não caem fora do range
     const { data: leadsData } = await supabase
       .from('leads')
       .select('*')
       .order('updated_at', { ascending: false })
-      .limit(50)
 
     const leads = (leadsData ?? []) as Lead[]
     if (leads.length === 0) return { conversations: [], contacts: [], messages: [], currentUserId, allLabels: [] }
 
     const leadIds = leads.map(l => l.id)
 
-    const [{ data: interactionsData }, { data: allLabelsData }] = await Promise.all([
-      supabase
-        .from('interactions')
-        .select('*')
-        .in('lead_id', leadIds)
-        .order('created_at', { ascending: true })
-        .limit(500),
-      supabase.from('labels').select('id, name, color').order('name'),
-    ])
+    // DESC para pegar as mensagens mais recentes primeiro — importante para o preview correto
+    const { data: interactionsData } = await supabase
+      .from('interactions')
+      .select('*')
+      .in('lead_id', leadIds)
+      .order('created_at', { ascending: false })
 
-    const interactions = (interactionsData ?? []) as Interaction[]
-    const allLabels = (allLabelsData ?? []) as Label[]
+    // Mensagens para o ChatArea precisam estar em ordem ASC
+    const interactions = ((interactionsData ?? []) as Interaction[]).reverse()
 
-    // Última mensagem por lead
+    // Iteração forward sobre o array DESC — primeiro por lead = mais recente
     const lastByLead = new Map<string, Interaction>()
-    for (let i = interactions.length - 1; i >= 0; i--) {
-      const msg = interactions[i]
+    for (const msg of (interactionsData ?? []) as Interaction[]) {
       if (!lastByLead.has(msg.lead_id)) lastByLead.set(msg.lead_id, msg)
     }
 
@@ -73,23 +69,36 @@ async function getLeadsData(): Promise<{
       }
     }
 
-    // Busca etiquetas dos contatos (sem conversas)
-    const leadLabelsMap: Record<string, Label[]> = {}
-    if (contactLeadIds.length > 0) {
-      const { data: llData } = await supabase
-        .from('lead_labels')
-        .select('lead_id, label_id')
-        .in('lead_id', contactLeadIds)
+    conversations.sort((a, b) => new Date(b.lastMessageAt!).getTime() - new Date(a.lastMessageAt!).getTime())
 
-      const ll = (llData ?? []) as { lead_id: string; label_id: string }[]
-      const labelMap = new Map(allLabels.map(l => [l.id, l]))
-      for (const row of ll) {
-        const label = labelMap.get(row.label_id)
-        if (label) {
-          leadLabelsMap[row.lead_id] = [...(leadLabelsMap[row.lead_id] ?? []), label]
+    // Labels em try-catch separado — falha silenciosa não quebra conversas
+    let allLabels: Label[] = []
+    const leadLabelsMap: Record<string, Label[]> = {}
+
+    try {
+      const { data: allLabelsData } = await supabase
+        .from('labels')
+        .select('id, name, color')
+        .order('name')
+
+      allLabels = (allLabelsData ?? []) as Label[]
+
+      if (contactLeadIds.length > 0) {
+        const { data: llData } = await supabase
+          .from('lead_labels')
+          .select('lead_id, label_id')
+          .in('lead_id', contactLeadIds)
+
+        const ll = (llData ?? []) as { lead_id: string; label_id: string }[]
+        const labelMap = new Map(allLabels.map(l => [l.id, l]))
+        for (const row of ll) {
+          const label = labelMap.get(row.label_id)
+          if (label) {
+            leadLabelsMap[row.lead_id] = [...(leadLabelsMap[row.lead_id] ?? []), label]
+          }
         }
       }
-    }
+    } catch { /* labels são opcionais — não quebra o fluxo */ }
 
     const contacts: LeadContact[] = leads
       .filter(l => !lastByLead.has(l.id))
@@ -110,8 +119,6 @@ async function getLeadsData(): Promise<{
         labels: leadLabelsMap[l.id] ?? [],
       }))
       .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
-
-    conversations.sort((a, b) => new Date(b.lastMessageAt!).getTime() - new Date(a.lastMessageAt!).getTime())
 
     return { conversations, contacts, messages: interactions, currentUserId, allLabels }
   } catch {

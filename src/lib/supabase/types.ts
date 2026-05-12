@@ -50,6 +50,7 @@ export interface Database {
           imovel_interesse: string | null
           summary: string | null
           interaction_count: number
+          antes_ia: boolean | null
           created_at: string
           updated_at: string
         }
@@ -74,6 +75,7 @@ export interface Database {
           imovel_interesse?: string | null
           summary?: string | null
           interaction_count?: number
+          antes_ia?: boolean | null
           created_at?: string
           updated_at?: string
         }

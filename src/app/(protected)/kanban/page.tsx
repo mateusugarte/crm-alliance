@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server'
 import { Suspense } from 'react'
 import { KanbanBoard } from '@/components/kanban/kanban-board'
