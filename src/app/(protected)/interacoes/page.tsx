@@ -26,22 +26,24 @@ async function getLeadsData(): Promise<{
 
     const leadIds = leads.map(l => l.id)
 
-    // ASC — ordem cronológica para o ChatArea
+    // DESC — mais recentes primeiro, garante que todos os leads ativos entram no lastByLead
     const { data: interactionsData } = await supabase
       .from('interactions')
       .select('*')
       .in('lead_id', leadIds)
-      .order('created_at', { ascending: true })
-      .limit(2000)
+      .order('created_at', { ascending: false })
+      .limit(5000)
 
-    const interactions = (interactionsData ?? []) as Interaction[]
+    const rawDesc = (interactionsData ?? []) as Interaction[]
 
-    // Itera de trás para frente para pegar a mensagem mais recente de cada lead
+    // Iteração forward no array DESC: primeiro encontrado por lead = mensagem mais recente
     const lastByLead = new Map<string, Interaction>()
-    for (let i = interactions.length - 1; i >= 0; i--) {
-      const msg = interactions[i]
+    for (const msg of rawDesc) {
       if (!lastByLead.has(msg.lead_id)) lastByLead.set(msg.lead_id, msg)
     }
+
+    // ChatArea exibe em ordem ASC (mais antiga → mais nova, como WhatsApp)
+    const interactions = [...rawDesc].reverse()
 
     const conversations: LeadWithLastInteraction[] = []
     const contactLeadIds: string[] = []
