@@ -29,11 +29,10 @@ async function getLeadsData(): Promise<{
 
     const leadIds = leads.map(l => l.id)
 
-    // DESC — mais recentes primeiro, garante que todos os leads ativos entram no lastByLead
+    // DESC — mais recentes primeiro. Sem filtro .in() para evitar Bad Request com muitos leads.
     const { data: interactionsData, error: interactionsError } = await supabase
       .from('interactions')
       .select('*')
-      .in('lead_id', leadIds)
       .order('created_at', { ascending: false })
       .limit(5000)
 
