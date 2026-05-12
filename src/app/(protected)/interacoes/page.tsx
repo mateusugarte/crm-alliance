@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { InteracoesClient } from '@/components/interacoes/interacoes-client'
 import type { LeadWithLastInteraction, LeadContact, Label } from '@/components/interacoes/types'
 import type { Lead, Interaction } from '@/lib/supabase/types'
@@ -22,17 +24,20 @@ async function getLeadsData(): Promise<{
       .order('updated_at', { ascending: false })
 
     const leads = (leadsData ?? []) as Lead[]
+    console.log('[interacoes] leads encontrados:', leads.length)
     if (leads.length === 0) return { conversations: [], contacts: [], messages: [], currentUserId, allLabels: [] }
 
     const leadIds = leads.map(l => l.id)
 
     // DESC — mais recentes primeiro, garante que todos os leads ativos entram no lastByLead
-    const { data: interactionsData } = await supabase
+    const { data: interactionsData, error: interactionsError } = await supabase
       .from('interactions')
       .select('*')
       .in('lead_id', leadIds)
       .order('created_at', { ascending: false })
       .limit(5000)
+
+    console.log('[interacoes] interactions encontradas:', interactionsData?.length ?? 0, 'erro:', interactionsError?.message ?? 'nenhum')
 
     const rawDesc = (interactionsData ?? []) as Interaction[]
 
@@ -124,7 +129,8 @@ async function getLeadsData(): Promise<{
       .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
 
     return { conversations, contacts, messages: interactions, currentUserId, allLabels }
-  } catch {
+  } catch (err) {
+    console.error('[interacoes] erro inesperado:', err)
     return { conversations: [], contacts: [], messages: [], currentUserId: '', allLabels: [] }
   }
 }
