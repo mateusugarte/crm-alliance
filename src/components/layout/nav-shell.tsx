@@ -6,8 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import {
   LayoutDashboard, Kanban, Calendar, Building2, MessageSquare,
-  Settings, PanelLeftClose, PanelLeftOpen,
-  RefreshCw, Send, Smartphone, FileText,
+  Settings, PanelLeftClose, PanelLeftOpen, Send,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from './theme-toggle'
@@ -24,10 +23,7 @@ const NAV_ITEMS = [
 ]
 
 const DISPARO_ITEMS = [
-  { href: '/reativar', label: 'Reativar', icon: RefreshCw },
   { href: '/disparos', label: 'Disparos', icon: Send },
-  { href: '/instancias', label: 'Instâncias', icon: Smartphone },
-  { href: '/templates', label: 'Templates', icon: FileText },
 ]
 
 interface NavShellProps {
