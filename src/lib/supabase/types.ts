@@ -51,6 +51,8 @@ export interface Database {
           summary: string | null
           interaction_count: number
           antes_ia: boolean | null
+          reactivation_count: number
+          last_reactivated_at: string | null
           created_at: string
           updated_at: string
         }
@@ -76,6 +78,8 @@ export interface Database {
           summary?: string | null
           interaction_count?: number
           antes_ia?: boolean | null
+          reactivation_count?: number
+          last_reactivated_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -290,6 +294,164 @@ export interface Database {
         }
         Update: never
       }
+      wa_instances: {
+        Row: {
+          id: string
+          name: string
+          instance_id: string
+          status: string
+          phone: string | null
+          connected_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          instance_id: string
+          status?: string
+          phone?: string | null
+          connected_at?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['wa_instances']['Insert']>
+      }
+      templates: {
+        Row: {
+          id: string
+          name: string
+          content: string
+          media_url: string | null
+          media_type: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          content: string
+          media_url?: string | null
+          media_type?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['templates']['Insert']>
+      }
+      campaigns: {
+        Row: {
+          id: string
+          name: string
+          template_id: string | null
+          template_ids: string[]
+          instance_id: string
+          status: string
+          total_leads: number
+          sent_count: number
+          failed_count: number
+          interval_min: number
+          interval_max: number
+          media_url: string | null
+          media_type: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          template_id?: string | null
+          template_ids?: string[]
+          instance_id: string
+          status?: string
+          total_leads?: number
+          sent_count?: number
+          failed_count?: number
+          interval_min?: number
+          interval_max?: number
+          media_url?: string | null
+          media_type?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['campaigns']['Insert']>
+      }
+      dispatches: {
+        Row: {
+          id: string
+          campaign_id: string
+          phone: string
+          status: string
+          message_sent: string | null
+          typing_delay: number | null
+          sent_at: string | null
+          error: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          campaign_id: string
+          phone: string
+          status?: string
+          message_sent?: string | null
+          typing_delay?: number | null
+          sent_at?: string | null
+          error?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['dispatches']['Insert']>
+      }
+      reactivation_campaigns: {
+        Row: {
+          id: string
+          name: string
+          instance_id: string
+          reference_messages: string[]
+          interval_min: number
+          interval_max: number
+          status: string
+          total_leads: number
+          sent_count: number
+          failed_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          instance_id: string
+          reference_messages: string[]
+          interval_min: number
+          interval_max: number
+          status?: string
+          total_leads?: number
+          sent_count?: number
+          failed_count?: number
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['reactivation_campaigns']['Insert']>
+      }
+      reactivation_dispatches: {
+        Row: {
+          id: string
+          reactivation_campaign_id: string
+          lead_id: string | null
+          phone: string
+          status: string
+          message_sent: string | null
+          typing_delay: number | null
+          interval_delay_ms: number | null
+          sent_at: string | null
+          error: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          reactivation_campaign_id: string
+          lead_id?: string | null
+          phone: string
+          status?: string
+          message_sent?: string | null
+          typing_delay?: number | null
+          interval_delay_ms?: number | null
+          sent_at?: string | null
+          error?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['reactivation_dispatches']['Insert']>
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -331,3 +493,9 @@ export type Label = Database['public']['Tables']['labels']['Row']
 export type LeadLabel = Database['public']['Tables']['lead_labels']['Row']
 export type LeadReadState = Database['public']['Tables']['lead_read_state']['Row']
 export type Venda = Database['public']['Tables']['vendas']['Row']
+export type WaInstance = Database['public']['Tables']['wa_instances']['Row']
+export type Template = Database['public']['Tables']['templates']['Row']
+export type Campaign = Database['public']['Tables']['campaigns']['Row']
+export type Dispatch = Database['public']['Tables']['dispatches']['Row']
+export type ReactivationCampaign = Database['public']['Tables']['reactivation_campaigns']['Row']
+export type ReactivationDispatch = Database['public']['Tables']['reactivation_dispatches']['Row']
