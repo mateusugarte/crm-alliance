@@ -10,6 +10,8 @@ import { cn } from '@/lib/utils'
 import { disparoFetch } from '@/lib/disparo-api'
 import type { ReactivationCampaign, ReactivationDispatch } from '@/lib/supabase/types'
 
+// ── Status maps ───────────────────────────────────────────────────────────────
+
 const STATUS_STYLES: Record<string, string> = {
   draft:     'bg-muted text-muted-foreground',
   running:   'bg-blue-500/15 text-blue-500',
@@ -27,12 +29,22 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 const DISPATCH_STATUS_STYLES: Record<string, string> = {
-  pending: 'bg-muted text-muted-foreground',
-  sent:    'bg-green-500/15 text-green-600',
-  failed:  'bg-red-500/15 text-red-500',
+  pending:   'bg-muted text-muted-foreground',
+  sent:      'bg-green-500/15 text-green-600',
+  failed:    'bg-red-500/15 text-red-500',
+  cancelled: 'bg-muted text-muted-foreground',
 }
 
-interface CampaignDetail extends ReactivationCampaign {
+const DISPATCH_STATUS_LABELS: Record<string, string> = {
+  pending:   'Pendente',
+  sent:      'Enviado',
+  failed:    'Falhou',
+  cancelled: 'Cancelado',
+}
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface ReactivationDetail extends ReactivationCampaign {
   dispatches?: ReactivationDispatch[]
 }
 
@@ -40,6 +52,8 @@ interface CountdownState {
   remaining: number
   total: number
 }
+
+// ── Badge ─────────────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
   return (
@@ -49,12 +63,14 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function ReativarDetailPage() {
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
 
-  const [campaign, setCampaign] = useState<CampaignDetail | null>(null)
+  const [campaign, setCampaign] = useState<ReactivationDetail | null>(null)
   const [dispatches, setDispatches] = useState<ReactivationDispatch[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
@@ -65,7 +81,7 @@ export default function ReativarDetailPage() {
     try {
       const res = await disparoFetch(`/api/reactivation/${id}`)
       if (res.ok) {
-        const data = await res.json() as CampaignDetail
+        const data = await res.json() as ReactivationDetail
         setCampaign(data)
         setDispatches(data.dispatches ?? [])
       }
@@ -93,35 +109,45 @@ export default function ReativarDetailPage() {
       const socket = io(apiUrl, { transports: ['websocket'] })
       socketRef.current = socket
 
-      socket.on(`reactivation:dispatch:sent`, (payload: { dispatch_id: string }) => {
+      socket.on('reactivation:dispatch:sent', (payload: { campaignId: string; dispatchId: string; phone: string; message: string }) => {
+        if (payload.campaignId !== id) return
         setDispatches(prev => prev.map(d =>
-          d.id === payload.dispatch_id ? { ...d, status: 'sent', sent_at: new Date().toISOString() } : d
+          d.id === payload.dispatchId
+            ? { ...d, status: 'sent', message_sent: payload.message, sent_at: new Date().toISOString() }
+            : d
         ))
         setCampaign(prev => prev ? { ...prev, sent_count: prev.sent_count + 1 } : prev)
       })
 
-      socket.on(`reactivation:dispatch:failed`, (payload: { dispatch_id: string; error?: string }) => {
+      socket.on('reactivation:dispatch:failed', (payload: { campaignId: string; dispatchId: string; phone: string; error: string }) => {
+        if (payload.campaignId !== id) return
         setDispatches(prev => prev.map(d =>
-          d.id === payload.dispatch_id ? { ...d, status: 'failed', error: payload.error ?? null } : d
+          d.id === payload.dispatchId
+            ? { ...d, status: 'failed', error: payload.error ?? null }
+            : d
         ))
         setCampaign(prev => prev ? { ...prev, failed_count: prev.failed_count + 1 } : prev)
       })
 
-      socket.on(`reactivation:countdown`, (payload: { remaining: number; total: number }) => {
+      socket.on('reactivation:countdown', (payload: { campaignId: string; remaining: number; total: number }) => {
+        if (payload.campaignId !== id) return
         setCountdown({ remaining: payload.remaining, total: payload.total })
       })
 
-      socket.on('reactivation:completed', () => {
+      socket.on('reactivation:completed', (payload?: { campaignId?: string }) => {
+        if (payload?.campaignId && payload.campaignId !== id) return
         setCountdown(null)
         loadData()
       })
 
-      socket.on('reactivation:paused', () => {
+      socket.on('reactivation:paused', (payload?: { campaignId?: string }) => {
+        if (payload?.campaignId && payload.campaignId !== id) return
         setCountdown(null)
         loadData()
       })
 
-      socket.on('reactivation:stopped', () => {
+      socket.on('reactivation:stopped', (payload?: { campaignId?: string }) => {
+        if (payload?.campaignId && payload.campaignId !== id) return
         setCountdown(null)
         loadData()
       })
@@ -133,7 +159,7 @@ export default function ReativarDetailPage() {
         socketRef.current = null
       }
     }
-  }, [campaign?.status, loadData])
+  }, [campaign?.status, id, loadData])
 
   const handleAction = async (action: 'start' | 'pause' | 'stop') => {
     if (!campaign) return
@@ -156,15 +182,18 @@ export default function ReativarDetailPage() {
   if (!campaign) {
     return (
       <div className="px-8 py-7">
-        <button onClick={() => router.push('/reativar')} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer mb-4">
-          <ArrowLeft size={15} /> Voltar
+        <button
+          onClick={() => router.push('/disparos?tab=reativar')}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer mb-4"
+        >
+          <ArrowLeft size={15} /> Reativar
         </button>
         <p className="text-muted-foreground">Campanha não encontrada.</p>
       </div>
     )
   }
 
-  const pending = campaign.total_leads - campaign.sent_count - campaign.failed_count
+  const pending = Math.max(0, campaign.total_leads - campaign.sent_count - campaign.failed_count)
   const progress = campaign.total_leads > 0
     ? Math.round(((campaign.sent_count + campaign.failed_count) / campaign.total_leads) * 100)
     : 0
@@ -174,7 +203,7 @@ export default function ReativarDetailPage() {
       {/* Back + header */}
       <div>
         <button
-          onClick={() => router.push('/reativar')}
+          onClick={() => router.push('/disparos?tab=reativar')}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer mb-3"
         >
           <ArrowLeft size={14} /> Reativar
@@ -242,10 +271,10 @@ export default function ReativarDetailPage() {
       {/* Stats cards */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: 'Total', value: campaign.total_leads, color: 'text-foreground' },
-          { label: 'Enviados', value: campaign.sent_count, color: 'text-green-600' },
-          { label: 'Falhas', value: campaign.failed_count, color: 'text-red-500' },
-          { label: 'Pendentes', value: Math.max(0, pending), color: 'text-muted-foreground' },
+          { label: 'Total',     value: campaign.total_leads,  color: 'text-foreground' },
+          { label: 'Enviados',  value: campaign.sent_count,   color: 'text-green-600' },
+          { label: 'Falhas',    value: campaign.failed_count, color: 'text-red-500' },
+          { label: 'Pendentes', value: pending,               color: 'text-muted-foreground' },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-card border border-border rounded-2xl p-5">
             <p className="text-sm text-muted-foreground mb-1">{label}</p>
@@ -293,7 +322,7 @@ export default function ReativarDetailPage() {
           <h2 className="text-sm font-semibold text-foreground">Envios ({dispatches.length})</h2>
         </div>
         {dispatches.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-2">
+          <div className="flex flex-col items-center justify-center py-12">
             <p className="text-sm text-muted-foreground">Nenhum envio registrado</p>
           </div>
         ) : (
@@ -303,7 +332,6 @@ export default function ReativarDetailPage() {
                 <tr className="border-b border-border">
                   <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Telefone</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mensagem enviada</th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Delay</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Enviado em</th>
                 </tr>
@@ -319,12 +347,9 @@ export default function ReativarDetailPage() {
                           : d.message_sent
                         : '—'}
                     </td>
-                    <td className="px-5 py-3.5 text-right text-muted-foreground text-xs">
-                      {d.typing_delay ? `${d.typing_delay}s` : '—'}
-                    </td>
                     <td className="px-5 py-3.5">
                       <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', DISPATCH_STATUS_STYLES[d.status] ?? DISPATCH_STATUS_STYLES.pending)}>
-                        {d.status}
+                        {DISPATCH_STATUS_LABELS[d.status] ?? d.status}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-muted-foreground text-xs">

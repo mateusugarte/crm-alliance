@@ -27,9 +27,17 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 const DISPATCH_STATUS_STYLES: Record<string, string> = {
-  pending: 'bg-muted text-muted-foreground',
-  sent:    'bg-green-500/15 text-green-600',
-  failed:  'bg-red-500/15 text-red-500',
+  pending:   'bg-muted text-muted-foreground',
+  sent:      'bg-green-500/15 text-green-600',
+  failed:    'bg-red-500/15 text-red-500',
+  cancelled: 'bg-muted text-muted-foreground',
+}
+
+const DISPATCH_STATUS_LABELS: Record<string, string> = {
+  pending:   'Pendente',
+  sent:      'Enviado',
+  failed:    'Falhou',
+  cancelled: 'Cancelado',
 }
 
 interface CampaignDetail extends Campaign {
@@ -320,7 +328,7 @@ export default function DisparoDetailPage() {
                     </td>
                     <td className="px-5 py-3.5">
                       <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', DISPATCH_STATUS_STYLES[d.status] ?? DISPATCH_STATUS_STYLES.pending)}>
-                        {d.status}
+                        {DISPATCH_STATUS_LABELS[d.status] ?? d.status}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-muted-foreground text-xs">
