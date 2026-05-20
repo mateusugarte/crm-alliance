@@ -40,7 +40,9 @@ function getFormattedDate(): string {
   return format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })
 }
 
-function getDateRange(period: string, from?: string, to?: string): { start: Date; end: Date } {
+// Retorna null para 'tudo' (sem filtro de data)
+function getDateRange(period: string, from?: string, to?: string): { start: Date; end: Date } | null {
+  if (!period || period === 'tudo') return null
   const now = new Date()
   switch (period) {
     case 'hoje':
@@ -51,8 +53,8 @@ function getDateRange(period: string, from?: string, to?: string): { start: Date
       if (from && to) {
         return { start: startOfDay(new Date(from)), end: endOfDay(new Date(to)) }
       }
-      // falls through to semana
-    default:
+      return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfDay(now) }
+    default: // semana
       return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfDay(now) }
   }
 }
@@ -72,7 +74,7 @@ async function getUserName(): Promise<string> {
     const profile = data as Pick<UserProfile, 'full_name'> | null
     if (profile?.full_name) {
       const firstName = profile.full_name.split(' ')[0]
-      return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase()
+      return firstName!.charAt(0).toUpperCase() + firstName!.slice(1).toLowerCase()
     }
     return user.email?.split('@')[0] ?? 'Corretor'
   } catch {
@@ -80,83 +82,65 @@ async function getUserName(): Promise<string> {
   }
 }
 
-async function getMetrics(start: Date, end: Date) {
+// Métricas sempre mostram TODOS os leads (sem filtro de data)
+async function getMetrics() {
   try {
     const supabase = await createClient()
     const todayStart = startOfDay(new Date()).toISOString()
     const todayEnd = endOfDay(new Date()).toISOString()
 
-    // Período anterior de mesmo tamanho para comparação de tendência
-    const durationMs = end.getTime() - start.getTime()
-    const prevEnd = new Date(start.getTime() - 1)
-    const prevStart = new Date(start.getTime() - durationMs)
-
-    const [{ data: leadsData }, { data: mtgs }, { data: prevLeads }, { data: prevMtgs }] = await Promise.all([
+    const [{ data: leadsData }, { data: mtgs }] = await Promise.all([
       supabase.from('leads')
-        .select('stage, interaction_count, automation_paused')
-        .gte('created_at', start.toISOString())
-        .lte('created_at', end.toISOString()),
+        .select('stage, interaction_count, automation_paused'),
       supabase.from('meetings')
         .select('id')
         .gte('datetime', todayStart)
         .lte('datetime', todayEnd)
         .eq('status', 'scheduled'),
-      supabase.from('leads')
-        .select('id')
-        .gte('created_at', prevStart.toISOString())
-        .lte('created_at', prevEnd.toISOString()),
-      supabase.from('meetings')
-        .select('id')
-        .gte('datetime', prevStart.toISOString())
-        .lte('datetime', prevEnd.toISOString())
-        .eq('status', 'scheduled'),
     ])
 
     const leads = (leadsData ?? []) as Pick<Lead, 'stage' | 'interaction_count' | 'automation_paused'>[]
-    const prevLeadCount = prevLeads?.length ?? 0
-    const prevMtgCount = prevMtgs?.length ?? 0
-
-    const calcTrend = (curr: number, prev: number) => {
-      if (prev === 0) return curr > 0 ? 100 : 0
-      return Math.round(((curr - prev) / prev) * 100)
-    }
 
     return {
-      leads: leads.length,
+      total_leads: leads.length,
       reunioes: mtgs?.length ?? 0,
       sem_resposta: leads.filter(l => l.interaction_count === 0).length,
       aquecidos: leads.filter(l => l.stage === 'lead_quente').length,
       pausadas: leads.filter(l => l.automation_paused).length,
       disponiveis: leads.filter(l => l.stage === 'visita_confirmada' || l.stage === 'reuniao_agendada').length,
-      trend_leads: calcTrend(leads.length, prevLeadCount),
-      trend_reunioes: calcTrend(mtgs?.length ?? 0, prevMtgCount),
     }
   } catch {
-    return { leads: 0, reunioes: 0, sem_resposta: 0, aquecidos: 0, pausadas: 0, disponiveis: 0, trend_leads: 0, trend_reunioes: 0 }
+    return { total_leads: 0, reunioes: 0, sem_resposta: 0, aquecidos: 0, pausadas: 0, disponiveis: 0 }
   }
 }
 
-async function getChartData(start: Date, end: Date) {
+// Gráficos usam o filtro de período (padrão: últimos 30 dias para 'tudo')
+async function getChartData(dateRange: { start: Date; end: Date } | null) {
   try {
     const supabase = await createClient()
-    const days = eachDayOfInterval({ start, end }).slice(0, 31)
+
+    const now = new Date()
+    const effectiveStart = dateRange?.start ?? subDays(now, 29)
+    const effectiveEnd   = dateRange?.end   ?? endOfDay(now)
+
+    const days = eachDayOfInterval({ start: effectiveStart, end: effectiveEnd }).slice(0, 31)
     const displayFormat = days.length <= 7 ? 'EEE' : 'dd/MM'
     const labels = days.map(d => format(d, displayFormat, { locale: ptBR }).replace('.', ''))
 
     const [{ data: mtgRows }, { data: leadRows }] = await Promise.all([
       supabase.from('meetings').select('datetime')
-        .gte('datetime', start.toISOString())
-        .lte('datetime', end.toISOString()),
+        .gte('datetime', effectiveStart.toISOString())
+        .lte('datetime', effectiveEnd.toISOString()),
       supabase.from('leads').select('created_at')
-        .gte('created_at', start.toISOString())
-        .lte('created_at', end.toISOString()),
+        .gte('created_at', effectiveStart.toISOString())
+        .lte('created_at', effectiveEnd.toISOString()),
     ])
 
     const countByDay = (rows: Array<{ [key: string]: string }>, field: string) =>
       days.map(d => {
         const key = format(d, 'dd/MM', { locale: ptBR })
         return (rows ?? []).filter(r => {
-          const rowLabel = format(new Date(r[field]), 'dd/MM', { locale: ptBR })
+          const rowLabel = format(new Date(r[field]!), 'dd/MM', { locale: ptBR })
           return rowLabel === key
         }).length
       })
@@ -171,7 +155,7 @@ async function getChartData(start: Date, end: Date) {
     )
     return {
       reunioes: { labels, data: [0, 0, 0, 0, 0, 0, 0] },
-      leads: { labels, data: [0, 0, 0, 0, 0, 0, 0] },
+      leads:    { labels, data: [0, 0, 0, 0, 0, 0, 0] },
     }
   }
 }
@@ -231,13 +215,14 @@ async function getPipelineDistribution(): Promise<PipelineStage[]> {
     const leads = (data ?? []) as Array<{ stage: string }>
 
     const STAGES: Array<{ key: string; label: string; color: string }> = [
-      { key: 'lead_frio', label: 'Frio', color: '#1E90FF' },
-      { key: 'lead_morno', label: 'Morno', color: '#FF8C00' },
-      { key: 'lead_quente', label: 'Quente', color: '#FF4500' },
-      { key: 'follow_up', label: 'Follow-up', color: '#9B59B6' },
-      { key: 'reuniao_agendada', label: 'Reunião', color: '#228B22' },
-      { key: 'visita_confirmada', label: 'Visita', color: '#E67E22' },
-      { key: 'cliente', label: 'Cliente', color: '#2ECC71' },
+      { key: 'nao_respondeu',     label: 'Não Respondeu', color: '#64748B' },
+      { key: 'lead_frio',         label: 'Lead Frio',     color: '#1E90FF' },
+      { key: 'lead_morno',        label: 'Lead Morno',    color: '#FF8C00' },
+      { key: 'lead_quente',       label: 'Lead Quente',   color: '#FF4500' },
+      { key: 'follow_up',         label: 'Follow-up',     color: '#9B59B6' },
+      { key: 'reuniao_agendada',  label: 'Reunião',       color: '#228B22' },
+      { key: 'visita_confirmada', label: 'Visita',        color: '#E67E22' },
+      { key: 'cliente',           label: 'Cliente',       color: '#2ECC71' },
     ]
 
     return STAGES.map(s => ({
@@ -255,12 +240,12 @@ export default async function DashboardPage({
   searchParams: Promise<{ period?: string; from?: string; to?: string }>
 }) {
   const params = await searchParams
-  const { start, end } = getDateRange(params.period ?? 'semana', params.from, params.to)
+  const dateRange = getDateRange(params.period ?? 'tudo', params.from, params.to)
 
   const [userName, metrics, chartData, todayMeetings, pipeline] = await Promise.all([
     getUserName(),
-    getMetrics(start, end),
-    getChartData(start, end),
+    getMetrics(),
+    getChartData(dateRange),
     getTodayMeetings(),
     getPipelineDistribution(),
   ])

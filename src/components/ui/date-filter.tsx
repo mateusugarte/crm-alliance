@@ -4,12 +4,13 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { Calendar } from 'lucide-react'
 
-type Period = 'hoje' | 'semana' | 'mes' | 'personalizado'
+type Period = 'tudo' | 'hoje' | 'semana' | 'mes' | 'personalizado'
 
 const PERIODS: { key: Period; label: string }[] = [
-  { key: 'hoje', label: 'Hoje' },
-  { key: 'semana', label: 'Semana' },
-  { key: 'mes', label: 'Mês' },
+  { key: 'tudo',         label: 'Tudo' },
+  { key: 'hoje',         label: 'Hoje' },
+  { key: 'semana',       label: 'Semana' },
+  { key: 'mes',          label: 'Mês' },
   { key: 'personalizado', label: 'Personalizado' },
 ]
 
@@ -17,7 +18,7 @@ export function DateFilter() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const currentPeriod = (searchParams.get('period') ?? 'semana') as Period
+  const currentPeriod = (searchParams.get('period') ?? 'tudo') as Period
   const [fromDate, setFromDate] = useState(searchParams.get('from') ?? '')
   const [toDate, setToDate] = useState(searchParams.get('to') ?? '')
 
@@ -32,11 +33,6 @@ export function DateFilter() {
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-white/30">
-        <span>Aplica-se a:</span>
-        <span className="font-semibold text-amber-500 dark:text-amber-400">Não Respondeu · Lead Frio</span>
-      </div>
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-white/8 rounded-xl p-1">
         {PERIODS.map(p => (
@@ -82,7 +78,6 @@ export function DateFilter() {
           </button>
         </div>
       )}
-    </div>
     </div>
   )
 }

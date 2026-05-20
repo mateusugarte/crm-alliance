@@ -6,14 +6,12 @@ import { staggerContainer } from '@/lib/animations'
 import { MetricCard } from './metric-card'
 
 interface MetricsData {
-  leads: number
+  total_leads: number
   reunioes: number
   sem_resposta: number
   aquecidos: number
   pausadas: number
   disponiveis: number
-  trend_leads?: number
-  trend_reunioes?: number
 }
 
 interface MetricsGridProps {
@@ -34,10 +32,9 @@ export function MetricsGrid({ metrics }: MetricsGridProps) {
         <div className="row-span-2">
           <MetricCard
             label="Total de Leads"
-            value={metrics.leads}
+            value={metrics.total_leads}
             variant="featured"
             icon={<Users size={16} />}
-            trend={metrics.trend_leads}
             className="h-full"
           />
         </div>
@@ -47,7 +44,6 @@ export function MetricsGrid({ metrics }: MetricsGridProps) {
           value={metrics.reunioes}
           icon={<Calendar size={16} />}
           accentColor="var(--color-stage-follow-up)"
-          trend={metrics.trend_reunioes}
         />
         <MetricCard
           label="Leads Quentes"
@@ -56,7 +52,7 @@ export function MetricsGrid({ metrics }: MetricsGridProps) {
           accentColor="var(--color-stage-quente)"
         />
 
-        {/* Linha 2: col 2 e 3 (col 1 está ocupada pelo featured) */}
+        {/* Linha 2: col 2 e 3 */}
         <MetricCard
           label="Sem Resposta"
           value={metrics.sem_resposta}
