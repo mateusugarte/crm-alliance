@@ -32,6 +32,11 @@ export function DateFilter() {
   }
 
   return (
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-white/30">
+        <span>Aplica-se a:</span>
+        <span className="font-semibold text-amber-500 dark:text-amber-400">Não Respondeu · Lead Frio</span>
+      </div>
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-white/8 rounded-xl p-1">
         {PERIODS.map(p => (
@@ -77,6 +82,7 @@ export function DateFilter() {
           </button>
         </div>
       )}
+    </div>
     </div>
   )
 }

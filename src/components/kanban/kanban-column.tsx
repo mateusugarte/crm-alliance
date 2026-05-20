@@ -2,6 +2,7 @@
 
 import { memo } from 'react'
 import { useDroppable } from '@dnd-kit/core'
+import { CalendarDays } from 'lucide-react'
 import { LeadCard } from './lead-card'
 import type { KanbanColumnConfig } from './types'
 import type { Lead } from '@/lib/supabase/types'
@@ -9,10 +10,11 @@ import type { Lead } from '@/lib/supabase/types'
 interface KanbanColumnProps {
   column: KanbanColumnConfig
   leads: Lead[]
+  isFiltered?: boolean
   onLeadClick: (lead: Lead) => void
 }
 
-export const KanbanColumn = memo(function KanbanColumn({ column, leads, onLeadClick }: KanbanColumnProps) {
+export const KanbanColumn = memo(function KanbanColumn({ column, leads, isFiltered, onLeadClick }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
   const Icon = column.icon
 
@@ -47,6 +49,16 @@ export const KanbanColumn = memo(function KanbanColumn({ column, leads, onLeadCl
           </span>
         </div>
       </div>
+
+      {/* Indicador de filtro de data */}
+      {isFiltered && (
+        <div className="mx-3 mb-1 flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-400/8 border border-amber-200/60 dark:border-amber-400/20">
+          <CalendarDays size={10} className="text-amber-500 dark:text-amber-400 flex-shrink-0" />
+          <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 leading-none">
+            Filtro de data ativo
+          </span>
+        </div>
+      )}
 
       {/* Cards */}
       <div

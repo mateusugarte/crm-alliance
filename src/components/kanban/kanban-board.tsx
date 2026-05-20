@@ -17,6 +17,8 @@ import { KanbanColumn } from './kanban-column'
 import { LeadCard } from './lead-card'
 import { LeadDetailModal } from './lead-detail-modal'
 import { KANBAN_COLUMNS, type KanbanStage } from './types'
+
+const DATE_FILTERED_STAGES: KanbanStage[] = ['nao_respondeu', 'lead_frio']
 import type { Lead } from '@/lib/supabase/types'
 
 interface KanbanBoardProps {
@@ -139,8 +141,11 @@ export function KanbanBoard({ initialLeads, currentUserId }: KanbanBoardProps) {
   }, [leads, currentUserId])
 
   const leadsPerStage = useCallback(
-    (stage: KanbanStage) => filteredLeads.filter(l => l.stage === stage),
-    [filteredLeads]
+    (stage: KanbanStage) => {
+      const pool = DATE_FILTERED_STAGES.includes(stage) ? filteredLeads : leads
+      return pool.filter(l => l.stage === stage)
+    },
+    [filteredLeads, leads]
   )
 
   return (
@@ -157,6 +162,7 @@ export function KanbanBoard({ initialLeads, currentUserId }: KanbanBoardProps) {
               key={col.id}
               column={col}
               leads={leadsPerStage(col.id)}
+              isFiltered={DATE_FILTERED_STAGES.includes(col.id)}
               onLeadClick={(lead) => setSelectedLeadId(lead.id)}
             />
           ))}
