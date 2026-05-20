@@ -129,7 +129,8 @@ export default function NovoDisparoPage() {
   const [mixing, setMixing]                     = useState(false)
   const [mixError, setMixError]                 = useState<string | null>(null)
   const [contextMessages, setContextMessages]   = useState<Record<string, string>>({})
-  const [generatingContext, setGeneratingContext] = useState(false)
+  const [manualContexts, setManualContexts]     = useState<Record<string, string>>({}) // lead_id → texto livre
+  const [generatingContextId, setGeneratingContextId] = useState<string | null>(null) // 'all' | lead_id | null
   const [contextError, setContextError]          = useState<string | null>(null)
 
   // step 3 — config
@@ -177,6 +178,8 @@ export default function NovoDisparoPage() {
     () => schedule.reduce((acc, s) => acc + s.intervalTotalMs, 0),
     [schedule],
   )
+
+  const generatingContext = generatingContextId !== null
 
   const messagesReady = useMemo(() => {
     if (!messageMode) return false
@@ -291,16 +294,26 @@ export default function NovoDisparoPage() {
     setMixing(false)
   }, [selectedTemplate, allContacts])
 
-  const handleGenerateContext = useCallback(async () => {
+  // Gera para um lead específico OU para todos (leadId = 'all')
+  const handleGenerateContext = useCallback(async (leadId: 'all' | string) => {
     const leadContacts = allContacts.filter(c => c.id !== null)
     if (leadContacts.length === 0) return
-    setGeneratingContext(true)
+
+    const targets = leadId === 'all'
+      ? leadContacts
+      : leadContacts.filter(c => c.id === leadId)
+
+    if (targets.length === 0) return
+    setGeneratingContextId(leadId)
     setContextError(null)
     try {
       const res = await fetch('/api/leads/reactivation-context', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lead_ids: leadContacts.map(c => c.id) }),
+        body: JSON.stringify({
+          lead_ids: targets.map(c => c.id),
+          manual_contexts: manualContexts,
+        }),
       })
       if (!res.ok) {
         const err = await res.json() as { error?: string }
@@ -308,16 +321,18 @@ export default function NovoDisparoPage() {
         return
       }
       const data = await res.json() as { results: { lead_id: string; message: string }[] }
-      const map: Record<string, string> = {}
-      for (const r of data.results) {
-        if (r.message) map[r.lead_id] = r.message
-      }
-      setContextMessages(map)
+      setContextMessages(prev => {
+        const updated = { ...prev }
+        for (const r of data.results) {
+          if (r.message) updated[r.lead_id] = r.message
+        }
+        return updated
+      })
     } catch {
       setContextError('Erro de conexão')
     }
-    setGeneratingContext(false)
-  }, [allContacts])
+    setGeneratingContextId(null)
+  }, [allContacts, manualContexts])
 
   const handleSave = useCallback(async () => {
     if (!canSave || !selectedInstance) return
@@ -713,35 +728,107 @@ export default function NovoDisparoPage() {
                   <div className="flex items-start gap-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                     <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-amber-600 dark:text-amber-400">
-                      {allContacts.filter(c => c.id === null).length} número{allContacts.filter(c => c.id === null).length !== 1 ? 's' : ''} manual não tem histórico no CRM. Somente leads selecionados receberão mensagem contextual.
+                      {allContacts.filter(c => c.id === null).length} número{allContacts.filter(c => c.id === null).length !== 1 ? 's' : ''} manual não possui histórico no CRM e não será incluído neste modo.
                     </p>
                   </div>
                 )}
 
-                <div className="flex items-start gap-3 px-5 py-4 bg-card border border-border rounded-2xl">
-                  <Sparkles size={16} className="text-alliance-blue flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground mb-1">Como funciona</p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      A IA analisa as últimas mensagens de cada lead no CRM e gera uma mensagem personalizada que retoma o contexto da conversa, criando continuidade natural para reengajar o lead.
-                    </p>
-                  </div>
-                </div>
+                {/* Per-lead context inputs */}
+                {allContacts.filter(c => c.id !== null).length > 0 && (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Contexto por lead <span className="font-normal normal-case">(opcional — enriquece a geração da IA)</span>
+                      </p>
+                      <button
+                        onClick={() => handleGenerateContext('all')}
+                        disabled={generatingContext}
+                        className={cn(
+                          'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer',
+                          !generatingContext
+                            ? 'bg-alliance-blue text-white hover:bg-alliance-dark'
+                            : 'bg-muted text-muted-foreground cursor-not-allowed',
+                        )}
+                      >
+                        {generatingContextId === 'all'
+                          ? <><RefreshCw size={11} className="animate-spin" /> Gerando...</>
+                          : <><Sparkles size={11} /> Gerar todos</>}
+                      </button>
+                    </div>
 
-                <button
-                  onClick={handleGenerateContext}
-                  disabled={generatingContext || allContacts.filter(c => c.id !== null).length === 0}
-                  className={cn(
-                    'flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
-                    !generatingContext && allContacts.some(c => c.id !== null)
-                      ? 'bg-alliance-blue text-white hover:bg-alliance-dark'
-                      : 'bg-muted text-muted-foreground cursor-not-allowed',
-                  )}
-                >
-                  {generatingContext
-                    ? <><RefreshCw size={14} className="animate-spin" /> Gerando com IA...</>
-                    : <><Sparkles size={14} /> Gerar mensagens para {allContacts.filter(c => c.id !== null).length} lead{allContacts.filter(c => c.id !== null).length !== 1 ? 's' : ''}</>}
-                </button>
+                    {allContacts.filter(c => c.id !== null).map(c => {
+                      const leadId = c.id!
+                      const hasMessage = !!contextMessages[leadId]
+                      const isGenerating = generatingContextId === leadId
+                      return (
+                        <div
+                          key={leadId}
+                          className={cn(
+                            'flex flex-col gap-3 p-4 rounded-2xl border transition-colors',
+                            hasMessage ? 'border-green-500/30 bg-green-500/5' : 'border-border bg-card',
+                          )}
+                        >
+                          {/* Lead header */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className={cn(
+                                'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0',
+                                hasMessage ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground',
+                              )}>
+                                {hasMessage ? <Check size={12} /> : c.name.charAt(0).toUpperCase()}
+                              </div>
+                              <p className="text-sm font-semibold text-foreground">{c.name}</p>
+                              <span className="text-xs font-mono text-muted-foreground">{c.phone.replace('@s.whatsapp.net', '')}</span>
+                            </div>
+                            <button
+                              onClick={() => handleGenerateContext(leadId)}
+                              disabled={generatingContext}
+                              className={cn(
+                                'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer flex-shrink-0',
+                                !generatingContext
+                                  ? hasMessage
+                                    ? 'text-green-700 bg-green-500/10 hover:bg-green-500/20'
+                                    : 'text-alliance-blue bg-alliance-blue/10 hover:bg-alliance-blue/20'
+                                  : 'text-muted-foreground bg-muted cursor-not-allowed',
+                              )}
+                            >
+                              {isGenerating
+                                ? <><RefreshCw size={10} className="animate-spin" /> Gerando...</>
+                                : hasMessage
+                                  ? <><RefreshCw size={10} /> Regerar</>
+                                  : <><Sparkles size={10} /> Gerar</>}
+                            </button>
+                          </div>
+
+                          {/* Manual context input */}
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                              Contexto manual (opcional)
+                            </label>
+                            <textarea
+                              value={manualContexts[leadId] ?? ''}
+                              onChange={e => setManualContexts(prev => ({ ...prev, [leadId]: e.target.value }))}
+                              placeholder="Ex: estava interessada em apto de 3 quartos, mencionou que compraria em junho, preocupação com o valor de entrada..."
+                              rows={2}
+                              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-xs text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-muted-foreground/40"
+                            />
+                            <p className="text-[10px] text-muted-foreground">
+                              Adicione detalhes que a IA usará para gerar uma mensagem de reativação mais precisa e com sentido
+                            </p>
+                          </div>
+
+                          {/* Generated message preview */}
+                          {hasMessage && (
+                            <div className="px-3 py-2.5 bg-background rounded-xl border border-green-500/20">
+                              <p className="text-[10px] font-semibold text-green-700 dark:text-green-500 mb-1 uppercase tracking-wider">Mensagem gerada</p>
+                              <p className="text-sm text-foreground">{contextMessages[leadId]}</p>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
 
                 {contextError && (
                   <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
@@ -751,24 +838,11 @@ export default function NovoDisparoPage() {
                 )}
 
                 {Object.keys(contextMessages).length > 0 && (
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <Check size={13} className="text-green-600" />
-                      <p className="text-xs font-semibold text-green-600">
-                        {Object.keys(contextMessages).length} mensagens geradas
-                      </p>
-                    </div>
-                    {allContacts.filter(c => c.id && contextMessages[c.id]).slice(0, 3).map(c => (
-                      <div key={c.id} className="px-4 py-3 bg-muted/50 rounded-xl border border-border">
-                        <p className="text-xs font-semibold text-muted-foreground mb-1">{c.name}</p>
-                        <p className="text-sm text-foreground">{contextMessages[c.id!]}</p>
-                      </div>
-                    ))}
-                    {allContacts.filter(c => c.id && contextMessages[c.id]).length > 3 && (
-                      <p className="text-xs text-muted-foreground text-center">
-                        + {allContacts.filter(c => c.id && contextMessages[c.id]).length - 3} mais
-                      </p>
-                    )}
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-green-500/10 border border-green-500/20 rounded-xl">
+                    <Check size={13} className="text-green-600" />
+                    <p className="text-xs font-semibold text-green-600">
+                      {Object.keys(contextMessages).length} de {allContacts.filter(c => c.id !== null).length} mensagens geradas
+                    </p>
                   </div>
                 )}
               </div>
