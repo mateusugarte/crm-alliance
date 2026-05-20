@@ -1,22 +1,30 @@
 'use client'
 
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
-import { CalendarDays } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { LeadCard } from './lead-card'
 import type { KanbanColumnConfig } from './types'
 import type { Lead } from '@/lib/supabase/types'
 
+const INITIAL_LIMIT = 12
+const LOAD_MORE_STEP = 12
+
 interface KanbanColumnProps {
   column: KanbanColumnConfig
   leads: Lead[]
-  isFiltered?: boolean
   onLeadClick: (lead: Lead) => void
 }
 
-export const KanbanColumn = memo(function KanbanColumn({ column, leads, isFiltered, onLeadClick }: KanbanColumnProps) {
+export const KanbanColumn = memo(function KanbanColumn({ column, leads, onLeadClick }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
   const Icon = column.icon
+
+  const [visibleCount, setVisibleCount] = useState(INITIAL_LIMIT)
+
+  const visibleLeads = leads.slice(0, visibleCount)
+  const hasMore = leads.length > visibleCount
+  const hiddenCount = leads.length - visibleCount
 
   return (
     <div
@@ -50,32 +58,38 @@ export const KanbanColumn = memo(function KanbanColumn({ column, leads, isFilter
         </div>
       </div>
 
-      {/* Indicador de filtro de data */}
-      {isFiltered && (
-        <div className="mx-3 mb-1 flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-400/8 border border-amber-200/60 dark:border-amber-400/20">
-          <CalendarDays size={10} className="text-amber-500 dark:text-amber-400 flex-shrink-0" />
-          <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 leading-none">
-            Filtro de data ativo
-          </span>
-        </div>
-      )}
-
       {/* Cards */}
       <div
         ref={setNodeRef}
         className="flex flex-col gap-2 px-3 pb-3 overflow-y-auto flex-1"
       >
-        {leads.map((lead) => (
+        {visibleLeads.map((lead) => (
           <LeadCard
             key={lead.id}
             lead={lead}
             onClick={() => onLeadClick(lead)}
           />
         ))}
+
         {leads.length === 0 && (
           <div className="text-center text-xs text-gray-400 dark:text-white/20 py-10 border-2 border-dashed border-gray-200 dark:border-white/8 rounded-xl">
             Arraste um lead aqui
           </div>
+        )}
+
+        {hasMore && (
+          <button
+            onClick={() => setVisibleCount(c => c + LOAD_MORE_STEP)}
+            className="w-full mt-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer border border-dashed"
+            style={{
+              color: column.color,
+              borderColor: column.color + '40',
+              backgroundColor: column.color + '08',
+            }}
+          >
+            <ChevronDown size={13} />
+            Ver mais ({hiddenCount})
+          </button>
         )}
       </div>
     </div>

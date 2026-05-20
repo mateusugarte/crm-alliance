@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server'
 import { Suspense } from 'react'
 import { KanbanBoard } from '@/components/kanban/kanban-board'
 import { KanbanPageHeader } from '@/components/kanban/kanban-page-header'
-import { DateFilter } from '@/components/ui/date-filter'
 import type { Lead } from '@/lib/supabase/types'
 
 async function getLeadsAndUser(): Promise<{ leads: Lead[]; currentUserId: string }> {
@@ -39,9 +38,6 @@ export default async function KanbanPage() {
           <h1 className="text-2xl font-bold text-alliance-dark">Leads</h1>
         </div>
         <div className="flex items-center gap-3">
-          <Suspense fallback={null}>
-            <DateFilter />
-          </Suspense>
           <KanbanPageHeader />
         </div>
       </div>

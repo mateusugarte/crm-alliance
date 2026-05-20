@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useCallback } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -12,13 +11,10 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { toast } from 'sonner'
-import { startOfDay, endOfDay, startOfWeek, startOfMonth } from 'date-fns'
 import { KanbanColumn } from './kanban-column'
 import { LeadCard } from './lead-card'
 import { LeadDetailModal } from './lead-detail-modal'
 import { KANBAN_COLUMNS, type KanbanStage } from './types'
-
-const DATE_FILTERED_STAGES: KanbanStage[] = ['nao_respondeu', 'lead_frio']
 import type { Lead } from '@/lib/supabase/types'
 
 interface KanbanBoardProps {
@@ -30,33 +26,6 @@ export function KanbanBoard({ initialLeads, currentUserId }: KanbanBoardProps) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads)
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
-
-  const searchParams = useSearchParams()
-  const period = searchParams.get('period') ?? 'semana'
-  const from = searchParams.get('from') ?? undefined
-  const to = searchParams.get('to') ?? undefined
-
-  const filteredLeads = useMemo(() => {
-    const now = new Date()
-    let start: Date, end: Date
-    switch (period) {
-      case 'hoje':
-        start = startOfDay(now); end = endOfDay(now); break
-      case 'mes':
-        start = startOfMonth(now); end = endOfDay(now); break
-      case 'personalizado':
-        if (from && to) {
-          start = startOfDay(new Date(from)); end = endOfDay(new Date(to)); break
-        }
-        // falls through
-      default:
-        start = startOfWeek(now, { weekStartsOn: 1 }); end = endOfDay(now)
-    }
-    return leads.filter(l => {
-      const d = new Date(l.created_at)
-      return d >= start && d <= end
-    })
-  }, [leads, period, from, to])
 
   // Derivado — nunca fica stale porque lê diretamente do array autoritativo
   const selectedLead = selectedLeadId ? (leads.find(l => l.id === selectedLeadId) ?? null) : null
@@ -141,11 +110,8 @@ export function KanbanBoard({ initialLeads, currentUserId }: KanbanBoardProps) {
   }, [leads, currentUserId])
 
   const leadsPerStage = useCallback(
-    (stage: KanbanStage) => {
-      const pool = DATE_FILTERED_STAGES.includes(stage) ? filteredLeads : leads
-      return pool.filter(l => l.stage === stage)
-    },
-    [filteredLeads, leads]
+    (stage: KanbanStage) => leads.filter(l => l.stage === stage),
+    [leads]
   )
 
   return (
@@ -162,7 +128,6 @@ export function KanbanBoard({ initialLeads, currentUserId }: KanbanBoardProps) {
               key={col.id}
               column={col}
               leads={leadsPerStage(col.id)}
-              isFiltered={DATE_FILTERED_STAGES.includes(col.id)}
               onLeadClick={(lead) => setSelectedLeadId(lead.id)}
             />
           ))}
