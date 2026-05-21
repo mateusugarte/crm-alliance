@@ -352,17 +352,34 @@ export function ImovelGrid({ imoveis: initialImoveis, vendas: initialVendas, isA
 
   const handleSaved = (saved: Imovel) => {
     setImoveis(prev => {
-      const exists = prev.some(i => i.id === saved.id)
+      const old = prev.find(i => i.id === saved.id)
+      const exists = old !== undefined
       const next = exists ? prev.map(i => i.id === saved.id ? saved : i) : [...prev, saved]
-      if (!exists) {
-        // Novo imóvel: adiciona na coluna padrão
+
+      // Novo imóvel OU imóvel que voltou de vendido → adiciona no board
+      const voltouDeVendido = exists && old.vendido && !saved.vendido
+      if (!exists || voltouDeVendido) {
         setColumns(cols => {
+          // Remove da grade caso já esteja (segurança)
+          const cleaned: Record<string, string[]> = {}
+          for (const k of Object.keys(cols)) cleaned[k] = cols[k].filter(id => id !== saved.id)
           const col = getDefaultColId(saved)
-          const updated = { ...cols, [col]: [...(cols[col] ?? []), saved.id] }
+          const updated = { ...cleaned, [col]: [...(cleaned[col] ?? []), saved.id] }
           saveLayout(updated)
           return updated
         })
       }
+
+      // Imóvel marcado como vendido → remove do board
+      if (exists && !old.vendido && saved.vendido) {
+        setColumns(cols => {
+          const updated: Record<string, string[]> = {}
+          for (const k of Object.keys(cols)) updated[k] = cols[k].filter(id => id !== saved.id)
+          saveLayout(updated)
+          return updated
+        })
+      }
+
       return next
     })
     setFormOpen(false)
@@ -462,7 +479,7 @@ export function ImovelGrid({ imoveis: initialImoveis, vendas: initialVendas, isA
       </DndContext>
 
       {/* Vendidos */}
-      <ImovelVendidosSection imoveis={vendidosImoveis} vendas={vendas} isAdm={isAdm} />
+      <ImovelVendidosSection imoveis={vendidosImoveis} vendas={vendas} isAdm={isAdm} onEdit={handleEdit} />
 
       {/* Form de criação/edição */}
       <ImovelFormPanel

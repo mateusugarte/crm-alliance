@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Building2, X, Plus, Loader2, Layers } from 'lucide-react'
+import { Building2, X, Plus, Loader2, Layers, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
@@ -111,6 +111,7 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
   const [valorMax, setValorMax] = useState('')
   const [diferenciais, setDiferenciais] = useState<string[]>([])
   const [disponivel, setDisponivel] = useState(true)
+  const [vendido, setVendido] = useState(false)
   const [novoD, setNovoD] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -128,6 +129,7 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
       setValorMax(imovel.valor_max != null ? String(imovel.valor_max) : '')
       setDiferenciais(imovel.diferenciais ?? [])
       setDisponivel(imovel.disponivel)
+      setVendido(imovel.vendido ?? false)
     } else if (open && !imovel) {
       setPavimento(1)
       setNumeroUnidade(1)
@@ -138,6 +140,7 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
       setValorMax('')
       setDiferenciais([])
       setDisponivel(true)
+      setVendido(false)
     }
     setNovoD('')
   }, [open, imovel])
@@ -191,7 +194,8 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
       diferenciais,
       valor_min: valorMin !== '' ? parseFloat(valorMin) : null,
       valor_max: valorMax !== '' ? parseFloat(valorMax) : null,
-      disponivel,
+      disponivel: vendido ? false : disponivel,
+      vendido,
     }
 
     setSaving(true)
@@ -417,27 +421,61 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
             </div>
           </div>
 
-          {/* Seção 5 — Disponibilidade */}
-          <div className="px-6 py-5">
-            <SectionTitle>Disponibilidade</SectionTitle>
-            <button
-              onClick={() => setDisponivel((v) => !v)}
-              className={cn(
-                'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
-                disponivel
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 focus-visible:ring-emerald-400'
-                  : 'bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200 focus-visible:ring-gray-400',
-              )}
-            >
-              <span
-                className={cn(
-                  'w-2 h-2 rounded-full flex-shrink-0',
-                  disponivel ? 'bg-emerald-500' : 'bg-gray-400',
+          {/* Seção 5 — Status */}
+          <div className="px-6 py-5 border-b border-gray-100">
+            <SectionTitle>Status do Imóvel</SectionTitle>
+
+            <div className="flex flex-col gap-3">
+              {/* Disponibilidade — desabilitado se vendido */}
+              <div>
+                <FieldLabel>Disponibilidade</FieldLabel>
+                <button
+                  onClick={() => { if (!vendido) setDisponivel((v) => !v) }}
+                  disabled={vendido}
+                  className={cn(
+                    'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
+                    vendido
+                      ? 'opacity-40 cursor-not-allowed bg-gray-100 text-gray-400 border border-gray-200'
+                      : disponivel
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 focus-visible:ring-emerald-400'
+                        : 'bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200 focus-visible:ring-gray-400',
+                  )}
+                >
+                  <span className={cn('w-2 h-2 rounded-full flex-shrink-0', disponivel && !vendido ? 'bg-emerald-500' : 'bg-gray-400')} />
+                  {disponivel && !vendido ? 'Disponível' : 'Indisponível'}
+                </button>
+              </div>
+
+              {/* Vendido */}
+              <div>
+                <FieldLabel>Situação de venda</FieldLabel>
+                <button
+                  onClick={() => setVendido((v) => !v)}
+                  className={cn(
+                    'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
+                    vendido
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 focus-visible:ring-emerald-400'
+                      : 'bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200 focus-visible:ring-gray-400',
+                  )}
+                >
+                  <span className={cn('w-2 h-2 rounded-full flex-shrink-0', vendido ? 'bg-emerald-500' : 'bg-gray-400')} />
+                  {vendido ? 'Vendido' : 'Não vendido'}
+                </button>
+
+                {vendido && isEdit && (
+                  <div className="mt-2 flex items-start gap-1.5 text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                    <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
+                    <p className="text-xs leading-snug">
+                      Desmarcar como vendido irá retornar o imóvel ao board e marcá-lo como indisponível.
+                    </p>
+                  </div>
                 )}
-              />
-              {disponivel ? 'Disponível' : 'Indisponível'}
-            </button>
+              </div>
+            </div>
           </div>
+
+          {/* Espaçador final */}
+          <div className="px-6 py-3" />
         </div>
 
         {/* Footer */}

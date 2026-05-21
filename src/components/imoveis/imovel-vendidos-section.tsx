@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle2, ChevronDown, ChevronUp, User, Phone, Mail, Home, DollarSign, Building2 } from 'lucide-react'
+import { CheckCircle2, ChevronDown, ChevronUp, User, Phone, Mail, Home, DollarSign, Building2, Pencil } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils/format'
 import type { Imovel, Venda } from '@/lib/supabase/types'
 
@@ -9,9 +9,10 @@ interface ImovelVendidosSectionProps {
   imoveis: Imovel[]
   vendas: Venda[]
   isAdm?: boolean
+  onEdit?: (imovel: Imovel) => void
 }
 
-function VendaCard({ imovel, venda }: { imovel: Imovel; venda: Venda | undefined }) {
+function VendaCard({ imovel, venda, isAdm, onEdit }: { imovel: Imovel; venda: Venda | undefined; isAdm?: boolean; onEdit?: (i: Imovel) => void }) {
   const [expanded, setExpanded] = useState(false)
 
   return (
@@ -30,15 +31,27 @@ function VendaCard({ imovel, venda }: { imovel: Imovel; venda: Venda | undefined
             <p className="text-xs text-gray-500 mt-0.5">Comprador: <span className="font-semibold text-gray-700">{venda.comprador_nome}</span></p>
           )}
         </div>
-        {venda && (
-          <button
-            onClick={() => setExpanded(v => !v)}
-            className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer p-1 rounded-lg focus-visible:outline-none"
-            aria-label={expanded ? 'Recolher detalhes' : 'Ver detalhes'}
-          >
-            {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          {isAdm && onEdit && (
+            <button
+              onClick={() => onEdit(imovel)}
+              className="text-gray-300 hover:text-alliance-blue transition-colors cursor-pointer p-1 rounded-lg focus-visible:outline-none"
+              aria-label="Editar imóvel"
+              title="Editar imóvel"
+            >
+              <Pencil size={13} />
+            </button>
+          )}
+          {venda && (
+            <button
+              onClick={() => setExpanded(v => !v)}
+              className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer p-1 rounded-lg focus-visible:outline-none"
+              aria-label={expanded ? 'Recolher detalhes' : 'Ver detalhes'}
+            >
+              {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Expandido: detalhes da venda */}
@@ -126,7 +139,7 @@ function VendaCard({ imovel, venda }: { imovel: Imovel; venda: Venda | undefined
   )
 }
 
-export function ImovelVendidosSection({ imoveis, vendas, isAdm }: ImovelVendidosSectionProps) {
+export function ImovelVendidosSection({ imoveis, vendas, isAdm, onEdit }: ImovelVendidosSectionProps) {
   if (imoveis.length === 0) return null
 
   return (
@@ -144,7 +157,7 @@ export function ImovelVendidosSection({ imoveis, vendas, isAdm }: ImovelVendidos
         {imoveis.map((imovel) => {
           const venda = vendas.find(v => v.imovel_id === imovel.id)
           return (
-            <VendaCard key={imovel.id} imovel={imovel} venda={venda} />
+            <VendaCard key={imovel.id} imovel={imovel} venda={venda} isAdm={isAdm} onEdit={onEdit} />
           )
         })}
       </div>
