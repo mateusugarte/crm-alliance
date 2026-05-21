@@ -360,7 +360,14 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
             <tbody className="divide-y divide-border">
               {campaigns.map(c => (
                 <tr key={c.id} onClick={() => router.push(`/disparos/reativar/${c.id}`)} className="hover:bg-muted/50 transition-colors cursor-pointer">
-                  <td className="px-5 py-3.5 font-medium text-foreground">{c.name}</td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 leading-none flex-shrink-0">
+                        Reativação
+                      </span>
+                      <span className="font-medium text-foreground">{c.name}</span>
+                    </div>
+                  </td>
                   <td className="px-5 py-3.5"><StatusBadge status={c.status} /></td>
                   <td className="px-5 py-3.5 text-right text-muted-foreground">{c.total_leads}</td>
                   <td className="px-5 py-3.5 text-right text-green-600">{c.sent_count}</td>
@@ -778,7 +785,14 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
             <tbody className="divide-y divide-border">
               {campaigns.map(c => (
                 <tr key={c.id} onClick={() => router.push(`/disparos/${c.id}`)} className="hover:bg-muted/50 transition-colors cursor-pointer">
-                  <td className="px-5 py-3.5 font-medium text-foreground">{c.name}</td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 leading-none flex-shrink-0">
+                        Disparo
+                      </span>
+                      <span className="font-medium text-foreground">{c.name}</span>
+                    </div>
+                  </td>
                   <td className="px-5 py-3.5"><StatusBadge status={c.status} /></td>
                   <td className="px-5 py-3.5 text-right text-muted-foreground">{c.total_leads}</td>
                   <td className="px-5 py-3.5 text-right text-green-600">{c.sent_count}</td>
