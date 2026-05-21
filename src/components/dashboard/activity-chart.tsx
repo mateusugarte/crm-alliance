@@ -17,13 +17,14 @@ export function ActivityChart({
 }: ActivityChartProps) {
   const max = Math.max(...data, 1)
   const n = data.length
+  const endColor = colorEnd ?? color
 
-  const VW = 340
-  const PAD_TOP = 20
-  const PAD_LEFT = 6
-  const PAD_RIGHT = 6
-  const CHART_H = 96
-  const LABEL_H = 20
+  const VW = 320
+  const PAD_TOP = 6
+  const PAD_LEFT = 2
+  const PAD_RIGHT = 2
+  const CHART_H = 64
+  const LABEL_H = 16
   const VH = PAD_TOP + CHART_H + LABEL_H
 
   const usableW = VW - PAD_LEFT - PAD_RIGHT
@@ -32,15 +33,10 @@ export function ActivityChart({
 
   const pts = data.map((v, i) => ({
     x: PAD_LEFT + padX + i * step,
-    y: PAD_TOP + CHART_H - Math.max((v / max) * (CHART_H - 12), v > 0 ? 8 : 0),
+    y: PAD_TOP + CHART_H - Math.max((v / max) * (CHART_H - 6), v > 0 ? 5 : 0),
     v,
     label: labels[i] ?? '',
   }))
-
-  // Horizontal grid at 33%, 66%
-  const gridYs = [0.33, 0.66].map(ratio =>
-    PAD_TOP + CHART_H - ratio * (CHART_H - 12)
-  )
 
   const linePath = pts
     .map((p, i) => {
@@ -53,154 +49,121 @@ export function ActivityChart({
 
   const baseY = PAD_TOP + CHART_H
   const first = pts[0]!
-  const last  = pts[pts.length - 1]!
+  const last = pts[pts.length - 1]!
   const areaPath = `${linePath} L ${last.x} ${baseY} L ${first.x} ${baseY} Z`
 
   const total = data.reduce((a, b) => a + b, 0)
-  const slug  = title.replace(/[^a-z0-9]/gi, '-')
-  const gradFill  = `gf-${slug}`
+  const slug = title.replace(/[^a-z0-9]/gi, '-')
+  const gradFill = `gf-${slug}`
   const gradStroke = `gs-${slug}`
 
-  const endColor = colorEnd ?? color
+  // Show dots only for small datasets
+  const showDots = n <= 10
 
   return (
-    <div
-      className="bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/8 overflow-hidden"
-      style={{ boxShadow: '0 2px 16px 0 rgb(0 0 0 / 0.06)' }}
-    >
-      {/* Accent top bar */}
-      <div className="h-[3px] w-full" style={{ background: `linear-gradient(90deg, ${color}, ${endColor})` }} />
+    <div className="bg-white dark:bg-white/[0.03] rounded-xl border border-gray-100 dark:border-white/[0.06] overflow-hidden">
+      {/* Thin accent bar */}
+      <div
+        className="h-[2px] w-full"
+        style={{ background: `linear-gradient(90deg, ${color}, ${endColor})` }}
+      />
 
-      <div className="px-5 pt-4 pb-4">
+      <div className="px-4 pt-3 pb-3">
+        {/* Header */}
         <div className="flex items-start justify-between mb-3">
           <div>
-            <h3 className="text-xs font-semibold text-gray-500 dark:text-white/40 uppercase tracking-widest">
+            <p className="text-[10px] font-semibold text-gray-400 dark:text-white/35 uppercase tracking-widest">
               {title}
-            </h3>
+            </p>
             {subtitle && (
-              <p className="text-[11px] text-gray-400 dark:text-white/25 mt-0.5">{subtitle}</p>
+              <p className="text-[10px] text-gray-300 dark:text-white/20 mt-0.5">{subtitle}</p>
             )}
           </div>
-          <div className="text-right">
+          <div className="flex items-baseline gap-1.5">
             <span
-              className="text-2xl font-bold tabular-nums leading-none block"
+              className="text-xl font-bold tabular-nums leading-none"
               style={{ color }}
             >
               {total}
             </span>
-            <span className="text-[10px] text-gray-400 dark:text-white/30 font-medium">
-              no período
+            <span className="text-[10px] text-gray-400 dark:text-white/25 font-medium">
+              total
             </span>
           </div>
         </div>
 
+        {/* Chart */}
         <svg
           viewBox={`0 0 ${VW} ${VH}`}
           preserveAspectRatio="xMidYMid meet"
           width="100%"
           aria-hidden="true"
-          style={{ display: 'block', overflow: 'visible' }}
+          style={{ display: 'block' }}
         >
           <defs>
             <linearGradient id={gradFill} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"   stopColor={color}    stopOpacity="0.28" />
-              <stop offset="100%" stopColor={color}    stopOpacity="0.01" />
+              <stop offset="0%" stopColor={color} stopOpacity="0.15" />
+              <stop offset="100%" stopColor={color} stopOpacity="0" />
             </linearGradient>
             <linearGradient id={gradStroke} x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%"   stopColor={color} />
+              <stop offset="0%" stopColor={color} />
               <stop offset="100%" stopColor={endColor} />
             </linearGradient>
           </defs>
 
-          {/* Grid lines */}
-          {gridYs.map((gy, i) => (
-            <line
-              key={i}
-              x1={PAD_LEFT}
-              y1={gy}
-              x2={VW - PAD_RIGHT}
-              y2={gy}
-              stroke="currentColor"
-              strokeOpacity="0.07"
-              strokeWidth="1"
-              strokeDasharray="5 4"
-            />
-          ))}
-
-          {/* Baseline */}
+          {/* Single baseline */}
           <line
             x1={PAD_LEFT}
             y1={baseY}
             x2={VW - PAD_RIGHT}
             y2={baseY}
             stroke="currentColor"
-            strokeOpacity="0.08"
+            strokeOpacity="0.06"
             strokeWidth="1"
           />
 
-          {/* Filled area */}
+          {/* Area fill */}
           <path d={areaPath} fill={`url(#${gradFill})`} />
-
-          {/* Glow line (thick, low opacity) */}
-          <path
-            d={linePath}
-            fill="none"
-            stroke={color}
-            strokeWidth="6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity="0.1"
-          />
 
           {/* Main line */}
           <path
             d={linePath}
             fill="none"
             stroke={`url(#${gradStroke})`}
-            strokeWidth="2.5"
+            strokeWidth="1.75"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
 
-          {/* Dots + value labels + axis labels */}
-          {pts.map((p, i) => (
+          {/* Dots — only for small datasets */}
+          {showDots && pts.map((p, i) => (
             <g key={i}>
-              {/* Halo */}
-              <circle cx={p.x} cy={p.y} r="6"   fill={color} opacity="0.1" />
-              {/* Outer dot */}
-              <circle cx={p.x} cy={p.y} r="3.5" fill={color} />
-              {/* White core */}
-              <circle cx={p.x} cy={p.y} r="1.5" fill="white" opacity="0.9" />
+              <circle cx={p.x} cy={p.y} r="2.5" fill={color} />
+              <circle cx={p.x} cy={p.y} r="1" fill="white" opacity="0.85" />
+            </g>
+          ))}
 
-              {/* Value label above dot */}
-              {p.v > 0 && (
-                <text
-                  x={p.x}
-                  y={p.y - 11}
-                  textAnchor="middle"
-                  fontSize="9"
-                  fill={color}
-                  fontWeight="700"
-                >
-                  {p.v}
-                </text>
-              )}
-
-              {/* X-axis label */}
+          {/* X-axis labels */}
+          {pts.map((p, i) => {
+            // For many data points, only show every N labels to avoid clutter
+            const skip = n > 14 ? 4 : n > 7 ? 2 : 1
+            if (i % skip !== 0 && i !== n - 1) return null
+            return (
               <text
+                key={i}
                 x={p.x}
-                y={VH - 2}
+                y={VH - 1}
                 textAnchor="middle"
-                fontSize="9"
+                fontSize="8.5"
                 fontWeight="500"
                 fill="currentColor"
-                opacity="0.38"
+                opacity="0.28"
                 style={{ textTransform: 'capitalize' }}
               >
                 {p.label}
               </text>
-            </g>
-          ))}
+            )
+          })}
         </svg>
       </div>
     </div>

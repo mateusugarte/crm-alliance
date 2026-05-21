@@ -25,9 +25,9 @@ export function ChartsSection({ reunioes, leads, todayMeetings, pipeline }: Char
   const activePipeline = pipeline.filter(s => s.count > 0)
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Gráficos */}
-      <div className="grid grid-cols-2 gap-4">
+    <div className="flex flex-col gap-3">
+      {/* Gráficos — lado a lado */}
+      <div className="grid grid-cols-2 gap-3">
         <ActivityChart
           title="Novos Leads"
           subtitle="Captações no período"
@@ -47,55 +47,50 @@ export function ChartsSection({ reunioes, leads, todayMeetings, pipeline }: Char
       </div>
 
       {/* Seções inferiores */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         {/* Reuniões de hoje */}
-        <div
-          className="bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/8 overflow-hidden flex flex-col"
-          style={{ boxShadow: '0 2px 16px 0 rgb(0 0 0 / 0.05)' }}
-        >
-          {/* Top accent */}
-          <div className="h-[3px] w-full" style={{ background: 'linear-gradient(90deg, #9B59B6, #E67E22)' }} />
+        <div className="bg-white dark:bg-white/[0.03] rounded-xl border border-gray-100 dark:border-white/[0.06] overflow-hidden flex flex-col">
+          <div className="h-[2px] w-full" style={{ background: 'linear-gradient(90deg, #9B59B6, #E67E22)' }} />
 
-          <div className="px-5 pt-4 pb-5 flex flex-col gap-3 flex-1">
+          <div className="px-4 pt-3 pb-4 flex flex-col gap-3 flex-1">
+            {/* Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center">
-                  <CalendarClock size={13} className="text-purple-500 dark:text-purple-400" />
+                <div className="w-6 h-6 rounded-lg bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center">
+                  <CalendarClock size={12} className="text-purple-500 dark:text-purple-400" />
                 </div>
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-white/40 uppercase tracking-widest">
+                <span className="text-[10px] font-semibold text-gray-400 dark:text-white/35 uppercase tracking-widest">
                   Reuniões de Hoje
-                </h3>
+                </span>
               </div>
               {todayMeetings.length > 0 && (
-                <span className="text-xs font-bold text-purple-500 dark:text-purple-400 tabular-nums">
+                <span className="text-[11px] font-bold text-purple-500 dark:text-purple-400 tabular-nums">
                   {todayMeetings.length}
                 </span>
               )}
             </div>
 
             {todayMeetings.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center py-6 gap-2">
-                <div className="w-10 h-10 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center">
-                  <CalendarClock size={18} className="text-gray-300 dark:text-white/20" />
-                </div>
-                <p className="text-xs text-gray-400 dark:text-white/25 text-center">
+              <div className="flex-1 flex flex-col items-center justify-center py-4 gap-1.5">
+                <CalendarClock size={16} className="text-gray-200 dark:text-white/15" />
+                <p className="text-[11px] text-gray-300 dark:text-white/20 text-center leading-snug">
                   Nenhuma reunião<br />agendada para hoje
                 </p>
               </div>
             ) : (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
                 {todayMeetings.map(m => (
                   <div
                     key={m.id}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-white/[0.06]"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/[0.05]"
                   >
-                    {/* Time badge */}
+                    {/* Time */}
                     <div
-                      className="flex-shrink-0 px-2 py-1 rounded-lg text-center min-w-[46px]"
+                      className="flex-shrink-0 px-1.5 py-0.5 rounded-md min-w-[40px] text-center"
                       style={{ backgroundColor: m.consultant_color + '18' }}
                     >
                       <span
-                        className="text-[13px] font-bold tabular-nums block leading-none"
+                        className="text-[12px] font-bold tabular-nums leading-none block"
                         style={{ color: m.consultant_color }}
                       >
                         {format(new Date(m.datetime), 'HH:mm', { locale: ptBR })}
@@ -103,16 +98,16 @@ export function ChartsSection({ reunioes, leads, todayMeetings, pipeline }: Char
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 dark:text-white truncate leading-snug">
+                      <p className="text-[12px] font-semibold text-gray-800 dark:text-white truncate leading-none">
                         {m.lead_name}
                       </p>
-                      <p className="text-[11px] text-gray-400 dark:text-white/30 truncate mt-0.5">
+                      <p className="text-[10px] text-gray-400 dark:text-white/30 truncate mt-0.5">
                         {m.consultant_name}
                       </p>
                     </div>
 
                     <div
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 shadow-sm"
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
                       style={{ backgroundColor: m.consultant_color }}
                       title={m.consultant_name}
                     >
@@ -126,41 +121,36 @@ export function ChartsSection({ reunioes, leads, todayMeetings, pipeline }: Char
         </div>
 
         {/* Pipeline */}
-        <div
-          className="bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/8 overflow-hidden flex flex-col"
-          style={{ boxShadow: '0 2px 16px 0 rgb(0 0 0 / 0.05)' }}
-        >
-          {/* Top accent */}
-          <div className="h-[3px] w-full" style={{ background: 'linear-gradient(90deg, #1E90FF, #2ECC71)' }} />
+        <div className="bg-white dark:bg-white/[0.03] rounded-xl border border-gray-100 dark:border-white/[0.06] overflow-hidden flex flex-col">
+          <div className="h-[2px] w-full" style={{ background: 'linear-gradient(90deg, #1E90FF, #2ECC71)' }} />
 
-          <div className="px-5 pt-4 pb-5 flex flex-col gap-3 flex-1">
+          <div className="px-4 pt-3 pb-4 flex flex-col gap-3 flex-1">
+            {/* Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
-                  <BarChart3 size={13} className="text-blue-500 dark:text-blue-400" />
+                <div className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
+                  <BarChart3 size={12} className="text-blue-500 dark:text-blue-400" />
                 </div>
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-white/40 uppercase tracking-widest">
+                <span className="text-[10px] font-semibold text-gray-400 dark:text-white/35 uppercase tracking-widest">
                   Pipeline
-                </h3>
+                </span>
               </div>
               {totalLeads > 0 && (
-                <span className="text-xs font-bold text-blue-500 dark:text-blue-400 tabular-nums">
+                <span className="text-[11px] font-bold text-blue-500 dark:text-blue-400 tabular-nums">
                   {totalLeads} leads
                 </span>
               )}
             </div>
 
             {totalLeads === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center py-6 gap-2">
-                <div className="w-10 h-10 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center">
-                  <BarChart3 size={18} className="text-gray-300 dark:text-white/20" />
-                </div>
-                <p className="text-xs text-gray-400 dark:text-white/25 text-center">
+              <div className="flex-1 flex flex-col items-center justify-center py-4 gap-1.5">
+                <BarChart3 size={16} className="text-gray-200 dark:text-white/15" />
+                <p className="text-[11px] text-gray-300 dark:text-white/20 text-center leading-snug">
                   Nenhum lead<br />no pipeline
                 </p>
               </div>
             ) : (
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-2">
                 {activePipeline.map(stage => {
                   const pct = Math.round((stage.count / totalLeads) * 100)
                   return (
@@ -168,31 +158,32 @@ export function ChartsSection({ reunioes, leads, todayMeetings, pipeline }: Char
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1.5">
                           <span
-                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                             style={{ backgroundColor: stage.color }}
                           />
-                          <span className="text-[11px] font-medium text-gray-600 dark:text-white/60">
+                          <span className="text-[11px] font-medium text-gray-500 dark:text-white/50">
                             {stage.label}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span
-                            className="text-[11px] font-bold tabular-nums"
+                            className="text-[11px] font-semibold tabular-nums"
                             style={{ color: stage.color }}
                           >
                             {stage.count}
                           </span>
-                          <span className="text-[10px] text-gray-400 dark:text-white/25 tabular-nums w-7 text-right">
+                          <span className="text-[10px] text-gray-300 dark:text-white/20 tabular-nums w-7 text-right">
                             {pct}%
                           </span>
                         </div>
                       </div>
-                      <div className="h-2 bg-gray-100 dark:bg-white/8 rounded-full overflow-hidden">
+                      {/* Progress bar — thinner, 4px */}
+                      <div className="h-[3px] bg-gray-100 dark:bg-white/[0.06] rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-700"
                           style={{
                             width: `${pct}%`,
-                            background: `linear-gradient(90deg, ${stage.color}CC, ${stage.color})`,
+                            background: `linear-gradient(90deg, ${stage.color}99, ${stage.color})`,
                           }}
                         />
                       </div>

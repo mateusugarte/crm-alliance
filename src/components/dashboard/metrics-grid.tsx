@@ -24,17 +24,20 @@ export function MetricsGrid({ metrics }: MetricsGridProps) {
       variants={staggerContainer}
       initial="initial"
       animate="animate"
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-3"
     >
-      {/* Linha 1: Featured + 2 cards */}
-      <div className="grid grid-cols-3 gap-4">
-        {/* Total de Leads — ocupa 2 linhas via row-span */}
-        <div className="row-span-2">
+      {/* Linha 1+2: Featured (2 rows) + 4 cards */}
+      <div
+        className="grid gap-3"
+        style={{ gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: 'auto auto' }}
+      >
+        {/* Featured — span 2 rows */}
+        <div style={{ gridRow: 'span 2' }}>
           <MetricCard
             label="Total de Leads"
             value={metrics.total_leads}
             variant="featured"
-            icon={<Users size={16} />}
+            icon={<Users size={14} />}
             className="h-full"
           />
         </div>
@@ -42,27 +45,26 @@ export function MetricsGrid({ metrics }: MetricsGridProps) {
         <MetricCard
           label="Reuniões Hoje"
           value={metrics.reunioes}
-          icon={<Calendar size={16} />}
+          icon={<Calendar size={14} />}
           accentColor="var(--color-stage-follow-up)"
         />
         <MetricCard
           label="Leads Quentes"
           value={metrics.aquecidos}
-          icon={<Flame size={16} />}
+          icon={<Flame size={14} />}
           accentColor="var(--color-stage-quente)"
         />
 
-        {/* Linha 2: col 2 e 3 */}
         <MetricCard
           label="Sem Resposta"
           value={metrics.sem_resposta}
-          icon={<MessageSquareOff size={16} />}
+          icon={<MessageSquareOff size={14} />}
           accentColor="var(--color-feedback-error)"
         />
         <MetricCard
           label="Pausados"
           value={metrics.pausadas}
-          icon={<PauseCircle size={16} />}
+          icon={<PauseCircle size={14} />}
           accentColor="var(--color-feedback-warning)"
         />
       </div>
@@ -72,7 +74,7 @@ export function MetricsGrid({ metrics }: MetricsGridProps) {
         label="Disponíveis — visita ou reunião agendada"
         value={metrics.disponiveis}
         variant="wide"
-        icon={<Home size={16} />}
+        icon={<Home size={14} />}
         accentColor="var(--color-stage-reuniao)"
       />
     </motion.div>
