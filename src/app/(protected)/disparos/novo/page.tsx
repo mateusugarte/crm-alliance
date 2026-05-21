@@ -345,7 +345,12 @@ export default function NovoDisparoPage() {
         body: JSON.stringify({
           name: campaignName.trim(),
           instance_id: selectedInstance,
-          reference_messages: [schedule[0]?.message ?? ''],
+          reference_messages: (() => {
+            const msgs = schedule.map(s => s.message).filter(Boolean).slice(0, 5)
+            const base = msgs[0] ?? ''
+            while (msgs.length < 5) msgs.push(base)
+            return msgs
+          })(),
           interval_min: INTERVAL_OPTIONS[intervalOption]!.min,
           interval_max: INTERVAL_OPTIONS[intervalOption]!.max,
           contacts: allContacts.map(c => ({

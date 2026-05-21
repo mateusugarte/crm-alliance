@@ -241,9 +241,12 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
         body: JSON.stringify({
           name: `Reativação ${format(new Date(), 'dd/MM HH:mm', { locale: ptBR })}`,
           instance_id: selectedInstance,
-          reference_messages: useContext
-            ? ['mensagem individual por lead']
-            : messages.filter(m => m.trim()),
+          reference_messages: (() => {
+            const filled = messages.filter(m => m.trim()).slice(0, 5)
+            const fallback = filled[0] ?? (useContext ? 'mensagem personalizada por IA' : 'mensagem de referência')
+            while (filled.length < 5) filled.push(fallback)
+            return filled
+          })(),
           interval_min: opt.min,
           interval_max: opt.max,
           contacts: selectedLeadObjects.map(l => ({ id: l.id, phone: l.phone })),
