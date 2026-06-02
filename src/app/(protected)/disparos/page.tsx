@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -8,16 +8,18 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   RefreshCw, Plus, X, ChevronRight, AlertTriangle, Check,
-  Send, Smartphone, FileText, QrCode, Trash2, Pencil, Sparkles,
+  Send, Smartphone, FileText, QrCode, Trash2, Pencil, Sparkles, Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { disparoFetch } from '@/lib/disparo-api'
 import type { Database, ReactivationCampaign, WaInstance, Campaign, Template } from '@/lib/supabase/types'
+import { KANBAN_COLUMNS } from '@/components/kanban/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Lead = Database['public']['Tables']['leads']['Row']
 type LeadRow = Pick<Lead, 'id' | 'name' | 'phone' | 'reactivation_count' | 'last_reactivated_at'>
+type CampaignLeadRow = Pick<Lead, 'id' | 'name' | 'phone' | 'stage'>
 
 interface ReactivationStats { once: number; twice: number; thrice: number }
 interface FormState { name: string; content: string; media_url: string; media_type: string }
@@ -665,8 +667,12 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
   const [wizardOpen, setWizardOpen] = useState(false)
   const [step, setStep] = useState(1)
 
+  // Kanban lead selection
+  const [leads, setLeads] = useState<CampaignLeadRow[]>([])
+  const [leadsLoading, setLeadsLoading] = useState(false)
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set())
+
   // Wizard state
-  const [phonesRaw, setPhonesRaw] = useState('')
   const [templates, setTemplates] = useState<Template[]>([])
   const [templatesLoading, setTemplatesLoading] = useState(false)
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<Set<string>>(new Set())
@@ -675,6 +681,15 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
   const [instances, setInstances] = useState<WaInstance[]>([])
   const [selectedInstance, setSelectedInstance] = useState<string>('')
   const [creating, setCreating] = useState(false)
+
+  const leadsByStage = useMemo(() => {
+    const map: Record<string, CampaignLeadRow[]> = {}
+    for (const lead of leads) {
+      if (!map[lead.stage]) map[lead.stage] = []
+      map[lead.stage]!.push(lead)
+    }
+    return map
+  }, [leads])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -687,27 +702,43 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
 
   useEffect(() => { load() }, [load])
 
-  // Parse phone numbers from raw textarea input
-  const parsedPhones = (() => {
-    const raw = phonesRaw.replace(/[,;]/g, '\n')
-    const lines = raw.split('\n').map(l => l.replace(/\D/g, '').trim()).filter(l => l.length >= 10)
-    return [...new Set(lines)]
-  })()
+  const toggleStage = useCallback((stageId: string) => {
+    const stageLeads = leadsByStage[stageId] ?? []
+    setSelectedLeadIds(prev => {
+      const n = new Set(prev)
+      const allSelected = stageLeads.every(l => n.has(l.id))
+      if (allSelected) stageLeads.forEach(l => n.delete(l.id))
+      else stageLeads.forEach(l => n.add(l.id))
+      return n
+    })
+  }, [leadsByStage])
+
+  const toggleLead = useCallback((id: string) => {
+    setSelectedLeadIds(prev => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+  }, [])
 
   const openWizard = async () => {
     setStep(1)
-    setPhonesRaw('')
+    setSelectedLeadIds(new Set())
     setSelectedTemplateIds(new Set())
     setCampaignName('')
     setIntervalOption(1)
     setSelectedInstance('')
     setWizardOpen(true)
+    setLeadsLoading(true)
     setTemplatesLoading(true)
     const supabase = createSupabase()
-    const [{ data: tmplData }, { data: instData }] = await Promise.all([
+    const [{ data: leadsData }, { data: tmplData }, { data: instData }] = await Promise.all([
+      supabase.from('leads').select('id, name, phone, stage').order('name'),
       supabase.from('templates').select('*').order('created_at', { ascending: false }),
       supabase.from('wa_instances').select('*').eq('status', 'connected'),
     ])
+    setLeads((leadsData ?? []) as CampaignLeadRow[])
+    setLeadsLoading(false)
     setTemplates((tmplData ?? []) as Template[])
     const insts = (instData ?? []) as WaInstance[]
     setInstances(insts)
@@ -724,6 +755,10 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
     setCreating(true)
     try {
       const opt = INTERVAL_OPTIONS[intervalOption]
+      const phones = leads
+        .filter(l => selectedLeadIds.has(l.id))
+        .map(l => l.phone.replace('@s.whatsapp.net', '').replace(/\D/g, ''))
+        .filter(p => p.length >= 10)
       const res = await disparoFetch('/api/campaigns', {
         method: 'POST',
         body: JSON.stringify({
@@ -732,7 +767,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
           instance_id: selectedInstance,
           interval_min: opt.min,
           interval_max: opt.max,
-          phones: parsedPhones,
+          phones,
         }),
       })
       if (res.ok) {
@@ -744,7 +779,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
     setCreating(false)
   }
 
-  const canGoStep2 = parsedPhones.length > 0
+  const canGoStep2 = selectedLeadIds.size > 0
   const canGoStep3 = selectedTemplateIds.size > 0
   const canCreate  = campaignName.trim().length > 0 && !!selectedInstance
 
@@ -815,7 +850,10 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }}
-              className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+              className={cn(
+                'bg-card border border-border rounded-2xl shadow-2xl w-full max-h-[90vh] flex flex-col overflow-hidden transition-all duration-200',
+                step === 1 ? 'max-w-5xl' : 'max-w-2xl',
+              )}
               onClick={e => e.stopPropagation()}
             >
               {/* Modal header */}
@@ -823,7 +861,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                 <div>
                   <h2 className="text-base font-bold text-foreground">Nova Campanha</h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Passo {step} de 3 — {step === 1 ? 'Telefones' : step === 2 ? 'Templates' : 'Configuração'}
+                    Passo {step} de 3 — {step === 1 ? 'Selecionar leads do Kanban' : step === 2 ? 'Templates' : 'Configuração'}
                   </p>
                 </div>
                 <button onClick={() => setWizardOpen(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer">
@@ -849,31 +887,120 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
               {/* Step content */}
               <div className="flex-1 overflow-y-auto p-6">
 
-                {/* Step 1 — Telefones */}
+                {/* Step 1 — Kanban visual selector */}
                 {step === 1 && (
                   <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Números de destino
-                      </label>
-                      <textarea
-                        value={phonesRaw}
-                        onChange={e => setPhonesRaw(e.target.value)}
-                        rows={10}
-                        placeholder="5527999999999&#10;5527988888888&#10;5527977777777"
-                        className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground font-mono resize-none focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-muted-foreground/50"
-                      />
-                      <p className="text-xs text-muted-foreground">Um número por linha. Formato: 5527999999999</p>
+                    <div className="flex items-start gap-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                      <AlertTriangle size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-600 dark:text-amber-400">Recomendamos no máximo 50 contatos por campanha para evitar bloqueios.</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-foreground">{parsedPhones.length} número{parsedPhones.length !== 1 ? 's' : ''} válido{parsedPhones.length !== 1 ? 's' : ''}</span>
-                      {parsedPhones.length > 50 && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                          <AlertTriangle size={13} className="text-amber-500 flex-shrink-0" />
-                          <p className="text-xs text-amber-600 dark:text-amber-400">Mais de 50 destinatários. Verifique os intervalos.</p>
-                        </div>
-                      )}
+
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        Clique em um estágio para selecionar todos, ou escolha leads individualmente
+                      </p>
+                      <span className={cn(
+                        'text-xs font-semibold px-2.5 py-1 rounded-full transition-colors',
+                        selectedLeadIds.size > 0 ? 'bg-alliance-blue/15 text-alliance-blue' : 'bg-muted text-muted-foreground',
+                      )}>
+                        {selectedLeadIds.size} selecionado{selectedLeadIds.size !== 1 ? 's' : ''}
+                      </span>
                     </div>
+
+                    {leadsLoading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <RefreshCw size={18} className="animate-spin text-muted-foreground" />
+                      </div>
+                    ) : leads.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 gap-2">
+                        <Users size={28} className="text-muted-foreground/20" />
+                        <p className="text-sm text-muted-foreground">Nenhum lead no CRM</p>
+                      </div>
+                    ) : (
+                      <div className="flex gap-3 overflow-x-auto pb-2">
+                        {KANBAN_COLUMNS.map(col => {
+                          const stageLeads = leadsByStage[col.id] ?? []
+                          if (stageLeads.length === 0) return null
+                          const selectedInStage = stageLeads.filter(l => selectedLeadIds.has(l.id)).length
+                          const allSelected = selectedInStage === stageLeads.length
+                          const someSelected = selectedInStage > 0 && !allSelected
+                          const Icon = col.icon
+                          return (
+                            <div key={col.id} className="flex flex-col flex-shrink-0 w-44 gap-2">
+                              {/* Stage header — click to toggle all in stage */}
+                              <button
+                                onClick={() => toggleStage(col.id)}
+                                className={cn(
+                                  'flex flex-col gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer text-left w-full',
+                                  allSelected
+                                    ? 'border-alliance-blue bg-alliance-blue/10'
+                                    : someSelected
+                                    ? 'border-dashed bg-card'
+                                    : 'border-border bg-card hover:bg-muted',
+                                )}
+                                style={someSelected ? { borderColor: `${col.color}60` } : undefined}
+                              >
+                                <div className="flex items-center justify-between gap-1">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <Icon size={12} style={{ color: col.color }} className="flex-shrink-0" />
+                                    <span className="text-xs font-semibold truncate" style={{ color: col.color }}>{col.label}</span>
+                                  </div>
+                                  <span className={cn(
+                                    'text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0',
+                                    allSelected
+                                      ? 'bg-alliance-blue text-white'
+                                      : someSelected
+                                      ? 'bg-muted text-foreground'
+                                      : 'bg-muted text-muted-foreground',
+                                  )}>
+                                    {selectedInStage}/{stageLeads.length}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground leading-tight">
+                                  {allSelected
+                                    ? '✓ Todos selecionados'
+                                    : someSelected
+                                    ? `${selectedInStage} selecionado${selectedInStage !== 1 ? 's' : ''}`
+                                    : 'Selecionar todos'}
+                                </p>
+                              </button>
+
+                              {/* Individual lead cards */}
+                              <div className="flex flex-col gap-1 max-h-52 overflow-y-auto">
+                                {stageLeads.map(lead => {
+                                  const sel = selectedLeadIds.has(lead.id)
+                                  return (
+                                    <button
+                                      key={lead.id}
+                                      onClick={() => toggleLead(lead.id)}
+                                      className={cn(
+                                        'flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-colors cursor-pointer w-full text-left',
+                                        sel ? 'border-alliance-blue/40 bg-alliance-blue/10' : 'border-border bg-card hover:bg-muted',
+                                      )}
+                                    >
+                                      <div className={cn(
+                                        'w-3.5 h-3.5 rounded flex-shrink-0 border flex items-center justify-center transition-colors',
+                                        sel ? 'bg-alliance-blue border-alliance-blue' : 'border-muted-foreground/30',
+                                      )}>
+                                        {sel && <Check size={8} className="text-white" />}
+                                      </div>
+                                      <p className="text-xs text-foreground truncate">{lead.name}</p>
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {selectedLeadIds.size > 50 && (
+                      <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+                        <AlertTriangle size={13} className="text-red-500" />
+                        <p className="text-xs text-red-500">Mais de 50 contatos selecionados. Risco elevado de bloqueio.</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
