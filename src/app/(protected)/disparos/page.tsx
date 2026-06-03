@@ -8,7 +8,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   RefreshCw, Plus, X, ChevronRight, AlertTriangle, Check,
-  Send, Smartphone, FileText, QrCode, Trash2, Pencil, Sparkles, Users,
+  Send, Smartphone, FileText, QrCode, Trash2, Pencil, Sparkles, Users, Shuffle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { disparoFetch } from '@/lib/disparo-api'
@@ -18,7 +18,7 @@ import { KANBAN_COLUMNS } from '@/components/kanban/types'
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Lead = Database['public']['Tables']['leads']['Row']
-type LeadRow = Pick<Lead, 'id' | 'name' | 'phone' | 'reactivation_count' | 'last_reactivated_at'>
+type LeadRow = Pick<Lead, 'id' | 'name' | 'phone' | 'stage' | 'reactivation_count' | 'last_reactivated_at'>
 type CampaignLeadRow = Pick<Lead, 'id' | 'name' | 'phone' | 'stage' | 'reactivation_count'>
 
 interface ReactivationStats { once: number; twice: number; thrice: number }
@@ -143,71 +143,147 @@ export default function DisparosPage() {
 // ════════════════════════════════════════════════════════════════════════════
 
 function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
+  // ── Listing ────────────────────────────────────────────────────────────────
   const [campaigns, setCampaigns] = useState<ReactivationCampaign[]>([])
-  const [stats, setStats] = useState<ReactivationStats>({ once: 0, twice: 0, thrice: 0 })
   const [loading, setLoading] = useState(true)
+
+  // ── Wizard ─────────────────────────────────────────────────────────────────
   const [wizardOpen, setWizardOpen] = useState(false)
   const [step, setStep] = useState(1)
 
-  // Wizard state
+  // Step 1: Kanban contact selection
   const [leads, setLeads] = useState<LeadRow[]>([])
   const [leadsLoading, setLeadsLoading] = useState(false)
-  const [filterReact, setFilterReact] = useState<string>('all')
-  const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set())
-  const [messages, setMessages] = useState(['', '', '', '', ''])
-  const [intervalOption, setIntervalOption] = useState(1)
-  const [instances, setInstances] = useState<WaInstance[]>([])
-  const [selectedInstance, setSelectedInstance] = useState<string>('')
-  const [preparing, setPreparing] = useState(false)
-  const [prepareError, setPrepareError] = useState<string | null>(null)
-  const [previewMessages, setPreviewMessages] = useState<string[]>([])
-  const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null)
-  const [starting, setStarting] = useState(false)
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set())
+
+  // Step 2: Mode + messages
+  const [mode, setMode] = useState<'template' | 'context' | null>(null)
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
+  const [mixedMessages, setMixedMessages] = useState<Record<string, string>>({})
+  const [mixing, setMixing] = useState(false)
+  const [mixError, setMixError] = useState<string | null>(null)
   const [generatedMessages, setGeneratedMessages] = useState<Record<string, string>>({})
   const [generatingContext, setGeneratingContext] = useState(false)
   const [contextError, setContextError] = useState<string | null>(null)
 
+  // Step 3: Config
+  const [intervalOption, setIntervalOption] = useState(1)
+  const [instances, setInstances] = useState<WaInstance[]>([])
+  const [selectedInstance, setSelectedInstance] = useState('')
+
+  // Save
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+
+  // ── Derived ────────────────────────────────────────────────────────────────
+  const leadsByStage = useMemo(() => {
+    const map: Record<string, LeadRow[]> = {}
+    for (const l of leads) {
+      if (!map[l.stage]) map[l.stage] = []
+      map[l.stage]!.push(l)
+    }
+    return map
+  }, [leads])
+
+  const selectedLeadObjects = useMemo(
+    () => leads.filter(l => selectedLeadIds.has(l.id)),
+    [leads, selectedLeadIds],
+  )
+
+  const messagesReady = useMemo(() => {
+    if (!mode || selectedLeadObjects.length === 0) return false
+    const map = mode === 'template' ? mixedMessages : generatedMessages
+    return selectedLeadObjects.every(l => !!map[l.id])
+  }, [mode, selectedLeadObjects, mixedMessages, generatedMessages])
+
+  const canGoStep2 = selectedLeadIds.size > 0
+  const canGoStep3 = messagesReady
+  const canCreate  = !!selectedInstance
+
+  // ── Load listing ───────────────────────────────────────────────────────────
   const loadAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [statsRes, campRes] = await Promise.all([
-        disparoFetch('/api/reactivation/stats').then(r => r.ok ? r.json() : null),
-        disparoFetch('/api/reactivation').then(r => r.ok ? r.json() : []),
-      ])
-      if (statsRes) setStats(statsRes as ReactivationStats)
-      setCampaigns(Array.isArray(campRes) ? campRes as ReactivationCampaign[] : [])
+      const supabase = createSupabase()
+      const { data } = await supabase
+        .from('reactivation_campaigns')
+        .select('*')
+        .order('created_at', { ascending: false })
+      setCampaigns((data ?? []) as ReactivationCampaign[])
     } catch { /* silent */ }
     setLoading(false)
   }, [])
 
   useEffect(() => { loadAll() }, [loadAll])
 
+  // ── Open wizard ────────────────────────────────────────────────────────────
   const openWizard = async () => {
-    setStep(1); setSelectedLeads(new Set()); setMessages(['', '', '', '', ''])
-    setIntervalOption(1); setPreviewMessages([]); setCreatedCampaignId(null)
-    setPrepareError(null); setGeneratedMessages({}); setContextError(null)
-    setWizardOpen(true); setLeadsLoading(true)
+    setStep(1)
+    setSelectedLeadIds(new Set())
+    setMode(null)
+    setSelectedTemplate(null)
+    setMixedMessages({})
+    setMixError(null)
+    setGeneratedMessages({})
+    setContextError(null)
+    setCreateError(null)
+    setIntervalOption(1)
+    setWizardOpen(true)
+    setLeadsLoading(true)
     const supabase = createSupabase()
-    const [{ data: leadsData }, { data: instData }] = await Promise.all([
-      supabase.from('leads').select('id, name, phone, reactivation_count, last_reactivated_at').order('name'),
+    const [{ data: leadsData }, { data: tmplData }, { data: instData }] = await Promise.all([
+      supabase.from('leads').select('id, name, phone, stage, reactivation_count, last_reactivated_at').order('name'),
+      supabase.from('templates').select('*').order('created_at', { ascending: false }),
       supabase.from('wa_instances').select('*').eq('status', 'connected'),
     ])
     setLeads((leadsData ?? []) as LeadRow[])
+    setTemplates((tmplData ?? []) as Template[])
     const insts = (instData ?? []) as WaInstance[]
     setInstances(insts)
     if (insts.length) setSelectedInstance(insts[0].instance_id)
     setLeadsLoading(false)
   }
 
-  const filteredLeads = leads.filter(l =>
-    filterReact === 'all' ? true : String(l.reactivation_count ?? 0) === filterReact
-  )
-  const toggleLead = (id: string) => setSelectedLeads(prev => {
-    const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n
-  })
-  const toggleAll = () => setSelectedLeads(
-    selectedLeads.size === filteredLeads.length ? new Set() : new Set(filteredLeads.map(l => l.id))
-  )
+  // ── Handlers ───────────────────────────────────────────────────────────────
+  const toggleStage = useCallback((stageId: string) => {
+    const stageLeads = leadsByStage[stageId] ?? []
+    setSelectedLeadIds(prev => {
+      const n = new Set(prev)
+      const allSelected = stageLeads.every(l => n.has(l.id))
+      if (allSelected) stageLeads.forEach(l => n.delete(l.id))
+      else stageLeads.forEach(l => n.add(l.id))
+      return n
+    })
+  }, [leadsByStage])
+
+  const toggleLead = useCallback((id: string) => {
+    setSelectedLeadIds(prev => {
+      const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n
+    })
+  }, [])
+
+  const handleMixTemplate = async () => {
+    if (!selectedTemplate) return
+    setMixing(true); setMixError(null)
+    try {
+      const res = await fetch('/api/campaigns/mix-template', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template: selectedTemplate.content, count: selectedLeadObjects.length }),
+      })
+      if (!res.ok) {
+        const err = await res.json() as { error?: string }
+        setMixError(err.error ?? 'Erro ao misturar mensagem')
+      } else {
+        const data = await res.json() as { messages: string[] }
+        const map: Record<string, string> = {}
+        selectedLeadObjects.forEach((l, i) => { map[l.id] = data.messages[i] ?? selectedTemplate.content })
+        setMixedMessages(map)
+      }
+    } catch { setMixError('Erro de conexão') }
+    setMixing(false)
+  }
 
   const handleGenerateContext = async () => {
     setGeneratingContext(true); setContextError(null)
@@ -215,7 +291,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
       const res = await fetch('/api/leads/reactivation-context', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lead_ids: Array.from(selectedLeads) }),
+        body: JSON.stringify({ lead_ids: Array.from(selectedLeadIds) }),
       })
       if (!res.ok) {
         const err = await res.json() as { error?: string }
@@ -226,29 +302,29 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
         for (const r of data.results) { if (r.message) map[r.lead_id] = r.message }
         setGeneratedMessages(map)
       }
-    } catch (e: unknown) {
-      setContextError(e instanceof Error ? e.message : 'Erro de conexão')
-    }
+    } catch { setContextError('Erro de conexão') }
     setGeneratingContext(false)
   }
 
-  const handlePrepare = async () => {
-    setPreparing(true); setPrepareError(null)
+  const handleCreate = async () => {
+    if (!selectedInstance) return
+    setCreating(true); setCreateError(null)
     const opt = INTERVAL_OPTIONS[intervalOption]
-    const selectedLeadObjects = leads.filter(l => selectedLeads.has(l.id))
-    const useContext = Object.keys(generatedMessages).length > 0
+    const msgMap = mode === 'template' ? mixedMessages : generatedMessages
+    const msgEntries = selectedLeadObjects
+      .map(l => ({ lead_id: l.id, phone: l.phone, message: msgMap[l.id] ?? '' }))
+      .filter(e => !!e.message)
+    const refMsgs = msgEntries.map(e => e.message).slice(0, 5)
+    const base = refMsgs[0] ?? 'mensagem personalizada'
+    while (refMsgs.length < 5) refMsgs.push(base)
     try {
-      const createRes = await disparoFetch('/api/reactivation', {
+      const createRes = await fetch('/api/reactivation', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: `Reativação ${format(new Date(), 'dd/MM HH:mm', { locale: ptBR })}`,
           instance_id: selectedInstance,
-          reference_messages: (() => {
-            const filled = messages.filter(m => m.trim()).slice(0, 5)
-            const fallback = filled[0] ?? (useContext ? 'mensagem personalizada por IA' : 'mensagem de referência')
-            while (filled.length < 5) filled.push(fallback)
-            return filled
-          })(),
+          reference_messages: refMsgs,
           interval_min: opt.min,
           interval_max: opt.max,
           contacts: selectedLeadObjects.map(l => ({ id: l.id, phone: l.phone })),
@@ -256,85 +332,39 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
       })
       if (!createRes.ok) {
         const err = await createRes.json() as { error?: string }
-        setPrepareError(err.error ?? 'Erro ao criar campanha')
-        setPreparing(false); return
+        setCreateError(err.error ?? 'Erro ao criar campanha')
+        setCreating(false); return
       }
-      const created = await createRes.json() as { id: string }
-      setCreatedCampaignId(created.id)
-
-      if (useContext) {
-        const injectPayload = Object.entries(generatedMessages).map(([lead_id, message]) => ({ lead_id, message }))
-        const injectRes = await fetch(`/api/reactivation/${created.id}/inject-messages`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: injectPayload }),
-        })
-        if (!injectRes.ok) {
-          const err = await injectRes.json() as { error?: string }
-          setPrepareError(err.error ?? 'Erro ao injetar mensagens')
-        } else {
-          setPreviewMessages(
-            selectedLeadObjects
-              .filter(l => generatedMessages[l.id])
-              .slice(0, 3)
-              .map(l => generatedMessages[l.id])
-          )
-        }
-      } else {
-        const prepRes = await disparoFetch(`/api/reactivation/${created.id}/prepare`, { method: 'POST' })
-        if (!prepRes.ok) {
-          const err = await prepRes.json() as { error?: string }
-          setPrepareError(err.error ?? 'Erro ao preparar mensagens')
-        } else {
-          const prepData = await prepRes.json() as { preview?: string[] }
-          setPreviewMessages(prepData.preview ?? [])
-        }
+      const { id: campaignId } = await createRes.json() as { id: string }
+      const injectRes = await fetch(`/api/reactivation/${campaignId}/inject-messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: msgEntries }),
+      })
+      if (!injectRes.ok) {
+        const err = await injectRes.json() as { error?: string }
+        setCreateError(err.error ?? 'Erro ao configurar mensagens')
+        setCreating(false); return
       }
-    } catch (e: unknown) {
-      setPrepareError(e instanceof Error ? e.message : 'Erro desconhecido')
-    }
-    setPreparing(false)
+      setWizardOpen(false)
+      loadAll()
+      router.push(`/disparos/reativar/${campaignId}`)
+    } catch { setCreateError('Erro de conexão') }
+    setCreating(false)
   }
 
-  const handleStart = async () => {
-    if (!createdCampaignId) return
-    setStarting(true)
-    try {
-      const res = await disparoFetch(`/api/reactivation/${createdCampaignId}/start`, { method: 'POST' })
-      if (res.ok) { setWizardOpen(false); router.push(`/disparos/reativar/${createdCampaignId}`) }
-    } catch { /* silent */ }
-    setStarting(false)
-  }
-
-  const canGoStep2 = selectedLeads.size > 0
-  const hasContext = Object.keys(generatedMessages).length > 0
-  const canGoStep3 = messages.filter(m => m.trim()).length >= 1 || hasContext
-  const canPrepare = !!selectedInstance && canGoStep3
+  const STEP_LABELS = ['Contatos', 'Mensagem', 'Configuração']
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Stats + action */}
-      <div className="flex items-end justify-between gap-4">
-        <div className="grid grid-cols-3 gap-4 flex-1">
-          {[
-            { label: 'Reengajados 1×', value: stats.once },
-            { label: 'Reengajados 2×', value: stats.twice },
-            { label: 'Reengajados 3×', value: stats.thrice },
-          ].map(({ label, value }) => (
-            <div key={label} className="bg-card border border-border rounded-2xl p-5">
-              <p className="text-xs text-muted-foreground mb-1">{label}</p>
-              <p className="text-3xl font-bold text-foreground">{loading ? '—' : value}</p>
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center gap-2 pb-0.5">
-          <button onClick={loadAll} className="p-2 rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer" title="Atualizar">
-            <RefreshCw size={15} className={cn('text-muted-foreground', loading && 'animate-spin')} />
-          </button>
-          <button onClick={() => router.push('/disparos/novo')} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-alliance-blue text-white text-sm font-semibold hover:bg-alliance-dark transition-colors cursor-pointer">
-            <Plus size={15} /> Disparar
-          </button>
-        </div>
+      {/* Header + action */}
+      <div className="flex items-center justify-end gap-2">
+        <button onClick={loadAll} className="p-2 rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer" title="Atualizar">
+          <RefreshCw size={15} className={cn('text-muted-foreground', loading && 'animate-spin')} />
+        </button>
+        <button onClick={openWizard} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-alliance-blue text-white text-sm font-semibold hover:bg-alliance-dark transition-colors cursor-pointer">
+          <Plus size={15} /> Nova Reativação
+        </button>
       </div>
 
       {/* Campaigns table */}
@@ -354,7 +384,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                {['Nome', 'Status', 'Total', 'Enviados', 'Falhas', 'Data'].map((h, i) => (
+                {['Nome', 'Status', 'Contatos', 'Enviados', 'Falhas', 'Data'].map((h, i) => (
                   <th key={h} className={cn('px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider', i >= 2 && i <= 4 ? 'text-right' : 'text-left')}>{h}</th>
                 ))}
               </tr>
@@ -364,9 +394,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                 <tr key={c.id} onClick={() => router.push(`/disparos/reativar/${c.id}`)} className="hover:bg-muted/50 transition-colors cursor-pointer">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 leading-none flex-shrink-0">
-                        Reativação
-                      </span>
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 leading-none flex-shrink-0">Reativação</span>
                       <span className="font-medium text-foreground">{c.name}</span>
                     </div>
                   </td>
@@ -389,16 +417,21 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
             onClick={e => { if (e.target === e.currentTarget) setWizardOpen(false) }}
           >
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }}
-              className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }}
+              className={cn(
+                'bg-card border border-border rounded-2xl shadow-2xl w-full max-h-[90vh] flex flex-col overflow-hidden transition-all duration-200',
+                step === 1 ? 'max-w-5xl' : 'max-w-2xl',
+              )}
               onClick={e => e.stopPropagation()}
             >
-              {/* Modal header */}
+              {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
                 <div>
                   <h2 className="text-base font-bold text-foreground">Nova Reativação</h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Passo {step} de 3 — {step === 1 ? 'Selecionar contatos' : step === 2 ? (hasContext ? 'Mensagens geradas por IA' : 'Mensagens de referência') : 'Configurar envio'}
+                    Passo {step} de 3 — {STEP_LABELS[step - 1]}
                   </p>
                 </div>
                 <button onClick={() => setWizardOpen(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer">
@@ -419,148 +452,219 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                 ))}
               </div>
 
-              {/* Step content */}
+              {/* Content */}
               <div className="flex-1 overflow-y-auto p-6">
-                {/* Step 1 */}
+
+                {/* ── Step 1: Kanban ─────────────────────────────────────────── */}
                 {step === 1 && (
                   <div className="flex flex-col gap-4">
                     <div className="flex items-start gap-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                       <AlertTriangle size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
                       <p className="text-xs text-amber-600 dark:text-amber-400">Recomendamos no máximo 10 contatos a cada 4 horas para evitar bloqueios.</p>
                     </div>
-                    <div className="flex gap-2 flex-wrap">
-                      {['all', '0', '1', '2', '3'].map(v => (
-                        <button key={v} onClick={() => setFilterReact(v)}
-                          className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
-                            filterReact === v ? 'bg-alliance-blue text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70')}>
-                          {v === 'all' ? 'Todos' : `${v}×`}
-                        </button>
-                      ))}
-                      <span className="ml-auto text-xs text-muted-foreground self-center">{selectedLeads.size} selecionado{selectedLeads.size !== 1 ? 's' : ''}</span>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">Clique em um estágio para selecionar todos, ou escolha leads individualmente</p>
+                      <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full transition-colors',
+                        selectedLeadIds.size > 0 ? 'bg-alliance-blue/15 text-alliance-blue' : 'bg-muted text-muted-foreground')}>
+                        {selectedLeadIds.size} selecionado{selectedLeadIds.size !== 1 ? 's' : ''}
+                      </span>
                     </div>
-                    {selectedLeads.size > 10 && (
+                    {selectedLeadIds.size > 10 && (
                       <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
                         <AlertTriangle size={13} className="text-red-500" />
                         <p className="text-xs text-red-500">Mais de 10 contatos. Risco elevado de bloqueio.</p>
                       </div>
                     )}
-                    {/* Botão gerar mensagens com IA */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handleGenerateContext}
-                        disabled={selectedLeads.size === 0 || generatingContext}
-                        className={cn(
-                          'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
-                          selectedLeads.size > 0 && !generatingContext
-                            ? 'bg-alliance-blue text-white hover:bg-alliance-dark'
-                            : 'bg-muted text-muted-foreground cursor-not-allowed',
-                        )}
-                      >
-                        {generatingContext
-                          ? <><RefreshCw size={13} className="animate-spin" /> Gerando com IA...</>
-                          : <><Sparkles size={13} /> Gerar mensagem com IA</>}
-                      </button>
-                      {hasContext && (
-                        <span className="flex items-center gap-1.5 text-xs text-green-600 font-medium">
-                          <Check size={12} /> {Object.keys(generatedMessages).length} mensagens geradas
-                        </span>
-                      )}
-                    </div>
-                    {contextError && (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
-                        <AlertTriangle size={13} className="text-red-500" />
-                        <p className="text-xs text-red-500">{contextError}</p>
-                      </div>
-                    )}
                     {leadsLoading ? (
-                      <div className="flex items-center justify-center py-10"><RefreshCw size={18} className="animate-spin text-muted-foreground" /></div>
+                      <div className="flex items-center justify-center py-12"><RefreshCw size={18} className="animate-spin text-muted-foreground" /></div>
+                    ) : leads.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 gap-2">
+                        <Users size={28} className="text-muted-foreground/20" />
+                        <p className="text-sm text-muted-foreground">Nenhum lead no CRM</p>
+                      </div>
                     ) : (
-                      <div className="border border-border rounded-xl overflow-hidden">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="bg-muted/50 border-b border-border">
-                              <th className="px-4 py-2.5 w-10">
-                                <input type="checkbox" checked={filteredLeads.length > 0 && selectedLeads.size === filteredLeads.length} onChange={toggleAll} className="cursor-pointer" />
-                              </th>
-                              <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Nome</th>
-                              <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Telefone</th>
-                              <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">Reativações</th>
-                              <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Última vez</th>
-                              {hasContext && (
-                                <th className="text-left px-4 py-2.5 text-xs font-semibold text-alliance-blue">Mensagem IA</th>
-                              )}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border">
-                            {filteredLeads.map(lead => (
-                              <tr key={lead.id} onClick={() => toggleLead(lead.id)} className="hover:bg-muted/30 transition-colors cursor-pointer">
-                                <td className="px-4 py-2.5">
-                                  <input type="checkbox" checked={selectedLeads.has(lead.id)} onChange={() => toggleLead(lead.id)} onClick={e => e.stopPropagation()} className="cursor-pointer" />
-                                </td>
-                                <td className="px-4 py-2.5 font-medium text-foreground">{lead.name}</td>
-                                <td className="px-4 py-2.5 text-muted-foreground font-mono text-xs">{lead.phone}</td>
-                                <td className="px-4 py-2.5 text-right text-muted-foreground">{lead.reactivation_count ?? 0}×</td>
-                                <td className="px-4 py-2.5 text-muted-foreground text-xs">
-                                  {lead.last_reactivated_at ? format(new Date(lead.last_reactivated_at), 'dd/MM/yy HH:mm', { locale: ptBR }) : '—'}
-                                </td>
-                                {hasContext && (
-                                  <td className="px-4 py-2.5 text-xs text-muted-foreground max-w-[200px]">
-                                    {generatedMessages[lead.id]
-                                      ? <span className="text-foreground line-clamp-2">{generatedMessages[lead.id]}</span>
-                                      : <span className="text-muted-foreground/40">—</span>}
-                                  </td>
-                                )}
-                              </tr>
-                            ))}
-                            {filteredLeads.length === 0 && (
-                              <tr><td colSpan={hasContext ? 6 : 5} className="text-center py-8 text-muted-foreground text-sm">Nenhum lead encontrado</td></tr>
-                            )}
-                          </tbody>
-                        </table>
+                      <div className="flex gap-3 overflow-x-auto pb-2">
+                        {KANBAN_COLUMNS.map(col => {
+                          const stageLeads = leadsByStage[col.id] ?? []
+                          if (stageLeads.length === 0) return null
+                          const selectedInStage = stageLeads.filter(l => selectedLeadIds.has(l.id)).length
+                          const allSelected = selectedInStage === stageLeads.length
+                          const someSelected = selectedInStage > 0 && !allSelected
+                          const Icon = col.icon
+                          return (
+                            <div key={col.id} className="flex flex-col flex-shrink-0 w-44 gap-2">
+                              <button
+                                onClick={() => toggleStage(col.id)}
+                                className={cn('flex flex-col gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer text-left w-full',
+                                  allSelected ? 'border-alliance-blue bg-alliance-blue/10'
+                                    : someSelected ? 'border-dashed bg-card'
+                                    : 'border-border bg-card hover:bg-muted')}
+                                style={someSelected ? { borderColor: `${col.color}60` } : undefined}
+                              >
+                                <div className="flex items-center justify-between gap-1">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <Icon size={12} style={{ color: col.color }} className="flex-shrink-0" />
+                                    <span className="text-xs font-semibold truncate" style={{ color: col.color }}>{col.label}</span>
+                                  </div>
+                                  <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0',
+                                    allSelected ? 'bg-alliance-blue text-white' : someSelected ? 'bg-muted text-foreground' : 'bg-muted text-muted-foreground')}>
+                                    {selectedInStage}/{stageLeads.length}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground leading-tight">
+                                  {allSelected ? '✓ Todos selecionados' : someSelected ? `${selectedInStage} selecionado${selectedInStage !== 1 ? 's' : ''}` : 'Selecionar todos'}
+                                </p>
+                              </button>
+                              <div className="flex flex-col gap-1 max-h-52 overflow-y-auto">
+                                {stageLeads.map(lead => {
+                                  const sel = selectedLeadIds.has(lead.id)
+                                  return (
+                                    <button key={lead.id} onClick={() => toggleLead(lead.id)}
+                                      className={cn('flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-colors cursor-pointer w-full text-left',
+                                        sel ? 'border-alliance-blue/40 bg-alliance-blue/10' : 'border-border bg-card hover:bg-muted')}>
+                                      <div className={cn('w-3.5 h-3.5 rounded flex-shrink-0 border flex items-center justify-center transition-colors',
+                                        sel ? 'bg-alliance-blue border-alliance-blue' : 'border-muted-foreground/30')}>
+                                        {sel && <Check size={8} className="text-white" />}
+                                      </div>
+                                      <p className="text-xs text-foreground truncate flex-1">{lead.name}</p>
+                                      <span className="inline-flex items-center gap-0.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20 text-[9px] font-bold px-1 py-0.5 rounded-full flex-shrink-0">
+                                        {lead.reactivation_count ?? 0}×
+                                      </span>
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Step 2 */}
+                {/* ── Step 2: Mode + messages ───────────────────────────────── */}
                 {step === 2 && (
-                  <div className="flex flex-col gap-4">
-                    {hasContext ? (
-                      <>
-                        <div className="flex items-center gap-2 px-4 py-3 bg-green-500/10 border border-green-500/20 rounded-xl">
-                          <Sparkles size={14} className="text-green-600 flex-shrink-0" />
-                          <p className="text-xs text-green-700 dark:text-green-400">
-                            {Object.keys(generatedMessages).length} mensagens personalizadas geradas pela IA com base no histórico de cada lead. Você pode prosseguir diretamente.
-                          </p>
+                  <div className="flex flex-col gap-5">
+                    {/* Mode selector */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <button
+                        onClick={() => { setMode('template'); setGeneratedMessages({}) }}
+                        className={cn('flex flex-col items-start gap-3 p-5 rounded-2xl border-2 text-left transition-colors cursor-pointer',
+                          mode === 'template' ? 'border-alliance-blue bg-alliance-blue/5' : 'border-border bg-card hover:bg-muted')}>
+                        <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', mode === 'template' ? 'bg-alliance-blue/10' : 'bg-muted')}>
+                          <Shuffle size={18} className={mode === 'template' ? 'text-alliance-blue' : 'text-muted-foreground'} />
                         </div>
-                        <div className="flex flex-col gap-3">
-                          {leads.filter(l => selectedLeads.has(l.id) && generatedMessages[l.id]).map(lead => (
-                            <div key={lead.id} className="px-4 py-3 bg-muted/50 rounded-xl border border-border">
-                              <p className="text-xs font-semibold text-muted-foreground mb-1">{lead.name}</p>
-                              <p className="text-sm text-foreground">{generatedMessages[lead.id]}</p>
-                            </div>
-                          ))}
+                        <div>
+                          <p className="font-semibold text-sm text-foreground">Usar Template</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Selecione um template e misture a mensagem para cada lead</p>
                         </div>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-sm text-muted-foreground">Escreva até 5 mensagens de referência. A IA vai usá-las para gerar variações personalizadas para cada lead.</p>
-                        {messages.map((msg, i) => (
-                          <div key={i} className="flex flex-col gap-1.5">
-                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                              Mensagem {i + 1} {i === 0 && <span className="text-red-500">*</span>}
-                            </label>
-                            <textarea value={msg} onChange={e => { const n = [...messages]; n[i] = e.target.value; setMessages(n) }} rows={3}
-                              placeholder={i === 0 ? 'Escreva a mensagem principal...' : 'Variação opcional...'}
-                              className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-muted-foreground/50" />
+                      </button>
+                      <button
+                        onClick={() => { setMode('context'); setMixedMessages({}); setSelectedTemplate(null) }}
+                        className={cn('flex flex-col items-start gap-3 p-5 rounded-2xl border-2 text-left transition-colors cursor-pointer',
+                          mode === 'context' ? 'border-alliance-blue bg-alliance-blue/5' : 'border-border bg-card hover:bg-muted')}>
+                        <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', mode === 'context' ? 'bg-alliance-blue/10' : 'bg-muted')}>
+                          <Sparkles size={18} className={mode === 'context' ? 'text-alliance-blue' : 'text-muted-foreground'} />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-foreground">Criar com Contexto</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">IA analisa o histórico e cria mensagem personalizada para cada lead</p>
+                        </div>
+                      </button>
+                    </div>
+
+                    {/* Template mode */}
+                    {mode === 'template' && (
+                      <div className="flex flex-col gap-4">
+                        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                          <div className="px-5 py-4 border-b border-border">
+                            <h3 className="text-sm font-semibold text-foreground">Selecionar template</h3>
                           </div>
-                        ))}
-                      </>
+                          {templates.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-8 gap-2">
+                              <FileText size={24} className="text-muted-foreground/20" />
+                              <p className="text-sm text-muted-foreground">Nenhum template. Crie um na aba Templates.</p>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col divide-y divide-border max-h-[220px] overflow-y-auto">
+                              {templates.map(t => (
+                                <button key={t.id} onClick={() => { setSelectedTemplate(t); setMixedMessages({}) }}
+                                  className={cn('flex items-start gap-3 px-5 py-3.5 text-left transition-colors cursor-pointer w-full',
+                                    selectedTemplate?.id === t.id ? 'bg-alliance-blue/5' : 'hover:bg-muted/50')}>
+                                  <div className={cn('w-4 h-4 rounded-full border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors',
+                                    selectedTemplate?.id === t.id ? 'bg-alliance-blue border-alliance-blue' : 'border-border')}>
+                                    {selectedTemplate?.id === t.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-foreground">{t.name}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{t.content}</p>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        {selectedTemplate && (
+                          <div className="flex flex-col gap-3">
+                            <button onClick={handleMixTemplate} disabled={mixing}
+                              className={cn('flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
+                                !mixing ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-muted-foreground cursor-not-allowed')}>
+                              {mixing ? <><RefreshCw size={14} className="animate-spin" /> Misturando...</> : <><Shuffle size={14} /> Misturar para {selectedLeadObjects.length} lead{selectedLeadObjects.length !== 1 ? 's' : ''}</>}
+                            </button>
+                            {mixError && (
+                              <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                                <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
+                                <p className="text-xs text-red-500">{mixError}</p>
+                              </div>
+                            )}
+                            {Object.keys(mixedMessages).length > 0 && (
+                              <div className="flex items-center gap-2 px-4 py-2.5 bg-green-500/10 border border-green-500/20 rounded-xl">
+                                <Check size={13} className="text-green-600" />
+                                <p className="text-xs font-semibold text-green-600">{Object.keys(mixedMessages).length} variações geradas</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Context mode */}
+                    {mode === 'context' && (
+                      <div className="flex flex-col gap-4">
+                        <button onClick={handleGenerateContext} disabled={generatingContext}
+                          className={cn('flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
+                            !generatingContext ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-muted-foreground cursor-not-allowed')}>
+                          {generatingContext ? <><RefreshCw size={14} className="animate-spin" /> Gerando com IA...</> : <><Sparkles size={14} /> Gerar mensagens para {selectedLeadObjects.length} lead{selectedLeadObjects.length !== 1 ? 's' : ''}</>}
+                        </button>
+                        {contextError && (
+                          <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                            <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
+                            <p className="text-xs text-red-500">{contextError}</p>
+                          </div>
+                        )}
+                        {Object.keys(generatedMessages).length > 0 && (
+                          <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-2 px-4 py-2.5 bg-green-500/10 border border-green-500/20 rounded-xl">
+                              <Check size={13} className="text-green-600" />
+                              <p className="text-xs font-semibold text-green-600">{Object.keys(generatedMessages).length} de {selectedLeadObjects.length} mensagens geradas</p>
+                            </div>
+                            {selectedLeadObjects.filter(l => generatedMessages[l.id]).slice(0, 3).map(lead => (
+                              <div key={lead.id} className="px-4 py-3 bg-muted/50 rounded-xl border border-border">
+                                <p className="text-xs font-semibold text-muted-foreground mb-1">{lead.name}</p>
+                                <p className="text-sm text-foreground">{generatedMessages[lead.id]}</p>
+                              </div>
+                            ))}
+                            {selectedLeadObjects.length > 3 && (
+                              <p className="text-xs text-muted-foreground text-center">+ {selectedLeadObjects.length - 3} mais</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
 
-                {/* Step 3 */}
+                {/* ── Step 3: Config ─────────────────────────────────────────── */}
                 {step === 3 && (
                   <div className="flex flex-col gap-5">
                     <div className="flex flex-col gap-2">
@@ -578,7 +682,10 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                     <div className="flex flex-col gap-2">
                       <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Instância WhatsApp</label>
                       {instances.length === 0 ? (
-                        <p className="text-sm text-red-500">Nenhuma instância conectada. Conecte uma na aba Instâncias.</p>
+                        <div className="flex items-start gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                          <AlertTriangle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-red-500">Nenhuma instância conectada. Vá à aba Instâncias.</p>
+                        </div>
                       ) : (
                         <div className="flex flex-col gap-2">
                           {instances.map(inst => (
@@ -595,59 +702,38 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                         </div>
                       )}
                     </div>
-                    {previewMessages.length === 0 && !prepareError && (
-                      <button onClick={handlePrepare} disabled={!canPrepare || preparing}
-                        className={cn('flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
-                          canPrepare && !preparing ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-muted-foreground cursor-not-allowed')}>
-                        {preparing ? <><RefreshCw size={14} className="animate-spin" /> Preparando com IA...</> : 'Preparar Reativação'}
-                      </button>
-                    )}
-                    {prepareError && (
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-start gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                          <AlertTriangle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
-                          <p className="text-xs text-red-500">{prepareError}</p>
-                        </div>
-                        <button onClick={() => { setPrepareError(null); setCreatedCampaignId(null) }}
-                          className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-muted text-sm font-semibold text-foreground hover:bg-muted/70 transition-colors cursor-pointer">
-                          Tentar novamente
-                        </button>
-                      </div>
-                    )}
-                    {previewMessages.length > 0 && (
-                      <div className="flex flex-col gap-3">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Preview das mensagens geradas</p>
-                        {previewMessages.slice(0, 3).map((msg, i) => (
-                          <div key={i} className="px-4 py-3 bg-muted/50 rounded-xl border border-border">
-                            <p className="text-xs text-muted-foreground mb-1">Lead {i + 1}</p>
-                            <p className="text-sm text-foreground">{msg}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between px-6 py-4 border-t border-border flex-shrink-0">
-                <button onClick={() => step > 1 ? setStep(s => s - 1) : setWizardOpen(false)}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
-                  {step === 1 ? 'Cancelar' : 'Voltar'}
-                </button>
-                {step < 3 ? (
-                  <button onClick={() => setStep(s => s + 1)} disabled={step === 1 ? !canGoStep2 : !canGoStep3}
-                    className={cn('flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
-                      (step === 1 ? canGoStep2 : canGoStep3) ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-muted-foreground cursor-not-allowed')}>
-                    Próximo <ChevronRight size={14} />
-                  </button>
-                ) : (
-                  <button onClick={handleStart} disabled={previewMessages.length === 0 || starting}
-                    className={cn('flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
-                      previewMessages.length > 0 && !starting ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-muted text-muted-foreground cursor-not-allowed')}>
-                    {starting ? <><RefreshCw size={14} className="animate-spin" /> Iniciando...</> : 'Confirmar e Iniciar'}
-                  </button>
+              <div className="flex flex-col gap-3 px-6 py-4 border-t border-border flex-shrink-0">
+                {createError && (
+                  <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                    <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
+                    <p className="text-xs text-red-500">{createError}</p>
+                  </div>
                 )}
+                <div className="flex items-center justify-between">
+                  <button onClick={() => step > 1 ? setStep(s => s - 1) : setWizardOpen(false)}
+                    className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
+                    {step === 1 ? 'Cancelar' : 'Voltar'}
+                  </button>
+                  {step < 3 ? (
+                    <button onClick={() => setStep(s => s + 1)}
+                      disabled={step === 1 ? !canGoStep2 : !canGoStep3}
+                      className={cn('flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
+                        (step === 1 ? canGoStep2 : canGoStep3) ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-muted-foreground cursor-not-allowed')}>
+                      Próximo <ChevronRight size={14} />
+                    </button>
+                  ) : (
+                    <button onClick={handleCreate} disabled={!canCreate || creating}
+                      className={cn('flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
+                        canCreate && !creating ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-muted text-muted-foreground cursor-not-allowed')}>
+                      {creating ? <><RefreshCw size={14} className="animate-spin" /> Salvando...</> : <><Send size={14} /> Salvar campanha</>}
+                    </button>
+                  )}
+                </div>
               </div>
             </motion.div>
           </motion.div>
@@ -695,8 +781,12 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await disparoFetch('/api/campaigns')
-      if (res.ok) setCampaigns(await res.json() as Campaign[])
+      const supabase = createSupabase()
+      const { data } = await supabase
+        .from('campaigns')
+        .select('*')
+        .order('created_at', { ascending: false })
+      setCampaigns((data ?? []) as Campaign[])
     } catch { /* silent */ }
     setLoading(false)
   }, [])
@@ -769,15 +859,16 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
         return
       }
 
-      const res = await disparoFetch('/api/campaigns', {
+      const res = await fetch('/api/campaigns', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: campaignName.trim(),
           template_ids: Array.from(selectedTemplateIds),
           instance_id: selectedInstance,
           interval_min: opt.min,
           interval_max: opt.max,
-          phones: phones.join(','),
+          phones,
         }),
       })
       if (res.ok) {
