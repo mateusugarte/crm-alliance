@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string; dispatchId: string }> }
+  { params }: { params: Promise<{ id: string; dispatchId: string }> },
 ) {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -12,15 +12,13 @@ export async function PATCH(
 
   const { id: campaignId, dispatchId } = await params
   const body = await req.json() as { message?: string }
-  const { message } = body
 
-  if (typeof message !== 'string') {
+  if (typeof body.message !== 'string') {
     return NextResponse.json({ error: 'message obrigatório' }, { status: 400 })
   }
 
   const service = createServiceClient()
 
-  // Verificar que dispatch pertence a esta campanha
   const { data: dispatch } = await service
     .from('dispatches')
     .select('id, status')
@@ -28,11 +26,13 @@ export async function PATCH(
     .eq('campaign_id', campaignId)
     .single()
 
-  if (!dispatch) return NextResponse.json({ error: 'Dispatch não encontrado' }, { status: 404 })
+  if (!dispatch) {
+    return NextResponse.json({ error: 'Dispatch não encontrado' }, { status: 404 })
+  }
 
   const { error } = await service
     .from('dispatches')
-    .update({ message_sent: message.trim() } as never)
+    .update({ message_sent: body.message.trim() } as never)
     .eq('id', dispatchId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
