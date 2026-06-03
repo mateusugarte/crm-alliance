@@ -23,21 +23,35 @@ export async function POST(req: NextRequest) {
   const clampedCount = Math.min(Math.max(1, count), 50)
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
+  const paragraphCount = template.trim().split(/\n\n+|\n/).filter(p => p.trim()).length
+  const hasMultipleParagraphs = template.trim().includes('\n')
+
   const prompt = `Você é especialista em copywriting para WhatsApp.
 
-Template original: "${template.trim()}"
+Template original:
+"""
+${template.trim()}
+"""
+
+${hasMultipleParagraphs ? `ATENÇÃO: O template acima possui ${paragraphCount} bloco(s) separados por quebra de linha. CADA variação DEVE preservar exatamente a mesma estrutura de parágrafos — mantenha as mesmas quebras de linha nos mesmos lugares. No JSON, use \\n para representar cada quebra de linha.` : ''}
 
 Gere ${clampedCount} variações únicas e naturais desta mensagem para WhatsApp.
 
 Regras obrigatórias para cada variação:
+- PRESERVE EXATAMENTE a estrutura de parágrafos (quebras de linha) do template original — não junte parágrafos separados nem quebre um único parágrafo em dois
 - Mantenha o mesmo sentido e intenção da mensagem original
-- Troque as PALAVRAS por sinônimos ou reformule as frases completamente
+- Troque as PALAVRAS por sinônimos ou reformule as frases completamente dentro de cada parágrafo
 - NÃO apenas adicione emojis, pontuação ou acentos como única mudança
 - Use português brasileiro informal, como alguém enviaria no WhatsApp
-- Tamanho similar ao template original (não escreva muito mais longo)
+- Tamanho similar ao template original por parágrafo (não escreva muito mais longo)
 - Cada variação deve ser claramente diferente das outras
 
-Exemplos do que É correto:
+Exemplo com parágrafos (se o template tiver):
+Template: "Oi [nome], tudo bem?\\nTenho uma novidade incrível sobre o La Reserva."
+Variação correta: "Olá [nome], como você tá?\\nTenho uma novidade especial sobre o La Reserva." ✅
+Variação ERRADA: "Oi [nome], tudo bem? Tenho uma novidade incrível sobre o La Reserva." ❌ (juntou parágrafos)
+
+Exemplos de mudanças corretas:
 - "oii tudo bem com voce" → "olaa, como você tá?" ✅
 - "oi, posso te ajudar?" → "e aí, posso te dar uma força?" ✅
 
@@ -46,6 +60,7 @@ Exemplos do que NÃO é correto:
 - "oi, posso te ajudar?" → "oi, posso te ajudar!!" ❌ (apenas pontuação)
 
 Retorne APENAS um objeto JSON com a chave "messages" contendo um array de ${clampedCount} strings.
+Use \\n para representar quebras de linha dentro das strings.
 Formato exato: {"messages": ["variação 1", "variação 2", ...]}`
 
   try {

@@ -712,7 +712,7 @@ export default function NovoDisparoPage() {
                           return (
                             <div key={key} className="px-4 py-3 bg-muted/50 rounded-xl border border-border">
                               <p className="text-xs font-semibold text-muted-foreground mb-1">{c.name}</p>
-                              <p className="text-sm text-foreground">{msg}</p>
+                              <p className="text-sm text-foreground whitespace-pre-wrap">{msg}</p>
                             </div>
                           )
                         })}
@@ -826,7 +826,7 @@ export default function NovoDisparoPage() {
                           {hasMessage && (
                             <div className="px-3 py-2.5 bg-background rounded-xl border border-green-500/20">
                               <p className="text-[10px] font-semibold text-green-700 dark:text-green-500 mb-1 uppercase tracking-wider">Mensagem gerada</p>
-                              <p className="text-sm text-foreground">{contextMessages[leadId]}</p>
+                              <p className="text-sm text-foreground whitespace-pre-wrap">{contextMessages[leadId]}</p>
                             </div>
                           )}
                         </div>

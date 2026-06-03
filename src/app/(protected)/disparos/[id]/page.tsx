@@ -418,7 +418,7 @@ export default function DisparoDetailPage() {
                           <div className="flex flex-col gap-0.5">
                             {msg ? (
                               <>
-                                <span className="text-xs text-foreground leading-relaxed">{displayMsg}</span>
+                                <span className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">{displayMsg}</span>
                                 {msg.length > 80 && (
                                   <button onClick={() => toggleExpand(d.id)} className="text-[10px] text-alliance-blue hover:underline text-left cursor-pointer">
                                     {isExpanded ? 'ver menos' : 'ver mais'}
