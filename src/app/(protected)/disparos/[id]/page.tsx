@@ -7,9 +7,10 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   ArrowLeft, RefreshCw, Play, Pause, Square,
-  Pencil, Check, X, MessageSquare,
+  Pencil, Check, X, MessageSquare, Timer,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { disparoFetch } from '@/lib/disparo-api'
 import type { Campaign, Dispatch } from '@/lib/supabase/types'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -19,37 +20,22 @@ const STATUS_STYLES: Record<string, string> = {
   completed: 'bg-green-500/15 text-green-600',
   cancelled: 'bg-red-500/15 text-red-500',
 }
-
 const STATUS_LABELS: Record<string, string> = {
-  draft:     'Rascunho',
-  running:   'Executando',
-  paused:    'Pausado',
-  completed: 'Concluído',
-  cancelled: 'Cancelado',
+  draft: 'Rascunho', running: 'Executando', paused: 'Pausado',
+  completed: 'Concluído', cancelled: 'Cancelado',
 }
-
 const DISPATCH_STATUS_STYLES: Record<string, string> = {
   pending:   'bg-muted text-muted-foreground',
   sent:      'bg-green-500/15 text-green-600',
   failed:    'bg-red-500/15 text-red-500',
   cancelled: 'bg-muted text-muted-foreground',
 }
-
 const DISPATCH_STATUS_LABELS: Record<string, string> = {
-  pending:   'Pendente',
-  sent:      'Enviado',
-  failed:    'Falhou',
-  cancelled: 'Cancelado',
+  pending: 'Pendente', sent: 'Enviado', failed: 'Falhou', cancelled: 'Cancelado',
 }
 
-interface CampaignDetail extends Campaign {
-  dispatches?: Dispatch[]
-}
-
-interface CountdownState {
-  remaining: number
-  total: number
-}
+interface CampaignDetail extends Campaign { dispatches?: Dispatch[] }
+interface CountdownState { remaining: number; total: number }
 
 function StatusBadge({ status }: { status: string }) {
   return (
@@ -60,26 +46,34 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function DisparoDetailPage() {
-  const router = useRouter()
-  const params = useParams()
-  const id = params.id as string
+  const router  = useRouter()
+  const params  = useParams()
+  const id      = params.id as string
 
-  const [campaign, setCampaign] = useState<CampaignDetail | null>(null)
-  const [dispatches, setDispatches] = useState<Dispatch[]>([])
-  const [loading, setLoading] = useState(true)
+  const [campaign, setCampaign]       = useState<CampaignDetail | null>(null)
+  const [dispatches, setDispatches]   = useState<Dispatch[]>([])
+  const [loading, setLoading]         = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
-  const [countdown, setCountdown] = useState<CountdownState | null>(null)
 
-  // Inline edit state
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editValue, setEditValue] = useState('')
-  const [saving, setSaving] = useState(false)
+  // Socket countdown (from external service via socket.io)
+  const [countdown, setCountdown]     = useState<CountdownState | null>(null)
+
+  // Local countdown (client-side fallback timer)
+  const [localSec, setLocalSec]       = useState<number | null>(null)
+  const [localTotal, setLocalTotal]   = useState<number>(60)
+  const localTimerRef                 = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Inline message edit
+  const [editingId, setEditingId]     = useState<string | null>(null)
+  const [editValue, setEditValue]     = useState('')
+  const [saving, setSaving]           = useState(false)
 
   // Expanded message rows
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
   const socketRef = useRef<ReturnType<typeof import('socket.io-client').io> | null>(null)
 
+  // ── Load ──────────────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
     try {
       const res = await fetch(`/api/campaigns/${id}`)
@@ -92,17 +86,61 @@ export default function DisparoDetailPage() {
     setLoading(false)
   }, [id])
 
-  useEffect(() => {
-    loadData()
-  }, [loadData])
+  useEffect(() => { loadData() }, [loadData])
 
-  // Socket.io — only connect when running
+  // ── Local countdown timer (visual fallback) ───────────────────────────────
+  const startLocalTimer = useCallback((minMin: number, minMax: number) => {
+    if (localTimerRef.current) clearInterval(localTimerRef.current)
+    const totalSec = Math.round((minMin + Math.random() * (minMax - minMin)) * 60)
+    setLocalTotal(totalSec)
+    setLocalSec(totalSec)
+    localTimerRef.current = setInterval(() => {
+      setLocalSec(prev => {
+        if (prev === null || prev <= 1) {
+          // Reset to new random interval
+          const next = Math.round((minMin + Math.random() * (minMax - minMin)) * 60)
+          setLocalTotal(next)
+          return next
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }, [])
+
+  const stopLocalTimer = useCallback(() => {
+    if (localTimerRef.current) {
+      clearInterval(localTimerRef.current)
+      localTimerRef.current = null
+    }
+    setLocalSec(null)
+  }, [])
+
+  useEffect(() => {
+    if (campaign?.status === 'running') {
+      // Only start local timer if socket countdown isn't active
+      if (!countdown) {
+        startLocalTimer(campaign.interval_min ?? 2, campaign.interval_max ?? 5)
+      }
+    } else {
+      stopLocalTimer()
+      setCountdown(null)
+    }
+    return () => { stopLocalTimer() }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaign?.status])
+
+  // When real socket countdown arrives, stop local timer
+  useEffect(() => {
+    if (countdown) {
+      stopLocalTimer()
+      setLocalSec(null)
+    }
+  }, [countdown, stopLocalTimer])
+
+  // ── Socket.io (real-time from external service) ───────────────────────────
   useEffect(() => {
     if (!campaign || campaign.status !== 'running') {
-      if (socketRef.current) {
-        socketRef.current.disconnect()
-        socketRef.current = null
-      }
+      if (socketRef.current) { socketRef.current.disconnect(); socketRef.current = null }
       return
     }
 
@@ -117,6 +155,8 @@ export default function DisparoDetailPage() {
           d.id === payload.dispatch_id ? { ...d, status: 'sent', sent_at: new Date().toISOString() } : d
         ))
         setCampaign(prev => prev ? { ...prev, sent_count: prev.sent_count + 1 } : prev)
+        // Reset local timer after each send
+        if (campaign) startLocalTimer(campaign.interval_min ?? 2, campaign.interval_max ?? 5)
       })
 
       socket.on('campaign:dispatch:failed', (payload: { dispatch_id: string; error?: string }) => {
@@ -130,49 +170,38 @@ export default function DisparoDetailPage() {
         setCountdown({ remaining: payload.remaining, total: payload.total })
       })
 
-      socket.on('campaign:completed', () => {
-        setCountdown(null)
-        loadData()
-      })
-
-      socket.on('campaign:paused', () => {
-        setCountdown(null)
-        loadData()
-      })
-
-      socket.on('campaign:stopped', () => {
-        setCountdown(null)
-        loadData()
-      })
+      socket.on('campaign:completed', () => { setCountdown(null); stopLocalTimer(); loadData() })
+      socket.on('campaign:paused',    () => { setCountdown(null); stopLocalTimer(); loadData() })
+      socket.on('campaign:stopped',   () => { setCountdown(null); stopLocalTimer(); loadData() })
     })
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect()
-        socketRef.current = null
-      }
+      if (socketRef.current) { socketRef.current.disconnect(); socketRef.current = null }
     }
-  }, [campaign?.status, loadData])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaign?.status, id])
 
+  // ── Actions ───────────────────────────────────────────────────────────────
   const handleAction = async (action: 'start' | 'pause' | 'stop') => {
     if (!campaign) return
     setActionLoading(true)
     try {
-      await fetch(`/api/campaigns/${id}/${action}`, { method: 'POST' })
+      // disparoFetch: se NEXT_PUBLIC_DISPARO_API_URL estiver configurado, chama o serviço
+      // externo Railway diretamente; caso contrário, cai na nossa rota Next.js /api/campaigns/[id]/[action]
+      await disparoFetch(`/api/campaigns/${id}/${action}`, { method: 'POST' })
       await loadData()
+      if (action === 'start' && campaign) {
+        startLocalTimer(campaign.interval_min ?? 2, campaign.interval_max ?? 5)
+      } else {
+        stopLocalTimer()
+      }
     } catch { /* silent */ }
     setActionLoading(false)
   }
 
-  const startEdit = (d: Dispatch) => {
-    setEditingId(d.id)
-    setEditValue(d.message_sent ?? '')
-  }
-
-  const cancelEdit = () => {
-    setEditingId(null)
-    setEditValue('')
-  }
+  // ── Inline edit ───────────────────────────────────────────────────────────
+  const startEdit = (d: Dispatch) => { setEditingId(d.id); setEditValue(d.message_sent ?? '') }
+  const cancelEdit = () => { setEditingId(null); setEditValue('') }
 
   const saveEdit = async (dispatchId: string) => {
     setSaving(true)
@@ -193,14 +222,11 @@ export default function DisparoDetailPage() {
     setSaving(false)
   }
 
-  const toggleExpand = (id: string) => {
-    setExpandedIds(prev => {
-      const n = new Set(prev)
-      n.has(id) ? n.delete(id) : n.add(id)
-      return n
-    })
+  const toggleExpand = (rowId: string) => {
+    setExpandedIds(prev => { const n = new Set(prev); n.has(rowId) ? n.delete(rowId) : n.add(rowId); return n })
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -220,22 +246,21 @@ export default function DisparoDetailPage() {
     )
   }
 
-  const pending = Math.max(0, campaign.total_leads - campaign.sent_count - campaign.failed_count)
-  const progress = campaign.total_leads > 0
+  const pending     = Math.max(0, campaign.total_leads - campaign.sent_count - campaign.failed_count)
+  const progress    = campaign.total_leads > 0
     ? Math.round(((campaign.sent_count + campaign.failed_count) / campaign.total_leads) * 100)
     : 0
-
-  // Estimativa de tempo médio por dispatch (em minutos)
   const avgInterval = ((campaign.interval_min ?? 0) + (campaign.interval_max ?? 0)) / 2
+
+  // Determine which countdown to show
+  const activeCountdown = countdown ?? (localSec != null ? { remaining: localSec, total: localTotal } : null)
 
   return (
     <div className="px-8 py-7 flex flex-col gap-6 min-h-full max-w-screen-xl">
+
       {/* Back + header */}
       <div>
-        <button
-          onClick={() => router.push('/disparos')}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer mb-3"
-        >
+        <button onClick={() => router.push('/disparos')} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer mb-3">
           <ArrowLeft size={14} /> Disparos
         </button>
         <div className="flex items-center justify-between">
@@ -250,47 +275,31 @@ export default function DisparoDetailPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={loadData}
-              className="p-2 rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer"
-              title="Atualizar"
-            >
+            <button onClick={loadData} className="p-2 rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer" title="Atualizar">
               <RefreshCw size={14} className="text-muted-foreground" />
             </button>
             {(campaign.status === 'draft' || campaign.status === 'paused') && (
-              <button
-                onClick={() => handleAction('start')}
-                disabled={actionLoading}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-alliance-blue text-white text-sm font-semibold hover:bg-alliance-dark transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <Play size={14} />
+              <button onClick={() => handleAction('start')} disabled={actionLoading}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-alliance-blue text-white text-sm font-semibold hover:bg-alliance-dark transition-colors cursor-pointer disabled:opacity-50">
+                {actionLoading ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
                 {campaign.status === 'paused' ? 'Retomar' : 'Iniciar'}
               </button>
             )}
             {campaign.status === 'running' && (
               <>
-                <button
-                  onClick={() => handleAction('pause')}
-                  disabled={actionLoading}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/15 text-amber-600 text-sm font-semibold hover:bg-amber-500/25 transition-colors cursor-pointer disabled:opacity-50"
-                >
+                <button onClick={() => handleAction('pause')} disabled={actionLoading}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/15 text-amber-600 text-sm font-semibold hover:bg-amber-500/25 transition-colors cursor-pointer disabled:opacity-50">
                   <Pause size={14} /> Pausar
                 </button>
-                <button
-                  onClick={() => handleAction('stop')}
-                  disabled={actionLoading}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/15 text-red-500 text-sm font-semibold hover:bg-red-500/25 transition-colors cursor-pointer disabled:opacity-50"
-                >
+                <button onClick={() => handleAction('stop')} disabled={actionLoading}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/15 text-red-500 text-sm font-semibold hover:bg-red-500/25 transition-colors cursor-pointer disabled:opacity-50">
                   <Square size={14} /> Encerrar
                 </button>
               </>
             )}
             {campaign.status === 'paused' && (
-              <button
-                onClick={() => handleAction('stop')}
-                disabled={actionLoading}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/15 text-red-500 text-sm font-semibold hover:bg-red-500/25 transition-colors cursor-pointer disabled:opacity-50"
-              >
+              <button onClick={() => handleAction('stop')} disabled={actionLoading}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/15 text-red-500 text-sm font-semibold hover:bg-red-500/25 transition-colors cursor-pointer disabled:opacity-50">
                 <Square size={14} /> Encerrar
               </button>
             )}
@@ -298,13 +307,13 @@ export default function DisparoDetailPage() {
         </div>
       </div>
 
-      {/* Stats cards */}
+      {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: 'Total', value: campaign.total_leads, color: 'text-foreground' },
-          { label: 'Enviados', value: campaign.sent_count, color: 'text-green-600' },
-          { label: 'Falhas', value: campaign.failed_count, color: 'text-red-500' },
-          { label: 'Pendentes', value: pending, color: 'text-muted-foreground' },
+          { label: 'Total',     value: campaign.total_leads,  color: 'text-foreground' },
+          { label: 'Enviados',  value: campaign.sent_count,   color: 'text-green-600' },
+          { label: 'Falhas',    value: campaign.failed_count, color: 'text-red-500' },
+          { label: 'Pendentes', value: pending,               color: 'text-muted-foreground' },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-card border border-border rounded-2xl p-5">
             <p className="text-sm text-muted-foreground mb-1">{label}</p>
@@ -329,20 +338,30 @@ export default function DisparoDetailPage() {
         </div>
       </div>
 
-      {/* Countdown bar (when running) */}
-      {countdown && campaign.status === 'running' && (
+      {/* Countdown timer — shown whenever campaign is running */}
+      {campaign.status === 'running' && activeCountdown && (
         <div className="bg-card border border-border rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-foreground">Próximo envio em</p>
-            <p className="text-sm font-bold text-alliance-blue">{countdown.remaining}s</p>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Timer size={16} className="text-alliance-blue animate-pulse" />
+              <p className="text-sm font-medium text-foreground">Próxima mensagem em</p>
+            </div>
+            <p className="text-xl font-bold tabular-nums text-alliance-blue">
+              {Math.floor(activeCountdown.remaining / 60) > 0
+                ? `${Math.floor(activeCountdown.remaining / 60)}m ${activeCountdown.remaining % 60}s`
+                : `${activeCountdown.remaining}s`}
+            </p>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
+          <div className="h-2.5 bg-muted rounded-full overflow-hidden">
             <motion.div
-              animate={{ width: `${(countdown.remaining / Math.max(countdown.total, 1)) * 100}%` }}
-              transition={{ duration: 0.9 }}
-              className="h-full bg-alliance-blue/40 rounded-full"
+              animate={{ width: `${(activeCountdown.remaining / Math.max(activeCountdown.total, 1)) * 100}%` }}
+              transition={{ duration: 0.95, ease: 'linear' }}
+              className="h-full bg-alliance-blue rounded-full"
             />
           </div>
+          <p className="text-[10px] text-muted-foreground mt-2">
+            {countdown ? 'Sincronizado com o serviço de disparos' : 'Estimativa baseada no intervalo configurado'}
+          </p>
         </div>
       )}
 
@@ -365,25 +384,27 @@ export default function DisparoDetailPage() {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Telefone</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mensagem</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Delay</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Est.</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Enviado em</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Est. tempo</th>
                   <th className="w-16 px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {dispatches.map((d, idx) => {
-                  const isEditing = editingId === d.id
-                  const isExpanded = expandedIds.has(d.id)
-                  const msg = d.message_sent ?? ''
+                  const isEditing   = editingId === d.id
+                  const isExpanded  = expandedIds.has(d.id)
+                  const msg         = d.message_sent ?? ''
                   const isTruncated = msg.length > 80 && !isExpanded
-                  const displayMsg = isTruncated ? `${msg.slice(0, 80)}…` : msg
-                  const estMinutes = Math.round((idx + 1) * avgInterval)
+                  const displayMsg  = isTruncated ? `${msg.slice(0, 80)}…` : msg
+                  const estMinutes  = Math.round((idx + 1) * avgInterval)
 
                   return (
                     <tr key={d.id} className="hover:bg-muted/30 transition-colors align-top">
                       <td className="px-4 py-3.5 text-xs font-bold text-muted-foreground">{idx + 1}</td>
-                      <td className="px-4 py-3.5 font-mono text-xs text-foreground whitespace-nowrap">{d.phone}</td>
+                      <td className="px-4 py-3.5 font-mono text-xs text-foreground whitespace-nowrap">
+                        {d.phone.replace('@s.whatsapp.net', '')}
+                      </td>
                       <td className="px-4 py-3.5 max-w-xs">
                         {isEditing ? (
                           <textarea
@@ -399,10 +420,7 @@ export default function DisparoDetailPage() {
                               <>
                                 <span className="text-xs text-foreground leading-relaxed">{displayMsg}</span>
                                 {msg.length > 80 && (
-                                  <button
-                                    onClick={() => toggleExpand(d.id)}
-                                    className="text-[10px] text-alliance-blue hover:underline text-left cursor-pointer"
-                                  >
+                                  <button onClick={() => toggleExpand(d.id)} className="text-[10px] text-alliance-blue hover:underline text-left cursor-pointer">
                                     {isExpanded ? 'ver menos' : 'ver mais'}
                                   </button>
                                 )}
@@ -422,6 +440,9 @@ export default function DisparoDetailPage() {
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </td>
+                      <td className="px-4 py-3.5 text-xs text-muted-foreground whitespace-nowrap">
+                        {d.status === 'pending' && avgInterval > 0 ? `~${estMinutes} min` : '—'}
+                      </td>
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', DISPATCH_STATUS_STYLES[d.status] ?? DISPATCH_STATUS_STYLES.pending)}>
                           {DISPATCH_STATUS_LABELS[d.status] ?? d.status}
@@ -430,38 +451,22 @@ export default function DisparoDetailPage() {
                       <td className="px-4 py-3.5 text-xs text-muted-foreground whitespace-nowrap">
                         {d.sent_at ? format(new Date(d.sent_at), 'dd/MM HH:mm:ss', { locale: ptBR }) : '—'}
                       </td>
-                      <td className="px-4 py-3.5 text-xs text-muted-foreground whitespace-nowrap">
-                        {d.status === 'pending' && avgInterval > 0
-                          ? `~${estMinutes} min`
-                          : '—'}
-                      </td>
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         {isEditing ? (
                           <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => saveEdit(d.id)}
-                              disabled={saving}
-                              className="p-1.5 rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer disabled:opacity-50"
-                              title="Salvar"
-                            >
+                            <button onClick={() => saveEdit(d.id)} disabled={saving}
+                              className="p-1.5 rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer disabled:opacity-50" title="Salvar">
                               {saving ? <RefreshCw size={11} className="animate-spin" /> : <Check size={11} />}
                             </button>
-                            <button
-                              onClick={cancelEdit}
-                              disabled={saving}
-                              className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors cursor-pointer"
-                              title="Cancelar"
-                            >
+                            <button onClick={cancelEdit} disabled={saving}
+                              className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors cursor-pointer" title="Cancelar">
                               <X size={11} />
                             </button>
                           </div>
                         ) : (
                           d.status === 'pending' && (
-                            <button
-                              onClick={() => startEdit(d)}
-                              className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer text-muted-foreground hover:text-foreground"
-                              title="Editar mensagem"
-                            >
+                            <button onClick={() => startEdit(d)}
+                              className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer text-muted-foreground hover:text-foreground" title="Editar mensagem">
                               <Pencil size={12} />
                             </button>
                           )
