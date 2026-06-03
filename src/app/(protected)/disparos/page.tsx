@@ -19,7 +19,7 @@ import { KANBAN_COLUMNS } from '@/components/kanban/types'
 
 type Lead = Database['public']['Tables']['leads']['Row']
 type LeadRow = Pick<Lead, 'id' | 'name' | 'phone' | 'reactivation_count' | 'last_reactivated_at'>
-type CampaignLeadRow = Pick<Lead, 'id' | 'name' | 'phone' | 'stage'>
+type CampaignLeadRow = Pick<Lead, 'id' | 'name' | 'phone' | 'stage' | 'reactivation_count'>
 
 interface ReactivationStats { once: number; twice: number; thrice: number }
 interface FormState { name: string; content: string; media_url: string; media_type: string }
@@ -735,7 +735,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
     setTemplatesLoading(true)
     const supabase = createSupabase()
     const [{ data: leadsData }, { data: tmplData }, { data: instData }] = await Promise.all([
-      supabase.from('leads').select('id, name, phone, stage').order('name'),
+      supabase.from('leads').select('id, name, phone, stage, reactivation_count').order('name'),
       supabase.from('templates').select('*').order('created_at', { ascending: false }),
       supabase.from('wa_instances').select('*').eq('status', 'connected'),
     ])
@@ -1000,7 +1000,10 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                                       )}>
                                         {sel && <Check size={8} className="text-white" />}
                                       </div>
-                                      <p className="text-xs text-foreground truncate">{lead.name}</p>
+                                      <p className="text-xs text-foreground truncate flex-1">{lead.name}</p>
+                                      <span className="inline-flex items-center gap-0.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20 text-[9px] font-bold px-1 py-0.5 rounded-full flex-shrink-0">
+                                        {lead.reactivation_count ?? 0}×
+                                      </span>
                                     </button>
                                   )
                                 })}

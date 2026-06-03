@@ -20,6 +20,7 @@ export async function updateDisparoLabels(
 ) {
   if (!leadIds.length) return
 
+  // ── 1. Fetch current disparo labels ────────────────────────────────────────
   const { data: allLabels } = await service.from('labels').select('id, name')
   const typed = (allLabels ?? []) as { id: string; name: string }[]
   const countLabels = typed.filter(l => parseDisparoCount(l.name) !== null)
@@ -42,15 +43,29 @@ export async function updateDisparoLabels(
     }
   }
 
+  // ── 2. Fetch current reactivation_count to increment atomically ────────────
+  const { data: currentLeads } = await service
+    .from('leads')
+    .select('id, reactivation_count')
+    .in('id', leadIds)
+
+  const currentReactCount = new Map<string, number>()
+  for (const l of (currentLeads ?? []) as { id: string; reactivation_count: number }[]) {
+    currentReactCount.set(l.id, l.reactivation_count ?? 0)
+  }
+
+  // ── 3. Update each lead ────────────────────────────────────────────────────
   for (const leadId of leadIds) {
     const current  = leadCurrentCount.get(leadId)
     const newCount = (current?.count ?? 0) + 1
 
+    // Remove old disparo label
     if (current) {
       await service.from('lead_labels').delete()
         .eq('lead_id', leadId).eq('label_id', current.labelId)
     }
 
+    // Get or create label for new count
     let newLabelId = labelByCount.get(newCount)
     if (!newLabelId) {
       const { data: created } = await service
@@ -71,5 +86,12 @@ export async function updateDisparoLabels(
           .insert({ lead_id: leadId, label_id: newLabelId } as never)
       }
     }
+
+    // Increment reactivation_count in leads table
+    const prev = currentReactCount.get(leadId) ?? 0
+    await service
+      .from('leads')
+      .update({ reactivation_count: prev + 1 } as never)
+      .eq('id', leadId)
   }
 }

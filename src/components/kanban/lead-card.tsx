@@ -2,7 +2,7 @@
 
 import { memo } from 'react'
 import { useDraggable } from '@dnd-kit/core'
-import { Pause, Bot, MapPin, Home } from 'lucide-react'
+import { Pause, Bot, MapPin, Home, Send } from 'lucide-react'
 import { motion } from 'framer-motion'
 import type { Lead } from '@/lib/supabase/types'
 import { formatPhone } from '@/lib/format-phone'
@@ -112,17 +112,23 @@ export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = fals
         {/* Separator */}
         <div className="border-t border-gray-50 dark:border-white/5" />
 
-        {/* Badge IA / Consultor */}
-        <div>
-          {lead.assigned_to === null ? (
-            <span className="inline-flex items-center gap-1 bg-alliance-dark text-white text-xs font-medium px-2 py-0.5 rounded-full">
-              <Bot size={9} /> agente de IA
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 bg-gray-100 dark:bg-white/8 text-gray-600 dark:text-white/50 text-xs font-medium px-2 py-0.5 rounded-full">
-              Consultor
-            </span>
-          )}
+        {/* Badge IA / Consultor + tentativas de disparo */}
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            {lead.assigned_to === null ? (
+              <span className="inline-flex items-center gap-1 bg-alliance-dark text-white text-xs font-medium px-2 py-0.5 rounded-full">
+                <Bot size={9} /> agente de IA
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 bg-gray-100 dark:bg-white/8 text-gray-600 dark:text-white/50 text-xs font-medium px-2 py-0.5 rounded-full">
+                Consultor
+              </span>
+            )}
+          </div>
+          <span className="inline-flex items-center gap-1 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20 text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap">
+            <Send size={8} />
+            {lead.reactivation_count ?? 0}×
+          </span>
         </div>
       </div>
     </motion.div>
