@@ -20,5 +20,6 @@ export async function GET(
     return NextResponse.json({ error: 'Campanha não encontrada' }, { status: 404 })
   }
 
-  return NextResponse.json({ ...campaign, dispatches: dispatches ?? [] })
+  const c = campaign as Record<string, unknown>
+  return NextResponse.json({ ...c, dispatches: dispatches ?? [] })
 }
