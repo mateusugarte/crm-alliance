@@ -777,7 +777,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
           instance_id: selectedInstance,
           interval_min: opt.min,
           interval_max: opt.max,
-          phones,
+          phones: phones.join(','),
         }),
       })
       if (res.ok) {

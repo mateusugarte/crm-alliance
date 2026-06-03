@@ -9,7 +9,7 @@ interface CreateCampaignBody {
   instance_id: string
   interval_min?: number
   interval_max?: number
-  phones: string[]
+  phones: string | string[]
 }
 
 export async function GET() {
@@ -38,8 +38,13 @@ export async function POST(req: NextRequest) {
     instance_id,
     interval_min = 2,
     interval_max = 5,
-    phones = [],
+    phones: phonesRaw = [],
   } = body
+
+  // Accept both comma-separated string (external service format) and array
+  const phones: string[] = Array.isArray(phonesRaw)
+    ? phonesRaw
+    : String(phonesRaw).split(',').map(p => p.trim()).filter(Boolean)
 
   if (!name?.trim()) return NextResponse.json({ error: 'name obrigatório' }, { status: 400 })
   if (!instance_id?.trim()) return NextResponse.json({ error: 'instance_id obrigatório' }, { status: 400 })
