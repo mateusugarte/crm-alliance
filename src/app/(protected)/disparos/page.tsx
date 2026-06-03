@@ -24,6 +24,12 @@ type CampaignLeadRow = Pick<Lead, 'id' | 'name' | 'phone' | 'stage' | 'reactivat
 interface ReactivationStats { once: number; twice: number; thrice: number }
 interface FormState { name: string; content: string; media_url: string; media_type: string }
 
+interface MixedContact {
+  lead: CampaignLeadRow
+  message: string
+  typingDelay: number
+}
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const TABS = [
@@ -761,7 +767,10 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
   // Wizard state
   const [templates, setTemplates] = useState<Template[]>([])
   const [templatesLoading, setTemplatesLoading] = useState(false)
-  const [selectedTemplateIds, setSelectedTemplateIds] = useState<Set<string>>(new Set())
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
+  const [mixedContacts, setMixedContacts] = useState<MixedContact[]>([])
+  const [mixing, setMixing] = useState(false)
+  const [mixError, setMixError] = useState<string | null>(null)
   const [campaignName, setCampaignName] = useState('')
   const [intervalOption, setIntervalOption] = useState(1)
   const [instances, setInstances] = useState<WaInstance[]>([])
@@ -815,7 +824,10 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
   const openWizard = async () => {
     setStep(1)
     setSelectedLeadIds(new Set())
-    setSelectedTemplateIds(new Set())
+    setSelectedTemplate(null)
+    setMixedContacts([])
+    setMixError(null)
+    setMixing(false)
     setCampaignName('')
     setIntervalOption(1)
     setSelectedInstance('')
@@ -838,9 +850,31 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
     setTemplatesLoading(false)
   }
 
-  const toggleTemplate = (id: string) => setSelectedTemplateIds(prev => {
-    const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n
-  })
+  const handleMix = async () => {
+    if (!selectedTemplate) return
+    setMixing(true)
+    setMixError(null)
+    const selectedLeads = leads.filter(l => selectedLeadIds.has(l.id))
+    try {
+      const res = await fetch('/api/campaigns/mix-template', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template: selectedTemplate.content, count: selectedLeads.length }),
+      })
+      if (!res.ok) {
+        const err = await res.json() as { error?: string }
+        setMixError(err.error ?? 'Erro ao misturar mensagens')
+      } else {
+        const data = await res.json() as { messages: string[] }
+        setMixedContacts(selectedLeads.map((lead, i) => ({
+          lead,
+          message: data.messages[i] ?? selectedTemplate.content,
+          typingDelay: Math.floor(2000 + Math.random() * 3000),
+        })))
+      }
+    } catch { setMixError('Erro de conexão') }
+    setMixing(false)
+  }
 
   const handleCreate = async () => {
     if (!campaignName.trim() || !selectedInstance) return
@@ -848,13 +882,16 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
     setCreateError(null)
     try {
       const opt = INTERVAL_OPTIONS[intervalOption]
-      const phones = leads
-        .filter(l => selectedLeadIds.has(l.id))
-        .map(l => l.phone.replace('@s.whatsapp.net', '').replace(/\D/g, ''))
-        .filter(p => p.length >= 10)
+      const contacts = mixedContacts
+        .map(c => ({
+          phone: c.lead.phone.replace('@s.whatsapp.net', '').replace(/\D/g, ''),
+          message: c.message,
+          typing_delay: c.typingDelay,
+        }))
+        .filter(c => c.phone.length >= 10)
 
-      if (phones.length === 0) {
-        setCreateError('Nenhum lead com telefone válido selecionado')
+      if (contacts.length === 0) {
+        setCreateError('Nenhum contato com telefone válido')
         setCreating(false)
         return
       }
@@ -864,11 +901,11 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: campaignName.trim(),
-          template_ids: Array.from(selectedTemplateIds),
+          template_ids: selectedTemplate ? [selectedTemplate.id] : [],
           instance_id: selectedInstance,
           interval_min: opt.min,
           interval_max: opt.max,
-          phones,
+          contacts,
         }),
       })
       if (res.ok) {
@@ -887,7 +924,8 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
   }
 
   const canGoStep2 = selectedLeadIds.size > 0
-  const canGoStep3 = selectedTemplateIds.size > 0
+  const canGoStep3 = selectedTemplate !== null
+  const canGoStep4 = mixedContacts.length > 0 && mixedContacts.every(c => !!c.message.trim())
   const canCreate  = campaignName.trim().length > 0 && !!selectedInstance
 
   return (
@@ -968,7 +1006,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                 <div>
                   <h2 className="text-base font-bold text-foreground">Nova Campanha</h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Passo {step} de 3 — {step === 1 ? 'Selecionar leads do Kanban' : step === 2 ? 'Templates' : 'Configuração'}
+                    Passo {step} de 4 — {['Contatos', 'Template', 'Mensagens', 'Configuração'][step - 1]}
                   </p>
                 </div>
                 <button onClick={() => setWizardOpen(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer">
@@ -978,7 +1016,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
 
               {/* Step indicators */}
               <div className="flex items-center gap-2 px-6 py-3 border-b border-border flex-shrink-0">
-                {[1, 2, 3].map(s => (
+                {[1, 2, 3, 4].map(s => (
                   <div key={s} className="flex items-center gap-2">
                     <div className={cn(
                       'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors',
@@ -986,7 +1024,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                     )}>
                       {step > s ? <Check size={12} /> : s}
                     </div>
-                    {s < 3 && <ChevronRight size={14} className="text-muted-foreground" />}
+                    {s < 4 && <ChevronRight size={14} className="text-muted-foreground" />}
                   </div>
                 ))}
               </div>
@@ -1114,10 +1152,10 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                   </div>
                 )}
 
-                {/* Step 2 — Templates */}
+                {/* Step 2 — Template (single select) */}
                 {step === 2 && (
                   <div className="flex flex-col gap-3">
-                    <p className="text-sm text-muted-foreground">Selecione um ou mais templates para esta campanha.</p>
+                    <p className="text-sm text-muted-foreground">Selecione o template base para esta campanha.</p>
                     {templatesLoading ? (
                       <div className="flex items-center justify-center py-10">
                         <RefreshCw size={18} className="animate-spin text-muted-foreground" />
@@ -1132,38 +1170,101 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                         {templates.map(t => (
                           <button
                             key={t.id}
-                            onClick={() => toggleTemplate(t.id)}
+                            onClick={() => setSelectedTemplate(t)}
                             className={cn(
                               'flex items-start gap-3 px-4 py-3 rounded-xl border text-left transition-colors cursor-pointer w-full',
-                              selectedTemplateIds.has(t.id)
+                              selectedTemplate?.id === t.id
                                 ? 'border-alliance-blue bg-alliance-blue/10'
                                 : 'border-border bg-card hover:bg-muted',
                             )}
                           >
                             <div className={cn(
-                              'w-4 h-4 rounded border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors',
-                              selectedTemplateIds.has(t.id) ? 'bg-alliance-blue border-alliance-blue' : 'border-border',
+                              'w-4 h-4 rounded-full border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors',
+                              selectedTemplate?.id === t.id ? 'bg-alliance-blue border-alliance-blue' : 'border-border',
                             )}>
-                              {selectedTemplateIds.has(t.id) && <Check size={10} className="text-white" />}
+                              {selectedTemplate?.id === t.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-foreground truncate">{t.name}</p>
-                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                                {t.content.length > 60 ? `${t.content.slice(0, 60)}…` : t.content}
+                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                {t.content}
                               </p>
                             </div>
                           </button>
                         ))}
                       </div>
                     )}
-                    {selectedTemplateIds.size > 0 && (
-                      <p className="text-xs text-muted-foreground">{selectedTemplateIds.size} template{selectedTemplateIds.size !== 1 ? 's' : ''} selecionado{selectedTemplateIds.size !== 1 ? 's' : ''}</p>
+                  </div>
+                )}
+
+                {/* Step 3 — Mix & Review */}
+                {step === 3 && (
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">
+                        Misture as mensagens com IA — cada contato recebe uma variação única.
+                      </p>
+                      <button
+                        onClick={handleMix}
+                        disabled={mixing}
+                        className={cn(
+                          'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer flex-shrink-0',
+                          !mixing ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-muted-foreground cursor-not-allowed',
+                        )}
+                      >
+                        {mixing
+                          ? <><RefreshCw size={13} className="animate-spin" /> Gerando...</>
+                          : <><Shuffle size={13} /> {mixedContacts.length > 0 ? 'Regerar' : 'Misturar com IA'}</>}
+                      </button>
+                    </div>
+
+                    {mixError && (
+                      <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                        <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
+                        <p className="text-xs text-red-500">{mixError}</p>
+                      </div>
+                    )}
+
+                    {mixedContacts.length === 0 && !mixing && (
+                      <div className="flex flex-col items-center justify-center py-10 gap-2 border border-dashed border-border rounded-2xl">
+                        <Shuffle size={28} className="text-muted-foreground/20" />
+                        <p className="text-sm text-muted-foreground">Clique em &quot;Misturar com IA&quot; para gerar mensagens</p>
+                      </div>
+                    )}
+
+                    {mixedContacts.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        {mixedContacts.map((c, i) => (
+                          <div key={c.lead.id} className="flex flex-col gap-2 p-4 rounded-2xl border border-border bg-card">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-muted-foreground">#{i + 1}</span>
+                                <p className="text-sm font-semibold text-foreground">{c.lead.name}</p>
+                                <span className="text-xs font-mono text-muted-foreground">{c.lead.phone.replace('@s.whatsapp.net', '')}</span>
+                              </div>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px] font-semibold flex-shrink-0">
+                                delay {(c.typingDelay / 1000).toFixed(1)}s
+                              </span>
+                            </div>
+                            <textarea
+                              value={c.message}
+                              onChange={e => {
+                                const updated = [...mixedContacts]
+                                updated[i] = { ...c, message: e.target.value }
+                                setMixedContacts(updated)
+                              }}
+                              rows={3}
+                              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-alliance-blue/30"
+                            />
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 )}
 
-                {/* Step 3 — Configuração */}
-                {step === 3 && (
+                {/* Step 4 — Configuração */}
+                {step === 4 && (
                   <div className="flex flex-col gap-5">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -1239,39 +1340,39 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                <button
-                  onClick={() => step > 1 ? setStep(s => s - 1) : setWizardOpen(false)}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
-                >
-                  {step === 1 ? 'Cancelar' : 'Voltar'}
-                </button>
-                {step < 3 ? (
                   <button
-                    onClick={() => setStep(s => s + 1)}
-                    disabled={step === 1 ? !canGoStep2 : !canGoStep3}
-                    className={cn(
-                      'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
-                      (step === 1 ? canGoStep2 : canGoStep3)
-                        ? 'bg-alliance-blue text-white hover:bg-alliance-dark'
-                        : 'bg-muted text-muted-foreground cursor-not-allowed',
-                    )}
+                    onClick={() => step > 1 ? setStep(s => s - 1) : setWizardOpen(false)}
+                    className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
                   >
-                    Próximo <ChevronRight size={14} />
+                    {step === 1 ? 'Cancelar' : 'Voltar'}
                   </button>
-                ) : (
-                  <button
-                    onClick={handleCreate}
-                    disabled={!canCreate || creating}
-                    className={cn(
-                      'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
-                      canCreate && !creating
-                        ? 'bg-green-600 text-white hover:bg-green-700'
-                        : 'bg-muted text-muted-foreground cursor-not-allowed',
-                    )}
-                  >
-                    {creating ? <><RefreshCw size={14} className="animate-spin" /> Criando...</> : 'Criar Campanha'}
-                  </button>
-                )}
+                  {step < 4 ? (
+                    <button
+                      onClick={() => setStep(s => s + 1)}
+                      disabled={step === 1 ? !canGoStep2 : step === 2 ? !canGoStep3 : !canGoStep4}
+                      className={cn(
+                        'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
+                        (step === 1 ? canGoStep2 : step === 2 ? canGoStep3 : canGoStep4)
+                          ? 'bg-alliance-blue text-white hover:bg-alliance-dark'
+                          : 'bg-muted text-muted-foreground cursor-not-allowed',
+                      )}
+                    >
+                      Próximo <ChevronRight size={14} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleCreate}
+                      disabled={!canCreate || creating}
+                      className={cn(
+                        'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
+                        canCreate && !creating
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-muted text-muted-foreground cursor-not-allowed',
+                      )}
+                    >
+                      {creating ? <><RefreshCw size={14} className="animate-spin" /> Criando...</> : 'Criar Campanha'}
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>

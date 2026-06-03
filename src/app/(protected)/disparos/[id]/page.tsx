@@ -5,9 +5,11 @@ import { useRouter, useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ArrowLeft, RefreshCw, Play, Pause, Square } from 'lucide-react'
+import {
+  ArrowLeft, RefreshCw, Play, Pause, Square,
+  Pencil, Check, X, MessageSquare,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { disparoFetch } from '@/lib/disparo-api'
 import type { Campaign, Dispatch } from '@/lib/supabase/types'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -67,11 +69,20 @@ export default function DisparoDetailPage() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [countdown, setCountdown] = useState<CountdownState | null>(null)
+
+  // Inline edit state
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  // Expanded message rows
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+
   const socketRef = useRef<ReturnType<typeof import('socket.io-client').io> | null>(null)
 
   const loadData = useCallback(async () => {
     try {
-      const res = await disparoFetch(`/api/campaigns/${id}`)
+      const res = await fetch(`/api/campaigns/${id}`)
       if (res.ok) {
         const data = await res.json() as CampaignDetail
         setCampaign(data)
@@ -147,10 +158,47 @@ export default function DisparoDetailPage() {
     if (!campaign) return
     setActionLoading(true)
     try {
-      await disparoFetch(`/api/campaigns/${id}/${action}`, { method: 'POST' })
+      await fetch(`/api/campaigns/${id}/${action}`, { method: 'POST' })
       await loadData()
     } catch { /* silent */ }
     setActionLoading(false)
+  }
+
+  const startEdit = (d: Dispatch) => {
+    setEditingId(d.id)
+    setEditValue(d.message_sent ?? '')
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditValue('')
+  }
+
+  const saveEdit = async (dispatchId: string) => {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/campaigns/${id}/dispatches/${dispatchId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: editValue }),
+      })
+      if (res.ok) {
+        setDispatches(prev => prev.map(d =>
+          d.id === dispatchId ? { ...d, message_sent: editValue.trim() } : d
+        ))
+        setEditingId(null)
+        setEditValue('')
+      }
+    } catch { /* silent */ }
+    setSaving(false)
+  }
+
+  const toggleExpand = (id: string) => {
+    setExpandedIds(prev => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
   }
 
   if (loading) {
@@ -172,10 +220,13 @@ export default function DisparoDetailPage() {
     )
   }
 
-  const pending = campaign.total_leads - campaign.sent_count - campaign.failed_count
+  const pending = Math.max(0, campaign.total_leads - campaign.sent_count - campaign.failed_count)
   const progress = campaign.total_leads > 0
     ? Math.round(((campaign.sent_count + campaign.failed_count) / campaign.total_leads) * 100)
     : 0
+
+  // Estimativa de tempo médio por dispatch (em minutos)
+  const avgInterval = ((campaign.interval_min ?? 0) + (campaign.interval_max ?? 0)) / 2
 
   return (
     <div className="px-8 py-7 flex flex-col gap-6 min-h-full max-w-screen-xl">
@@ -253,7 +304,7 @@ export default function DisparoDetailPage() {
           { label: 'Total', value: campaign.total_leads, color: 'text-foreground' },
           { label: 'Enviados', value: campaign.sent_count, color: 'text-green-600' },
           { label: 'Falhas', value: campaign.failed_count, color: 'text-red-500' },
-          { label: 'Pendentes', value: Math.max(0, pending), color: 'text-muted-foreground' },
+          { label: 'Pendentes', value: pending, color: 'text-muted-foreground' },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-card border border-border rounded-2xl p-5">
             <p className="text-sm text-muted-foreground mb-1">{label}</p>
@@ -301,7 +352,8 @@ export default function DisparoDetailPage() {
           <h2 className="text-sm font-semibold text-foreground">Envios ({dispatches.length})</h2>
         </div>
         {dispatches.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12">
+          <div className="flex flex-col items-center justify-center py-12 gap-2">
+            <MessageSquare size={28} className="text-muted-foreground/20" />
             <p className="text-sm text-muted-foreground">Nenhum envio registrado</p>
           </div>
         ) : (
@@ -309,33 +361,115 @@ export default function DisparoDetailPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Telefone</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mensagem enviada</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Enviado em</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-10">#</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Telefone</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mensagem</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Delay</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Enviado em</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Est. tempo</th>
+                  <th className="w-16 px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {dispatches.map(d => (
-                  <tr key={d.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-5 py-3.5 font-mono text-xs text-foreground">{d.phone}</td>
-                    <td className="px-5 py-3.5 text-muted-foreground max-w-xs">
-                      {d.message_sent
-                        ? d.message_sent.length > 90
-                          ? `${d.message_sent.slice(0, 90)}…`
-                          : d.message_sent
-                        : '—'}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', DISPATCH_STATUS_STYLES[d.status] ?? DISPATCH_STATUS_STYLES.pending)}>
-                        {DISPATCH_STATUS_LABELS[d.status] ?? d.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-muted-foreground text-xs">
-                      {d.sent_at ? format(new Date(d.sent_at), 'dd/MM HH:mm:ss', { locale: ptBR }) : '—'}
-                    </td>
-                  </tr>
-                ))}
+                {dispatches.map((d, idx) => {
+                  const isEditing = editingId === d.id
+                  const isExpanded = expandedIds.has(d.id)
+                  const msg = d.message_sent ?? ''
+                  const isTruncated = msg.length > 80 && !isExpanded
+                  const displayMsg = isTruncated ? `${msg.slice(0, 80)}…` : msg
+                  const estMinutes = Math.round((idx + 1) * avgInterval)
+
+                  return (
+                    <tr key={d.id} className="hover:bg-muted/30 transition-colors align-top">
+                      <td className="px-4 py-3.5 text-xs font-bold text-muted-foreground">{idx + 1}</td>
+                      <td className="px-4 py-3.5 font-mono text-xs text-foreground whitespace-nowrap">{d.phone}</td>
+                      <td className="px-4 py-3.5 max-w-xs">
+                        {isEditing ? (
+                          <textarea
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            rows={3}
+                            autoFocus
+                            className="w-full px-2 py-1.5 rounded-lg border border-alliance-blue/40 bg-background text-xs text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-alliance-blue/30"
+                          />
+                        ) : (
+                          <div className="flex flex-col gap-0.5">
+                            {msg ? (
+                              <>
+                                <span className="text-xs text-foreground leading-relaxed">{displayMsg}</span>
+                                {msg.length > 80 && (
+                                  <button
+                                    onClick={() => toggleExpand(d.id)}
+                                    className="text-[10px] text-alliance-blue hover:underline text-left cursor-pointer"
+                                  >
+                                    {isExpanded ? 'ver menos' : 'ver mais'}
+                                  </button>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-xs text-muted-foreground italic">sem mensagem</span>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        {d.typing_delay != null ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px] font-semibold">
+                            {(d.typing_delay / 1000).toFixed(1)}s
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', DISPATCH_STATUS_STYLES[d.status] ?? DISPATCH_STATUS_STYLES.pending)}>
+                          {DISPATCH_STATUS_LABELS[d.status] ?? d.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-xs text-muted-foreground whitespace-nowrap">
+                        {d.sent_at ? format(new Date(d.sent_at), 'dd/MM HH:mm:ss', { locale: ptBR }) : '—'}
+                      </td>
+                      <td className="px-4 py-3.5 text-xs text-muted-foreground whitespace-nowrap">
+                        {d.status === 'pending' && avgInterval > 0
+                          ? `~${estMinutes} min`
+                          : '—'}
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        {isEditing ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => saveEdit(d.id)}
+                              disabled={saving}
+                              className="p-1.5 rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer disabled:opacity-50"
+                              title="Salvar"
+                            >
+                              {saving ? <RefreshCw size={11} className="animate-spin" /> : <Check size={11} />}
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              disabled={saving}
+                              className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors cursor-pointer"
+                              title="Cancelar"
+                            >
+                              <X size={11} />
+                            </button>
+                          </div>
+                        ) : (
+                          d.status === 'pending' && (
+                            <button
+                              onClick={() => startEdit(d)}
+                              className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer text-muted-foreground hover:text-foreground"
+                              title="Editar mensagem"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                          )
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

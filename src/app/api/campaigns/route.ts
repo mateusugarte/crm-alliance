@@ -3,13 +3,20 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { updateDisparoLabels } from '@/lib/disparo-labels'
 
+interface ContactInput {
+  phone: string
+  message?: string
+  typing_delay?: number
+}
+
 interface CreateCampaignBody {
   name: string
   template_ids?: string[]
   instance_id: string
   interval_min?: number
   interval_max?: number
-  phones: string | string[]
+  phones?: string | string[]   // legado
+  contacts?: ContactInput[]    // novo formato
 }
 
 export async function GET() {
@@ -38,17 +45,26 @@ export async function POST(req: NextRequest) {
     instance_id,
     interval_min = 2,
     interval_max = 5,
-    phones: phonesRaw = [],
   } = body
-
-  // Accept both comma-separated string (external service format) and array
-  const phones: string[] = Array.isArray(phonesRaw)
-    ? phonesRaw
-    : String(phonesRaw).split(',').map(p => p.trim()).filter(Boolean)
 
   if (!name?.trim()) return NextResponse.json({ error: 'name obrigatório' }, { status: 400 })
   if (!instance_id?.trim()) return NextResponse.json({ error: 'instance_id obrigatório' }, { status: 400 })
-  if (!phones.length) return NextResponse.json({ error: 'phones obrigatório' }, { status: 400 })
+
+  // Normalizar contacts (aceitar phones legado ou contacts novo formato)
+  let normalizedContacts: ContactInput[]
+  if (body.contacts && body.contacts.length > 0) {
+    normalizedContacts = body.contacts
+  } else {
+    const phonesRaw = body.phones ?? []
+    const phonesArr: string[] = Array.isArray(phonesRaw)
+      ? phonesRaw
+      : String(phonesRaw).split(',').map(p => p.trim()).filter(Boolean)
+    normalizedContacts = phonesArr.map(phone => ({ phone }))
+  }
+
+  if (!normalizedContacts.length) {
+    return NextResponse.json({ error: 'phones ou contacts obrigatório' }, { status: 400 })
+  }
 
   const service = createServiceClient()
 
@@ -62,7 +78,7 @@ export async function POST(req: NextRequest) {
       interval_min,
       interval_max,
       status:      'draft',
-      total_leads: phones.length,
+      total_leads: normalizedContacts.length,
     } as never)
     .select('id')
     .single()
@@ -73,13 +89,15 @@ export async function POST(req: NextRequest) {
 
   const campaignId = (campaign as { id: string }).id
 
-  // 2. Create dispatches
+  // 2. Create dispatches (incluindo message_sent e typing_delay quando disponíveis)
   const { error: dispError } = await service
     .from('dispatches')
-    .insert(phones.map(phone => ({
+    .insert(normalizedContacts.map(c => ({
       campaign_id: campaignId,
-      phone,
+      phone: c.phone,
       status: 'pending',
+      message_sent: c.message ?? null,
+      typing_delay: c.typing_delay ?? null,
     })) as never)
 
   if (dispError) {
@@ -98,8 +116,8 @@ export async function POST(req: NextRequest) {
           l.id,
         )
       }
-      const leadIds = phones
-        .map(p => phoneToLeadId.get(p.replace('@s.whatsapp.net', '').replace(/\D/g, '')))
+      const leadIds = normalizedContacts
+        .map(c => phoneToLeadId.get(c.phone.replace('@s.whatsapp.net', '').replace(/\D/g, '')))
         .filter((id): id is string => !!id)
 
       await updateDisparoLabels(service, leadIds)
