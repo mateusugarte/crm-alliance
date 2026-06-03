@@ -681,6 +681,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
   const [instances, setInstances] = useState<WaInstance[]>([])
   const [selectedInstance, setSelectedInstance] = useState<string>('')
   const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   const leadsByStage = useMemo(() => {
     const map: Record<string, CampaignLeadRow[]> = {}
@@ -728,6 +729,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
     setCampaignName('')
     setIntervalOption(1)
     setSelectedInstance('')
+    setCreateError(null)
     setWizardOpen(true)
     setLeadsLoading(true)
     setTemplatesLoading(true)
@@ -753,12 +755,20 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
   const handleCreate = async () => {
     if (!campaignName.trim() || !selectedInstance) return
     setCreating(true)
+    setCreateError(null)
     try {
       const opt = INTERVAL_OPTIONS[intervalOption]
       const phones = leads
         .filter(l => selectedLeadIds.has(l.id))
         .map(l => l.phone.replace('@s.whatsapp.net', '').replace(/\D/g, ''))
         .filter(p => p.length >= 10)
+
+      if (phones.length === 0) {
+        setCreateError('Nenhum lead com telefone válido selecionado')
+        setCreating(false)
+        return
+      }
+
       const res = await disparoFetch('/api/campaigns', {
         method: 'POST',
         body: JSON.stringify({
@@ -773,9 +783,15 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
       if (res.ok) {
         const created = await res.json() as { id: string }
         setWizardOpen(false)
+        load()
         router.push(`/disparos/${created.id}`)
+      } else {
+        const err = await res.json() as { error?: string }
+        setCreateError(err.error ?? 'Erro ao criar campanha')
       }
-    } catch { /* silent */ }
+    } catch {
+      setCreateError('Erro de conexão ao criar campanha')
+    }
     setCreating(false)
   }
 
@@ -1121,7 +1137,14 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between px-6 py-4 border-t border-border flex-shrink-0">
+              <div className="flex flex-col gap-3 px-6 py-4 border-t border-border flex-shrink-0">
+                {createError && (
+                  <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                    <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
+                    <p className="text-xs text-red-500">{createError}</p>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
                 <button
                   onClick={() => step > 1 ? setStep(s => s - 1) : setWizardOpen(false)}
                   className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
@@ -1155,6 +1178,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                     {creating ? <><RefreshCw size={14} className="animate-spin" /> Criando...</> : 'Criar Campanha'}
                   </button>
                 )}
+                </div>
               </div>
             </motion.div>
           </motion.div>

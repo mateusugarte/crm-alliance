@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { updateDisparoLabels } from '@/app/api/campaigns/route'
 
 interface ContactInput {
   id?: string | null
@@ -79,6 +80,14 @@ export async function POST(req: NextRequest) {
     await service.from('reactivation_campaigns').delete().eq('id', campaignId)
     return NextResponse.json({ error: dispError.message }, { status: 500 })
   }
+
+  // 3. Update disparo count labels for lead contacts (non-critical)
+  try {
+    const leadIds = contacts
+      .map(c => c.id)
+      .filter((id): id is string => !!id)
+    await updateDisparoLabels(service, leadIds)
+  } catch { /* non-critical */ }
 
   return NextResponse.json({ id: campaignId })
 }
