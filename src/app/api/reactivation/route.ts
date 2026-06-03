@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { updateDisparoLabels } from '@/app/api/campaigns/route'
+import { updateDisparoLabels } from '@/lib/disparo-labels'
 
 interface ContactInput {
   id?: string | null
