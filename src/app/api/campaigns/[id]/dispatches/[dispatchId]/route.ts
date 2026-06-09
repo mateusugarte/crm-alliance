@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { recordDispatchToMemory } from '@/lib/pg-memory'
 
 export async function PATCH(
   req: NextRequest,
@@ -21,7 +22,7 @@ export async function PATCH(
 
   const { data: dispatch } = await service
     .from('dispatches')
-    .select('id, status')
+    .select('id, status, phone')
     .eq('id', dispatchId)
     .eq('campaign_id', campaignId)
     .single()
@@ -36,5 +37,10 @@ export async function PATCH(
     .eq('id', dispatchId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  try {
+    await recordDispatchToMemory((dispatch as { phone: string }).phone, body.message.trim())
+  } catch { /* não bloquear se a memória falhar */ }
+
   return NextResponse.json({ ok: true })
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { recordDispatchToMemory } from '@/lib/pg-memory'
 
 function randomBetween(min: number, max: number) {
   return Math.floor(min + Math.random() * (max - min + 1))
@@ -94,6 +95,10 @@ export async function POST(
         interval_delay_ms: match.interval_delay_ms ?? getIntervalDelayMs(campaign.interval_min, campaign.interval_max),
       } as never)
       .eq('id', dispatch.id)
+
+    try {
+      await recordDispatchToMemory(dispatch.phone, match.message)
+    } catch { /* não bloquear o disparo se a memória falhar */ }
 
     updated++
   }

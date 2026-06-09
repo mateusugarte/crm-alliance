@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { updateDisparoLabels } from '@/lib/disparo-labels'
+import { recordDispatchToMemory } from '@/lib/pg-memory'
 
 interface ContactInput {
   phone: string
@@ -105,7 +106,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: dispError.message }, { status: 500 })
   }
 
-  // 3. Update disparo count labels for matched leads (non-critical)
+  // 3. Registrar mensagens na memória do agente IA (não-crítico)
+  const toRecord = normalizedContacts.filter(c => !!c.message)
+  if (toRecord.length) {
+    await Promise.allSettled(
+      toRecord.map(c => recordDispatchToMemory(c.phone, c.message!))
+    )
+  }
+
+  // 4. Update disparo count labels for matched leads (non-critical)
   try {
     const { data: allLeads } = await service.from('leads').select('id, phone')
     if (allLeads) {
