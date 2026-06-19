@@ -889,7 +889,7 @@ export default function DisparoDetailPage() {
               <div className="flex flex-col gap-2">
                 <h2 className="text-base font-bold text-foreground">Excluir campanha?</h2>
                 <p className="text-sm text-muted-foreground">
-                  A campanha <strong className="text-foreground">"{campaign.name}"</strong> e todos os seus {dispatches.length} envios serão excluídos permanentemente.
+                  A campanha <strong className="text-foreground">&quot;{campaign.name}&quot;</strong> e todos os seus {dispatches.length} envios serão excluídos permanentemente.
                 </p>
               </div>
               <div className="flex justify-end gap-2">
