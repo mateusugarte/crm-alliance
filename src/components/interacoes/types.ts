@@ -20,11 +20,12 @@ export interface LeadWithLastInteraction {
   imovel_interesse: string | null
   summary: string | null
   interaction_count: number
+  aceitou_consultor: boolean | null
   created_at: string
 }
 
 // Lead sem mensagens — exibido na seção Contatos
 export type LeadContact = Pick<
   LeadWithLastInteraction,
-  'id' | 'name' | 'phone' | 'wa_contact_id' | 'automation_paused' | 'assigned_to' | 'stage' | 'city' | 'intention' | 'imovel_interesse' | 'summary' | 'interaction_count' | 'created_at'
+  'id' | 'name' | 'phone' | 'wa_contact_id' | 'automation_paused' | 'assigned_to' | 'stage' | 'city' | 'intention' | 'imovel_interesse' | 'summary' | 'interaction_count' | 'aceitou_consultor' | 'created_at'
 > & { labels?: Label[] }

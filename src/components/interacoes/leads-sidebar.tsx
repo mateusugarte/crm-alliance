@@ -2,7 +2,7 @@
 
 import {
   Bot, PauseCircle, Search, User, MessagesSquare,
-  Plus, PenLine, Users, ArrowLeft,
+  Plus, PenLine, Users, ArrowLeft, PhoneCall,
 } from 'lucide-react'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -223,6 +223,9 @@ export function LeadsSidebar({
                               {isManual && (
                                 <PenLine size={10} className="text-amber-400/80 flex-shrink-0" aria-label="Lead manual" />
                               )}
+                              {lead.aceitou_consultor && (
+                                <PhoneCall size={10} className="text-emerald-400 flex-shrink-0" aria-label="Quer consultor" />
+                              )}
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0">
                               {lead.automation_paused
@@ -231,6 +234,9 @@ export function LeadsSidebar({
                               }
                             </div>
                           </div>
+                          {lead.aceitou_consultor && (
+                            <p className="text-emerald-400/80 text-[10px] font-medium mb-0.5">Quer falar com consultor</p>
+                          )}
                           <p className="text-white/35 text-xs truncate leading-tight">{lead.lastMessage}</p>
                           {lead.lastMessageAt && (
                             <p className="text-white/20 text-[10px] mt-0.5">
@@ -287,11 +293,17 @@ export function LeadsSidebar({
                           {isManual && (
                             <PenLine size={10} className="text-amber-400/60 flex-shrink-0" aria-label="Lead manual" />
                           )}
+                          {lead.aceitou_consultor && (
+                            <PhoneCall size={10} className="text-emerald-400 flex-shrink-0" aria-label="Quer consultor" />
+                          )}
                           {lead.automation_paused
                             ? <PauseCircle size={11} className="text-amber-400/50 flex-shrink-0 ml-auto" />
                             : <Bot size={11} className="text-white/20 flex-shrink-0 ml-auto" />
                           }
                         </div>
+                        {lead.aceitou_consultor && (
+                          <p className="text-emerald-400/70 text-[10px] font-medium mb-0.5">Quer falar com consultor</p>
+                        )}
                         <p className="text-white/25 text-xs truncate">{lead.phone}</p>
                         {(lead.labels ?? []).length > 0 && (
                           <div className="flex items-center gap-1 mt-1 flex-wrap">

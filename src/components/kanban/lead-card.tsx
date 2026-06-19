@@ -2,7 +2,7 @@
 
 import { memo } from 'react'
 import { useDraggable } from '@dnd-kit/core'
-import { Pause, Bot, MapPin, Home, Send } from 'lucide-react'
+import { Pause, Bot, MapPin, Home, Send, PhoneCall } from 'lucide-react'
 import { motion } from 'framer-motion'
 import type { Lead } from '@/lib/supabase/types'
 import { formatPhone } from '@/lib/format-phone'
@@ -22,6 +22,7 @@ export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = fals
 
   const displayName = lead.name?.trim() || formatPhone(lead.phone) || 'Lead sem nome'
   const isBeforeAI = lead.antes_ia === true
+  const aceitouConsultor = lead.aceitou_consultor === true
 
   // Placeholder ghost que fica na coluna enquanto o DragOverlay segue o cursor
   if (isDragging) {
@@ -39,7 +40,9 @@ export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = fals
 
   const borderClass = lead.automation_paused
     ? 'border border-gray-100 [border-left:4px_solid_theme(colors.orange.400)]'
-    : 'border border-gray-100'
+    : aceitouConsultor
+      ? 'border border-emerald-200 dark:border-emerald-500/30 [border-left:4px_solid_theme(colors.emerald.400)]'
+      : 'border border-gray-100'
 
   const overlayStyle = isOverlay
     ? {
@@ -75,22 +78,30 @@ export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = fals
       {...(isOverlay ? {} : { ...attributes, ...listeners })}
     >
       <div className="flex flex-col gap-2">
-        {/* Nome + badge pausado */}
+        {/* Nome + badges */}
         <div className="flex items-start justify-between gap-1">
           <span className="font-semibold text-sm text-alliance-dark dark:text-white leading-tight">
             {displayName}
           </span>
-          {isBeforeAI && (
-            <span className="inline-flex items-center gap-0.5 bg-amber-50 text-amber-600 border border-amber-200 text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap">
-              antes da IA
-            </span>
-          )}
-          {lead.automation_paused && (
-            <span className="inline-flex items-center gap-0.5 bg-orange-100 text-orange-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap">
-              <Pause size={9} />
-              pausado
-            </span>
-          )}
+          <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+            {aceitouConsultor && (
+              <span className="inline-flex items-center gap-0.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                <PhoneCall size={8} />
+                quer consultor
+              </span>
+            )}
+            {isBeforeAI && (
+              <span className="inline-flex items-center gap-0.5 bg-amber-50 text-amber-600 border border-amber-200 text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                antes da IA
+              </span>
+            )}
+            {lead.automation_paused && (
+              <span className="inline-flex items-center gap-0.5 bg-orange-100 text-orange-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                <Pause size={9} />
+                pausado
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Detalhes */}

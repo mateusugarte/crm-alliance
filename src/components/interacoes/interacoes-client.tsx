@@ -110,6 +110,7 @@ export function InteracoesClient({ conversations: initialConversations, contacts
       imovel_interesse: lead.imovel_interesse,
       summary: lead.summary,
       interaction_count: lead.interaction_count,
+      aceitou_consultor: lead.aceitou_consultor ?? null,
       created_at: lead.created_at,
     }
     allLeadIdsRef.current.add(lead.id)

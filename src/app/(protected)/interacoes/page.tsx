@@ -67,6 +67,7 @@ async function getLeadsData(): Promise<{
         imovel_interesse: l.imovel_interesse,
         summary: l.summary,
         interaction_count: l.interaction_count,
+        aceitou_consultor: l.aceitou_consultor ?? null,
         created_at: l.created_at,
       }
       if (last) {
@@ -122,6 +123,7 @@ async function getLeadsData(): Promise<{
         imovel_interesse: l.imovel_interesse,
         summary: l.summary,
         interaction_count: l.interaction_count,
+        aceitou_consultor: l.aceitou_consultor ?? null,
         created_at: l.created_at,
         labels: leadLabelsMap[l.id] ?? [],
       }))

@@ -53,6 +53,7 @@ export interface Database {
           antes_ia: boolean | null
           reactivation_count: number
           last_reactivated_at: string | null
+          aceitou_consultor: boolean | null
           created_at: string
           updated_at: string
         }
@@ -80,6 +81,7 @@ export interface Database {
           antes_ia?: boolean | null
           reactivation_count?: number
           last_reactivated_at?: string | null
+          aceitou_consultor?: boolean | null
           created_at?: string
           updated_at?: string
         }
@@ -294,6 +296,25 @@ export interface Database {
         }
         Update: never
       }
+      lead_comments: {
+        Row: {
+          id: string
+          lead_id: string
+          user_id: string
+          user_name: string
+          content: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          lead_id: string
+          user_id: string
+          user_name: string
+          content: string
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['lead_comments']['Insert']>
+      }
       wa_instances: {
         Row: {
           id: string
@@ -349,6 +370,8 @@ export interface Database {
           interval_max: number
           media_url: string | null
           media_type: string | null
+          allowed_hours_start: number
+          allowed_hours_end: number
           created_at: string
         }
         Insert: {
@@ -365,6 +388,8 @@ export interface Database {
           interval_max?: number
           media_url?: string | null
           media_type?: string | null
+          allowed_hours_start?: number
+          allowed_hours_end?: number
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['campaigns']['Insert']>
@@ -406,6 +431,8 @@ export interface Database {
           total_leads: number
           sent_count: number
           failed_count: number
+          allowed_hours_start: number
+          allowed_hours_end: number
           created_at: string
         }
         Insert: {
@@ -419,6 +446,8 @@ export interface Database {
           total_leads?: number
           sent_count?: number
           failed_count?: number
+          allowed_hours_start?: number
+          allowed_hours_end?: number
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['reactivation_campaigns']['Insert']>
@@ -499,3 +528,4 @@ export type Campaign = Database['public']['Tables']['campaigns']['Row']
 export type Dispatch = Database['public']['Tables']['dispatches']['Row']
 export type ReactivationCampaign = Database['public']['Tables']['reactivation_campaigns']['Row']
 export type ReactivationDispatch = Database['public']['Tables']['reactivation_dispatches']['Row']
+export type LeadComment = Database['public']['Tables']['lead_comments']['Row']
