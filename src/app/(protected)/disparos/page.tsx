@@ -8,7 +8,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   RefreshCw, Plus, X, ChevronRight, AlertTriangle, Check,
-  Send, Smartphone, FileText, QrCode, Trash2, Pencil, Sparkles, Users, Shuffle,
+  Send, Smartphone, FileText, QrCode, Trash2, Pencil, Sparkles, Users, Shuffle, Clock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { disparoFetch } from '@/lib/disparo-api'
@@ -777,6 +777,11 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
   const [selectedInstance, setSelectedInstance] = useState<string>('')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+  const [allowedHoursStart, setAllowedHoursStart] = useState(0)
+  const [allowedHoursEnd, setAllowedHoursEnd]     = useState(23)
+
+  // Delete campaign
+  const [deletingCampaignId, setDeletingCampaignId] = useState<string | null>(null)
 
   const leadsByStage = useMemo(() => {
     const map: Record<string, CampaignLeadRow[]> = {}
@@ -832,6 +837,8 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
     setIntervalOption(1)
     setSelectedInstance('')
     setCreateError(null)
+    setAllowedHoursStart(0)
+    setAllowedHoursEnd(23)
     setWizardOpen(true)
     setLeadsLoading(true)
     setTemplatesLoading(true)
@@ -905,6 +912,8 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
           instance_id: selectedInstance,
           interval_min: opt.min,
           interval_max: opt.max,
+          allowed_hours_start: allowedHoursStart,
+          allowed_hours_end: allowedHoursEnd,
           contacts,
         }),
       })
@@ -927,6 +936,16 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
   const canGoStep3 = selectedTemplate !== null
   const canGoStep4 = mixedContacts.length > 0 && mixedContacts.every(c => !!c.message.trim())
   const canCreate  = campaignName.trim().length > 0 && !!selectedInstance
+
+  const handleDeleteCampaign = async (campaignId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setDeletingCampaignId(campaignId)
+    try {
+      const res = await fetch(`/api/campaigns/${campaignId}`, { method: 'DELETE' })
+      if (res.ok) setCampaigns(prev => prev.filter(c => c.id !== campaignId))
+    } catch { /* silent */ }
+    setDeletingCampaignId(null)
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -957,8 +976,8 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                {['Nome', 'Status', 'Total', 'Enviados', 'Falhas', 'Data'].map((h, i) => (
-                  <th key={h} className={cn('px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider', i >= 2 && i <= 4 ? 'text-right' : 'text-left')}>{h}</th>
+                {['Nome', 'Status', 'Total', 'Enviados', 'Falhas', 'Data', ''].map((h, i) => (
+                  <th key={i} className={cn('px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider', i >= 2 && i <= 4 ? 'text-right' : 'text-left')}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -978,6 +997,18 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                   <td className="px-5 py-3.5 text-right text-green-600">{c.sent_count}</td>
                   <td className="px-5 py-3.5 text-right text-red-500">{c.failed_count}</td>
                   <td className="px-5 py-3.5 text-muted-foreground">{format(new Date(c.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</td>
+                  <td className="px-3 py-3.5" onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={e => handleDeleteCampaign(c.id, e)}
+                      disabled={c.status === 'running' || deletingCampaignId === c.id}
+                      title={c.status === 'running' ? 'Pare a campanha antes de excluir' : 'Excluir campanha'}
+                      className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer text-muted-foreground hover:text-red-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      {deletingCampaignId === c.id
+                        ? <RefreshCw size={13} className="animate-spin" />
+                        : <Trash2 size={13} />}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1296,6 +1327,33 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                           </button>
                         ))}
                       </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <Clock size={11} /> Horário permitido para envio
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <select
+                          value={allowedHoursStart}
+                          onChange={e => setAllowedHoursStart(Number(e.target.value))}
+                          className="flex-1 px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-alliance-blue/30"
+                        >
+                          {Array.from({ length: 24 }, (_, h) => (
+                            <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                          ))}
+                        </select>
+                        <span className="text-sm text-muted-foreground flex-shrink-0">até</span>
+                        <select
+                          value={allowedHoursEnd}
+                          onChange={e => setAllowedHoursEnd(Number(e.target.value))}
+                          className="flex-1 px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-alliance-blue/30"
+                        >
+                          {Array.from({ length: 24 }, (_, h) => (
+                            <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                          ))}
+                        </select>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">A campanha só poderá ser iniciada dentro deste intervalo de horas.</p>
                     </div>
                     <div className="flex flex-col gap-2">
                       <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Instância WhatsApp</label>

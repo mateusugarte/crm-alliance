@@ -156,6 +156,7 @@ export function KanbanBoard({ initialLeads, currentUserId }: KanbanBoardProps) {
           setLeads(prev => prev.filter(l => l.id !== leadId))
           setSelectedLeadId(null)
         }}
+        currentUserId={currentUserId}
       />
     </>
   )

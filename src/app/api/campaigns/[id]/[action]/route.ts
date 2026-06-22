@@ -25,11 +25,24 @@ export async function POST(
 
   const { data: campaign } = await service
     .from('campaigns')
-    .select('id, status')
+    .select('id, status, allowed_hours_start, allowed_hours_end')
     .eq('id', campaignId)
     .single()
 
   if (!campaign) return NextResponse.json({ error: 'Campanha não encontrada' }, { status: 404 })
+
+  // Validate allowed hours when starting
+  if (action === 'start') {
+    const c = campaign as { allowed_hours_start: number; allowed_hours_end: number }
+    const nowHour = new Date().getHours()
+    if (nowHour < c.allowed_hours_start || nowHour > c.allowed_hours_end) {
+      return NextResponse.json({
+        error: `Fora do horário permitido. Esta campanha só pode rodar entre ${c.allowed_hours_start}h e ${c.allowed_hours_end}h.`,
+        allowed_hours_start: c.allowed_hours_start,
+        allowed_hours_end: c.allowed_hours_end,
+      }, { status: 422 })
+    }
+  }
 
   const { error } = await service
     .from('campaigns')
