@@ -25,7 +25,7 @@ export const KANBAN_COLUMNS: KanbanColumnConfig[] = [
   { id: 'lead_quente',       label: 'Lead Quente',       color: '#FF4500', icon: Zap },
   { id: 'reuniao_agendada',  label: 'Reunião Agendada',  color: '#228B22', icon: CalendarCheck },
   { id: 'follow_up',         label: 'Follow Up',         color: '#9B59B6', icon: RefreshCw },
-  { id: 'visita_confirmada', label: 'Visita Confirmada', color: '#E67E22', icon: CheckCircle2 },
+  { id: 'visita_confirmada', label: 'Venda Confirmada', color: '#E67E22', icon: CheckCircle2 },
 ]
 
 export interface Label {

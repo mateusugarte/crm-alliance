@@ -123,6 +123,25 @@ export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = fals
         {/* Separator */}
         <div className="border-t border-gray-50 dark:border-white/5" />
 
+        {/* Etiquetas */}
+        {lead.labels && lead.labels.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {lead.labels.map(label => (
+              <span
+                key={label.id}
+                className="inline-flex items-center text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: `${label.color}20`,
+                  color: label.color,
+                  border: `1px solid ${label.color}40`,
+                }}
+              >
+                {label.name}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Badge IA / Consultor + tentativas de disparo */}
         <div className="flex items-center justify-between gap-2">
           <div>

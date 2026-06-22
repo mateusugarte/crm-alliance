@@ -11,12 +11,19 @@ async function getLeadsAndUser(): Promise<{ leads: Lead[]; currentUserId: string
     const supabase = await createClient()
     const [leadsResult, userResult] = await Promise.all([
       supabase.from('leads')
-        .select('*')
+        .select('*, lead_labels(labels(id, name, color))')
         .order('updated_at', { ascending: false }),
       supabase.auth.getUser(),
     ])
+    type RawLead = { lead_labels: Array<{ labels: { id: string; name: string; color: string } | null }> } & Omit<Lead, 'labels'>
+    const leads = ((leadsResult.data ?? []) as unknown as RawLead[]).map(({ lead_labels, ...lead }): Lead => ({
+      ...lead,
+      labels: lead_labels
+        .map(ll => ll.labels)
+        .filter((l): l is { id: string; name: string; color: string } => l !== null),
+    }))
     return {
-      leads: leadsResult.data ?? [],
+      leads,
       currentUserId: userResult.data.user?.id ?? '',
     }
   } catch {

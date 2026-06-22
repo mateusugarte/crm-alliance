@@ -16,6 +16,8 @@ interface CreateCampaignBody {
   instance_id: string
   interval_min?: number
   interval_max?: number
+  allowed_hours_start?: number
+  allowed_hours_end?: number
   phones?: string | string[]   // legado
   contacts?: ContactInput[]    // novo formato
 }
@@ -46,6 +48,8 @@ export async function POST(req: NextRequest) {
     instance_id,
     interval_min = 2,
     interval_max = 5,
+    allowed_hours_start = 0,
+    allowed_hours_end   = 23,
   } = body
 
   if (!name?.trim()) return NextResponse.json({ error: 'name obrigatório' }, { status: 400 })
@@ -78,6 +82,8 @@ export async function POST(req: NextRequest) {
       template_ids,
       interval_min,
       interval_max,
+      allowed_hours_start,
+      allowed_hours_end,
       status:      'draft',
       total_leads: normalizedContacts.length,
     } as never)
@@ -130,6 +136,10 @@ export async function POST(req: NextRequest) {
         .filter((id): id is string => !!id)
 
       await updateDisparoLabels(service, leadIds)
+
+      if (leadIds.length) {
+        await service.from('leads').update({ via_disparo: true } as never).in('id', leadIds)
+      }
     }
   } catch { /* non-critical — label update failure must not break campaign creation */ }
 

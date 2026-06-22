@@ -18,6 +18,7 @@ import type { Lead } from '@/lib/supabase/types'
 import type { Label, Interaction, LeadFull } from './types'
 import { LabelsSection } from './lead-labels-section'
 import { LeadChatSection } from './lead-chat-section'
+import { LeadCommentsSection } from '@/components/shared/lead-comments-section'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -28,7 +29,7 @@ const STAGE_LABELS: Record<Lead['stage'], string> = {
   lead_quente: 'Lead Quente',
   follow_up: 'Follow Up',
   reuniao_agendada: 'Reunião Agendada',
-  visita_confirmada: 'Visita Confirmada',
+  visita_confirmada: 'Venda Confirmada',
   cliente: 'Cliente',
 }
 
@@ -74,6 +75,7 @@ interface LeadDetailModalProps {
   onTogglePause?: () => void
   onLeadUpdated?: (updatedLead: Lead) => void
   onLeadDeleted?: (leadId: string) => void
+  currentUserId: string
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -86,6 +88,7 @@ export function LeadDetailModal({
   onTogglePause,
   onLeadUpdated,
   onLeadDeleted,
+  currentUserId,
 }: LeadDetailModalProps) {
   const [assumeLoading, setAssumeLoading] = useState(false)
   const [pauseLoading, setPauseLoading] = useState(false)
@@ -535,6 +538,17 @@ export function LeadDetailModal({
                   displayName={displayName}
                   onNewMessageChange={setNewMessage}
                   onSend={handleSendMessage}
+                />
+              </section>
+
+              <div className="border-t border-gray-100" />
+
+              {/* Comentários internos */}
+              <section>
+                <SectionTitle>Comentários internos</SectionTitle>
+                <LeadCommentsSection
+                  leadId={displayLead.id}
+                  currentUserId={currentUserId}
                 />
               </section>
 

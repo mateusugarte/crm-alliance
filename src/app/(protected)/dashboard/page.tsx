@@ -221,7 +221,7 @@ async function getPipelineDistribution(): Promise<PipelineStage[]> {
       { key: 'lead_quente',       label: 'Lead Quente',   color: '#FF4500' },
       { key: 'follow_up',         label: 'Follow-up',     color: '#9B59B6' },
       { key: 'reuniao_agendada',  label: 'Reunião',       color: '#228B22' },
-      { key: 'visita_confirmada', label: 'Visita',        color: '#E67E22' },
+      { key: 'visita_confirmada', label: 'Venda',         color: '#E67E22' },
       { key: 'cliente',           label: 'Cliente',       color: '#2ECC71' },
     ]
 

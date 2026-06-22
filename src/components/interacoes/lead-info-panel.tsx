@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, MapPin, Home, Zap, PauseCircle, User, Calendar, MessageSquare, Pencil, Check, UserCheck } from 'lucide-react'
+import { LeadCommentsSection } from '@/components/shared/lead-comments-section'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -16,7 +17,7 @@ const STAGE_LABELS: Record<string, string> = {
   lead_quente: 'Lead Quente',
   follow_up: 'Follow Up',
   reuniao_agendada: 'Reunião Agendada',
-  visita_confirmada: 'Visita Confirmada',
+  visita_confirmada: 'Venda Confirmada',
   cliente: 'Cliente',
 }
 const STAGE_COLORS: Record<string, string> = {
@@ -259,6 +260,18 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
                   <p className="text-xs text-gray-600 dark:text-white/55 leading-relaxed">{lead.summary}</p>
                 </div>
               )}
+
+              {/* Comentários internos */}
+              <div className="h-px bg-gray-100 dark:bg-white/5" />
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 dark:text-white/30 uppercase tracking-wider mb-2">
+                  Comentários internos
+                </p>
+                <LeadCommentsSection
+                  leadId={lead.id}
+                  currentUserId={currentUserId}
+                />
+              </div>
             </div>
 
             {/* Footer — Assumir */}
