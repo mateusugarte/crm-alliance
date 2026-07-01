@@ -262,17 +262,34 @@ export function LeadDetailModal({
     if (!text || sendingMessage || !lead) return
     setSendingMessage(true)
     try {
-      const res = await fetch(`/api/leads/${lead.id}/interactions`, {
+      // Envia de fato no WhatsApp via Meta API
+      const res = await fetch(`/api/leads/${lead.id}/send-message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: text }),
       })
-      if (!res.ok) throw new Error()
-      const json = await res.json() as { data: Interaction }
-      setInteractions(prev => [...prev, json.data])
+      if (!res.ok) {
+        if (res.status === 403) {
+          toast.error('Pause a IA deste lead antes de enviar uma mensagem manual.')
+        } else {
+          toast.error('Erro ao enviar mensagem no WhatsApp')
+        }
+        return
+      }
+      const json = await res.json() as { data: { wa_message_id?: string | null } }
+      const optimistic: Interaction = {
+        id: crypto.randomUUID(),
+        direction: 'outbound',
+        sender_type: 'corretor',
+        sender_name: null,
+        content: text,
+        wa_message_id: json.data?.wa_message_id ?? null,
+        created_at: new Date().toISOString(),
+      }
+      setInteractions(prev => [...prev, optimistic])
       setNewMessage('')
     } catch {
-      toast.error('Erro ao enviar mensagem')
+      toast.error('Erro ao enviar mensagem no WhatsApp')
     } finally {
       setSendingMessage(false)
     }

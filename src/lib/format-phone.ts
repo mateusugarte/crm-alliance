@@ -14,3 +14,13 @@ export function formatPhone(raw: string): string {
   }
   return digits
 }
+
+/**
+ * Normaliza um telefone para o formato exigido pela Meta Cloud API:
+ * apenas dígitos, com código do país, sem espaços nem sufixo @s.whatsapp.net.
+ * Ex: "55 11994800080" → "5511994800080"
+ * Ex: "5511994800080@s.whatsapp.net" → "5511994800080"
+ */
+export function toWhatsAppNumber(raw: string): string {
+  return raw.split('@')[0].replace(/\D/g, '')
+}

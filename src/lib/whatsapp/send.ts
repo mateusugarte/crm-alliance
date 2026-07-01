@@ -1,4 +1,4 @@
-const BASE_URL = 'https://graph.facebook.com/v21.0'
+const BASE_URL = process.env.UAZAPI_BASE_URL
 
 interface SendTextResult {
   success: boolean
@@ -6,72 +6,26 @@ interface SendTextResult {
   error?: string
 }
 
-export async function sendTextMessage(to: string, body: string): Promise<SendTextResult> {
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID
-
-  if (!accessToken || !phoneNumberId) {
-    return { success: false, error: 'WhatsApp credentials not configured' }
-  }
-
-  const res = await fetch(`${BASE_URL}/${phoneNumberId}/messages`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      to,
-      type: 'text',
-      text: { body },
-    }),
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    return { success: false, error: err }
-  }
-
-  const data = await res.json() as { messages?: { id: string }[] }
-  return { success: true, wa_message_id: data.messages?.[0]?.id }
-}
-
-interface SendTemplateResult {
-  success: boolean
-  wa_message_id?: string
-  error?: string
-}
-
-export async function sendTemplateMessage(
+/**
+ * Envia mensagem de texto via UazAPI.
+ * `instanceToken` é o token da instância conectada (armazenado em wa_instances.instance_id).
+ */
+export async function sendTextMessage(
+  instanceToken: string,
   to: string,
-  templateName: string,
-  languageCode: string,
-  components?: unknown[]
-): Promise<SendTemplateResult> {
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID
-
-  if (!accessToken || !phoneNumberId) {
-    return { success: false, error: 'WhatsApp credentials not configured' }
+  text: string
+): Promise<SendTextResult> {
+  if (!BASE_URL) {
+    return { success: false, error: 'UAZAPI_BASE_URL not configured' }
   }
 
-  const res = await fetch(`${BASE_URL}/${phoneNumberId}/messages`, {
+  const res = await fetch(`${BASE_URL}/send/text`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
+      token: instanceToken,
     },
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      to,
-      type: 'template',
-      template: {
-        name: templateName,
-        language: { code: languageCode },
-        ...(components ? { components } : {}),
-      },
-    }),
+    body: JSON.stringify({ number: to, text }),
   })
 
   if (!res.ok) {
@@ -79,6 +33,6 @@ export async function sendTemplateMessage(
     return { success: false, error: err }
   }
 
-  const data = await res.json() as { messages?: { id: string }[] }
-  return { success: true, wa_message_id: data.messages?.[0]?.id }
+  const data = await res.json() as { id?: string; messageid?: string; key?: { id?: string } }
+  return { success: true, wa_message_id: data.id ?? data.messageid ?? data.key?.id }
 }

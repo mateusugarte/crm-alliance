@@ -85,7 +85,7 @@ export function ImovelCard({
               {imovel.disponivel ? 'Disponível' : 'Reservado'}
             </span>
 
-            {isAdm && (
+            {(isAdm || onToggle) && (
               <div ref={menuRef} className="relative">
                 <button
                   onClick={() => setMenuOpen(v => !v)}
@@ -111,7 +111,7 @@ export function ImovelCard({
                         {imovel.disponivel ? 'Marcar Reservado' : 'Marcar Disponível'}
                       </button>
                     )}
-                    {onRegistrarVenda && (
+                    {isAdm && onRegistrarVenda && (
                       <button
                         onClick={() => { onRegistrarVenda(imovel); setMenuOpen(false) }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-alliance-dark hover:bg-gray-50 transition-colors cursor-pointer text-left"
@@ -120,7 +120,7 @@ export function ImovelCard({
                         Registrar venda
                       </button>
                     )}
-                    {onEdit && (
+                    {isAdm && onEdit && (
                       <button
                         onClick={() => { onEdit(imovel); setMenuOpen(false) }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer text-left"
@@ -129,7 +129,7 @@ export function ImovelCard({
                         Editar
                       </button>
                     )}
-                    {onDelete && (
+                    {isAdm && onDelete && (
                       <>
                         <div className="h-px bg-gray-100 my-1" />
                         <button
