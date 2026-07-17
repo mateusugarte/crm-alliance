@@ -1,4 +1,5 @@
-const BASE_URL = process.env.UAZAPI_BASE_URL
+// Fallback para o endpoint real da UazAPI usado em produção — pode ser sobrescrito por env var.
+const BASE_URL = process.env.UAZAPI_BASE_URL || 'https://getmore.uazapi.com'
 
 interface SendTextResult {
   success: boolean
@@ -15,13 +16,10 @@ export async function sendTextMessage(
   to: string,
   text: string
 ): Promise<SendTextResult> {
-  if (!BASE_URL) {
-    return { success: false, error: 'UAZAPI_BASE_URL not configured' }
-  }
-
   const res = await fetch(`${BASE_URL}/send/text`, {
     method: 'POST',
     headers: {
+      Accept: 'application/json',
       'Content-Type': 'application/json',
       token: instanceToken,
     },
@@ -30,7 +28,7 @@ export async function sendTextMessage(
 
   if (!res.ok) {
     const err = await res.text()
-    return { success: false, error: err }
+    return { success: false, error: `${res.status} ${res.statusText}: ${err}` }
   }
 
   const data = await res.json() as { id?: string; messageid?: string; key?: { id?: string } }

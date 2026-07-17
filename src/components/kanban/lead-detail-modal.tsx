@@ -262,7 +262,7 @@ export function LeadDetailModal({
     if (!text || sendingMessage || !lead) return
     setSendingMessage(true)
     try {
-      // Envia de fato no WhatsApp via Meta API
+      // Envia de fato no WhatsApp via UazAPI
       const res = await fetch(`/api/leads/${lead.id}/send-message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -272,7 +272,10 @@ export function LeadDetailModal({
         if (res.status === 403) {
           toast.error('Pause a IA deste lead antes de enviar uma mensagem manual.')
         } else {
-          toast.error('Erro ao enviar mensagem no WhatsApp')
+          const json = await res.json().catch(() => null) as { error?: string; detail?: string } | null
+          toast.error(json?.error ?? 'Erro ao enviar mensagem no WhatsApp', {
+            description: json?.detail,
+          })
         }
         return
       }

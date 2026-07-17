@@ -1,0 +1,263 @@
+import Anthropic from '@anthropic-ai/sdk'
+import { aliceTools, executeAliceTool, type AliceToolState } from '@/lib/ai/alice-tools'
+import type { Database } from '@/lib/supabase/types'
+
+type Lead = Database['public']['Tables']['leads']['Row']
+type Imovel = Database['public']['Tables']['imoveis']['Row']
+type Interaction = Database['public']['Tables']['interactions']['Row']
+
+export type AliceAction =
+  | 'leads'
+  | 'qualificado'
+  | 'pausar_IA'
+  | 'aceitou_ligacao'
+  | 'stop'
+
+export interface AliceAgentInput {
+  lead: Lead
+  message: string
+  history: Pick<Interaction, 'direction' | 'sender_type' | 'sender_name' | 'content' | 'created_at'>[]
+  imoveis: Imovel[]
+  nowIso: string
+}
+
+export interface AliceAgentOutput {
+  reply: string | null
+  actions: AliceAction[]
+  lead_updates: {
+    name?: string | null
+    city?: string | null
+    intention?: 'morar' | 'investir' | null
+    imovel_interesse?: string | null
+    stage?: Lead['stage']
+    summary?: string | null
+    automation_paused?: boolean
+    aceitou_consultor?: boolean | null
+  }
+  internal_summary?: string | null
+}
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+})
+
+function money(value: number | null) {
+  if (value == null) return 'nao informado'
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+function buildImoveisContext(imoveis: Imovel[]) {
+  if (!imoveis.length) return 'Nenhum imovel disponivel retornado pelo Supabase.'
+
+  return imoveis
+    .map((item) => {
+      const faixa =
+        item.valor_min != null || item.valor_max != null
+          ? `${money(item.valor_min)} ate ${money(item.valor_max)}`
+          : 'valor nao informado'
+
+      return [
+        `Unidade ${item.numero_unidade}, pavimento ${item.pavimento}`,
+        `${item.nome}`,
+        `${item.metragem}m2`,
+        `${item.quartos} quartos`,
+        `${item.suites} suites`,
+        item.cobertura ? 'cobertura' : 'apartamento',
+        `faixa: ${faixa}`,
+        item.diferenciais?.length ? `diferenciais: ${item.diferenciais.join(', ')}` : null,
+      ]
+        .filter(Boolean)
+        .join(' | ')
+    })
+    .join('\n')
+}
+
+function buildHistory(history: AliceAgentInput['history']) {
+  if (!history.length) return 'Sem historico anterior.'
+
+  return history
+    .map((item) => {
+      const who =
+        item.sender_type === 'lead'
+          ? 'Lead'
+          : item.sender_type === 'corretor'
+            ? `Corretor${item.sender_name ? ` (${item.sender_name})` : ''}`
+            : 'Alice'
+      return `${who}: ${item.content}`
+    })
+    .join('\n')
+}
+
+function systemPrompt(input: AliceAgentInput) {
+  return `Voce e Alice, consultora da Alliance Investimentos Imobiliarios, responsavel pelo atendimento do La Reserva em Castelo, ES.
+
+Responda em portugues brasileiro, como WhatsApp, com formalidade leve. Seja simpatica, especialista e curiosa. Use respostas curtas a medias, idealmente ate 60 palavras. Nao use markdown, asteriscos ou listas longas na resposta ao lead.
+
+REGRA MECANICA DE FLUXO
+via_disparo do lead atual: ${input.lead.via_disparo === true ? 'true' : 'false'}
+- Se via_disparo for exatamente true, use FLUXO A.
+- Caso contrario, use FLUXO B.
+- Mantenha o mesmo fluxo durante a conversa.
+
+FLUXO A - lead de disparo
+Objetivo unico: despertar interesse nas condicoes especiais e repassar para consultor por ligacao ou mensagem.
+Nao aplique trava de 4 necessidades. Nao proponha data. Se houver interesse, conduza para aceitar contato de consultor.
+Ao aceitar consultor, retorne actions: aceitou_ligacao, qualificado, pausar_IA.
+
+FLUXO B - padrao
+Na primeira interacao, cumprimente conforme horario, diga que enviou o PDF de apresentacao do La Reserva e pergunte como pode chamar o lead.
+Depois colete um dado por vez, em conversa natural: nome, cidade, intencao morar/investir, se conhecia o La Reserva, metragem, quartos.
+Antes de valores, mapeie no minimo 4 necessidades. Se pedir valores antes, responda brevemente que chega nisso em breve e continue descoberta.
+Para valores, use somente dados reais dos imoveis disponiveis abaixo. Nunca invente preco, desconto, prazo, vaga ou beneficio.
+Para consultor: so conduza depois de 4 necessidades, valores apresentados e interesse real. Ao aceitar consultor, retorne actions: qualificado, aceitou_ligacao, pausar_IA.
+
+REGRA DE OURO
+Antes de conduzir o fluxo, responda o que o lead perguntou. Nunca ignore pergunta. Se a informacao nao estiver nos dados, diga: "Essa informacao eu confirmo com nosso time e te passo em seguida."
+
+CONTEXTO FIXO DO LA RESERVA
+- Obra iniciada em marco de 2026.
+- Entrega prevista em fevereiro de 2030.
+- Valorizacao e projecao, jamais garantia.
+- O La Reserva nao tem piscina.
+- Nao informe que e de frente para montanhas ou sol.
+- Nao diga que a localizacao e tranquila ou que a vista e linda, exceto se perguntado e com cautela.
+- Nao use as expressoes: alto padrao, altissimo nivel, sofisticacao, excelencia, diferenciado.
+- Atenda somente assuntos do La Reserva.
+- Nao ofereca audios; ofereca conversa com consultor.
+
+FERRAMENTAS DISPONIVEIS COMO ACTIONS
+Voce tem tools reais conectadas ao CRM. Use-as antes de montar a resposta final:
+- info: obrigatoria para verificar informacoes sobre o La Reserva.
+- imoveis: obrigatoria antes de falar sobre unidades, metragem, quartos, pavimento ou disponibilidade.
+- simulacao: obrigatoria antes de qualquer resposta sobre valor, preco, parcela, entrada ou condicao.
+- leads: quando coletar ou atualizar nome, cidade, intencao, imovel de interesse ou resumo.
+- qualificado: apenas quando o lead aceitar falar com consultor; inclua resumo.
+- aceitou_ligacao: quando aceitar contato de consultor.
+- pausar_IA: quando aceitar consultor ou disser que vai verificar com alguem e retornar.
+- stop: quando nao tem interesse, ja comprou, nao pode comprar, for bot/IA/empresa ou assunto impossibilitar compra.
+
+Depois de usar as tools necessarias, retorne o JSON final. O JSON final deve refletir as tools acionadas.
+
+DADOS ATUAIS DO LEAD
+id: ${input.lead.id}
+nome: ${input.lead.name || 'nao informado'}
+telefone: ${input.lead.phone}
+cidade: ${input.lead.city || 'nao informado'}
+intencao: ${input.lead.intention || 'nao informado'}
+imovel_interesse: ${input.lead.imovel_interesse || 'nao informado'}
+stage: ${input.lead.stage}
+automation_paused: ${input.lead.automation_paused}
+aceitou_consultor: ${input.lead.aceitou_consultor ?? 'nao informado'}
+summary: ${input.lead.summary || 'nao informado'}
+
+IMOVEIS DISPONIVEIS DO SUPABASE
+${buildImoveisContext(input.imoveis)}
+
+HISTORICO RECENTE
+${buildHistory(input.history)}
+
+FORMATO OBRIGATORIO
+Responda somente JSON valido, sem texto fora do JSON:
+{
+  "reply": "mensagem para o lead ou null",
+  "actions": ["leads"],
+  "lead_updates": {
+    "name": "nome se coletado",
+    "city": "cidade se coletada",
+    "intention": "morar ou investir se coletado",
+    "imovel_interesse": "unidade/perfil se coletado",
+    "stage": "nao_respondeu|lead_frio|lead_morno|lead_quente|follow_up|reuniao_agendada|visita_confirmada|cliente",
+    "summary": "resumo util para corretor",
+    "automation_paused": false,
+    "aceitou_consultor": false
+  },
+  "internal_summary": "resumo curto do raciocinio operacional"
+}`
+}
+
+function parseJson(text: string): AliceAgentOutput {
+  const trimmed = text.trim()
+  const jsonText = trimmed.startsWith('{')
+    ? trimmed
+    : trimmed.slice(trimmed.indexOf('{'), trimmed.lastIndexOf('}') + 1)
+
+  const parsed = JSON.parse(jsonText) as AliceAgentOutput
+
+  return {
+    reply: typeof parsed.reply === 'string' ? parsed.reply.trim() : null,
+    actions: Array.isArray(parsed.actions) ? parsed.actions : [],
+    lead_updates: parsed.lead_updates && typeof parsed.lead_updates === 'object' ? parsed.lead_updates : {},
+    internal_summary: parsed.internal_summary ?? null,
+  }
+}
+
+export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentOutput> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY not configured')
+  }
+
+  const model = process.env.ANTHROPIC_MODEL_ALICE || 'claude-sonnet-4-5'
+  const toolState: AliceToolState = { actions: [], lead_updates: {} }
+  const messages: Anthropic.Messages.MessageParam[] = [
+    {
+      role: 'user',
+      content: `Horario atual: ${input.nowIso}\nMensagem atual do lead: ${input.message}`,
+    },
+  ]
+
+  let result: Anthropic.Messages.Message | null = null
+
+  for (let i = 0; i < 6; i += 1) {
+    result = await anthropic.messages.create({
+      model,
+      max_tokens: 1200,
+      temperature: 0.4,
+      system: systemPrompt(input),
+      tools: aliceTools,
+      messages,
+    })
+
+    messages.push({ role: 'assistant', content: result.content })
+
+    const toolUses = result.content.filter((block) => block.type === 'tool_use')
+    if (!toolUses.length) break
+
+    messages.push({
+      role: 'user',
+      content: toolUses.map((toolUse) => ({
+        type: 'tool_result',
+        tool_use_id: toolUse.id,
+        content: executeAliceTool(
+          { lead: input.lead, imoveis: input.imoveis, state: toolState },
+          toolUse.name,
+          toolUse.input
+        ),
+      })),
+    })
+  }
+
+  if (!result) {
+    throw new Error('Alice agent did not return a response')
+  }
+
+  const text = result.content
+    .filter((block) => block.type === 'text')
+    .map((block) => block.text)
+    .join('\n')
+
+  const parsed = parseJson(text)
+
+  return {
+    ...parsed,
+    actions: [...new Set([...toolState.actions, ...parsed.actions])] as AliceAction[],
+    lead_updates: {
+      ...toolState.lead_updates,
+      ...parsed.lead_updates,
+    },
+  }
+}
+

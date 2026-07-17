@@ -16,7 +16,7 @@ export function formatPhone(raw: string): string {
 }
 
 /**
- * Normaliza um telefone para o formato exigido pela Meta Cloud API:
+ * Normaliza um telefone para o formato exigido pela UazAPI ("number"):
  * apenas dígitos, com código do país, sem espaços nem sufixo @s.whatsapp.net.
  * Ex: "55 11994800080" → "5511994800080"
  * Ex: "5511994800080@s.whatsapp.net" → "5511994800080"

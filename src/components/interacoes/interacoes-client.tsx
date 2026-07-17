@@ -154,7 +154,14 @@ export function InteracoesClient({ conversations: initialConversations, contacts
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: text }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const json = await res.json().catch(() => null) as { error?: string; detail?: string } | null
+        setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
+        toast.error(json?.error ?? 'Erro ao enviar mensagem no WhatsApp', {
+          description: json?.detail,
+        })
+        return
+      }
     } catch {
       setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
       toast.error('Erro ao enviar mensagem. Tente novamente.')

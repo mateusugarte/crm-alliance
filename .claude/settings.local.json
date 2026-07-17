@@ -1,6 +1,4 @@
 {
-  "autoMemoryEnabled": true,
-  "autoMemoryDirectory": "C:\\Users\\User\\Documents\\Obsidian Vault\\CRM Alliance\\claude-memory",
   "permissions": {
     "allow": [
       "Bash(*)",
@@ -10,5 +8,10 @@
       "Glob(**)",
       "Grep(**)"
     ]
-  }
+  },
+  "autoMemoryEnabled": true,
+  "autoMemoryDirectory": "C:\\Users\\User\\Documents\\Obsidian Vault\\CRM Alliance\\claude-memory",
+  "disabledMcpjsonServers": [
+    "obsidian"
+  ]
 }
