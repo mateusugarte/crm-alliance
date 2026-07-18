@@ -1,4 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk'
+import type OpenAI from 'openai'
+import { getOpenAI, CHAT_MODEL } from './openai-client'
 import { aliceTools, executeAliceTool, type AliceToolState } from '@/lib/ai/alice-tools'
 import type { Database } from '@/lib/supabase/types'
 
@@ -36,10 +37,6 @@ export interface AliceAgentOutput {
   }
   internal_summary?: string | null
 }
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-})
 
 function money(value: number | null) {
   if (value == null) return 'nao informado'
@@ -102,6 +99,7 @@ via_disparo do lead atual: ${input.lead.via_disparo === true ? 'true' : 'false'}
 - Se via_disparo for exatamente true, use FLUXO A.
 - Caso contrario, use FLUXO B.
 - Mantenha o mesmo fluxo durante a conversa.
+- Essa determinacao e so para seu raciocinio interno. Nunca escreva "via_disparo", "FLUXO A" ou "FLUXO B" na mensagem enviada ao lead.
 
 FLUXO A - lead de disparo
 Objetivo unico: despertar interesse nas condicoes especiais e repassar para consultor por ligacao ou mensagem.
@@ -112,7 +110,7 @@ FLUXO B - padrao
 Na primeira interacao, cumprimente conforme horario, diga que enviou o PDF de apresentacao do La Reserva e pergunte como pode chamar o lead.
 Depois colete um dado por vez, em conversa natural: nome, cidade, intencao morar/investir, se conhecia o La Reserva, metragem, quartos.
 Antes de valores, mapeie no minimo 4 necessidades. Se pedir valores antes, responda brevemente que chega nisso em breve e continue descoberta.
-Para valores, use somente dados reais dos imoveis disponiveis abaixo. Nunca invente preco, desconto, prazo, vaga ou beneficio.
+Para valores, use somente dados reais dos imoveis disponiveis e da tool simulacao. Nunca invente preco, desconto, prazo, vaga ou beneficio.
 Para consultor: so conduza depois de 4 necessidades, valores apresentados e interesse real. Ao aceitar consultor, retorne actions: qualificado, aceitou_ligacao, pausar_IA.
 
 REGRA DE OURO
@@ -131,9 +129,9 @@ CONTEXTO FIXO DO LA RESERVA
 
 FERRAMENTAS DISPONIVEIS COMO ACTIONS
 Voce tem tools reais conectadas ao CRM. Use-as antes de montar a resposta final:
-- info: obrigatoria para verificar informacoes sobre o La Reserva.
+- info: obrigatoria para verificar informacoes sobre o La Reserva (busca semantica na base de conhecimento real).
 - imoveis: obrigatoria antes de falar sobre unidades, metragem, quartos, pavimento ou disponibilidade.
-- simulacao: obrigatoria antes de qualquer resposta sobre valor, preco, parcela, entrada ou condicao.
+- simulacao: obrigatoria antes de qualquer resposta sobre valor, preco, parcela, entrada ou condicao (busca as condicoes reais de pagamento + valores das unidades).
 - leads: quando coletar ou atualizar nome, cidade, intencao, imovel de interesse ou resumo.
 - qualificado: apenas quando o lead aceitar falar com consultor; inclua resumo.
 - aceitou_ligacao: quando aceitar contato de consultor.
@@ -161,7 +159,7 @@ HISTORICO RECENTE
 ${buildHistory(input.history)}
 
 FORMATO OBRIGATORIO
-Responda somente JSON valido, sem texto fora do JSON:
+Depois de usar as tools necessarias, sua ULTIMA mensagem de texto (sem tool call) deve ser somente JSON valido, sem texto fora do JSON:
 {
   "reply": "mensagem para o lead ou null",
   "actions": ["leads"],
@@ -196,60 +194,62 @@ function parseJson(text: string): AliceAgentOutput {
 }
 
 export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentOutput> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY not configured')
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured')
   }
 
-  const model = process.env.ANTHROPIC_MODEL_ALICE || 'claude-sonnet-4-5'
+  const openai = getOpenAI()
   const toolState: AliceToolState = { actions: [], lead_updates: {} }
-  const messages: Anthropic.Messages.MessageParam[] = [
-    {
-      role: 'user',
-      content: `Horario atual: ${input.nowIso}\nMensagem atual do lead: ${input.message}`,
-    },
+
+  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    { role: 'system', content: systemPrompt(input) },
+    { role: 'user', content: `Horario atual: ${input.nowIso}\nMensagem atual do lead: ${input.message}` },
   ]
 
-  let result: Anthropic.Messages.Message | null = null
+  let result: OpenAI.Chat.Completions.ChatCompletionMessage | null = null
 
   for (let i = 0; i < 6; i += 1) {
-    result = await anthropic.messages.create({
-      model,
-      max_tokens: 1200,
+    const response = await openai.chat.completions.create({
+      model: CHAT_MODEL,
       temperature: 0.4,
-      system: systemPrompt(input),
+      max_tokens: 1200,
       tools: aliceTools,
       messages,
     })
 
-    messages.push({ role: 'assistant', content: result.content })
+    result = response.choices[0].message
+    messages.push(result)
 
-    const toolUses = result.content.filter((block) => block.type === 'tool_use')
-    if (!toolUses.length) break
+    const toolCalls = result.tool_calls?.filter((call) => call.type === 'function') ?? []
+    if (!toolCalls.length) break
 
-    messages.push({
-      role: 'user',
-      content: toolUses.map((toolUse) => ({
-        type: 'tool_result',
-        tool_use_id: toolUse.id,
-        content: executeAliceTool(
-          { lead: input.lead, imoveis: input.imoveis, state: toolState },
-          toolUse.name,
-          toolUse.input
-        ),
-      })),
-    })
+    for (const call of toolCalls) {
+      let parsedArgs: unknown = {}
+      try {
+        parsedArgs = JSON.parse(call.function.arguments || '{}')
+      } catch {
+        parsedArgs = {}
+      }
+
+      const toolResult = await executeAliceTool(
+        { lead: input.lead, imoveis: input.imoveis, state: toolState },
+        call.function.name,
+        parsedArgs
+      )
+
+      messages.push({
+        role: 'tool',
+        tool_call_id: call.id,
+        content: toolResult,
+      })
+    }
   }
 
   if (!result) {
     throw new Error('Alice agent did not return a response')
   }
 
-  const text = result.content
-    .filter((block) => block.type === 'text')
-    .map((block) => block.text)
-    .join('\n')
-
-  const parsed = parseJson(text)
+  const parsed = parseJson(result.content ?? '')
 
   return {
     ...parsed,
@@ -260,4 +260,3 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
     },
   }
 }
-

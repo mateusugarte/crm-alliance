@@ -33,7 +33,8 @@ export async function middleware(request: NextRequest) {
   const isPublic =
     pathname === '/' ||
     pathname === '/login' ||
-    pathname.startsWith('/api/webhooks/')
+    pathname.startsWith('/api/webhooks/') ||
+    pathname.startsWith('/api/n8n-agent/')
 
   if (!isPublic && !user) {
     const url = request.nextUrl.clone()
