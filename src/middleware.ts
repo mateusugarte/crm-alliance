@@ -2,6 +2,19 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // Webhooks e a rota do agente n8n se autenticam com secret próprio no header,
+  // não com cookie de sessão — não precisam (e não devem depender) do Supabase Auth aqui.
+  const skipsAuth =
+    pathname === '/' ||
+    pathname.startsWith('/api/webhooks/') ||
+    pathname.startsWith('/api/n8n-agent/')
+
+  if (skipsAuth) {
+    return NextResponse.next()
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -27,16 +40,7 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { pathname } = request.nextUrl
-
-  // Rotas públicas — sem autenticação necessária
-  const isPublic =
-    pathname === '/' ||
-    pathname === '/login' ||
-    pathname.startsWith('/api/webhooks/') ||
-    pathname.startsWith('/api/n8n-agent/')
-
-  if (!isPublic && !user) {
+  if (pathname !== '/login' && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
