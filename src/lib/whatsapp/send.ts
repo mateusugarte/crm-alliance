@@ -10,12 +10,17 @@ interface SendTextResult {
 /**
  * Envia mensagem de texto via UazAPI.
  * `instanceToken` é o token da instância conectada (armazenado em wa_instances.instance_id).
+ * `delayMs`, quando informado, pede à UazAPI para simular "digitando..." antes de entregar.
  */
 export async function sendTextMessage(
   instanceToken: string,
   to: string,
-  text: string
+  text: string,
+  delayMs?: number
 ): Promise<SendTextResult> {
+  const body: { number: string; text: string; delay?: number } = { number: to, text }
+  if (delayMs !== undefined) body.delay = delayMs
+
   const res = await fetch(`${BASE_URL}/send/text`, {
     method: 'POST',
     headers: {
@@ -23,7 +28,7 @@ export async function sendTextMessage(
       'Content-Type': 'application/json',
       token: instanceToken,
     },
-    body: JSON.stringify({ number: to, text }),
+    body: JSON.stringify(body),
   })
 
   if (!res.ok) {

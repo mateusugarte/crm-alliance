@@ -21,7 +21,8 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 RUN npm run build
 
-# 3. Production image, copy all the files and run next
+# 3. Production image — instala apenas dependências de produção e roda o
+#    server.js customizado (Next.js + Socket.io + motor de disparo no mesmo processo)
 FROM base AS runner
 WORKDIR /app
 
@@ -30,13 +31,15 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev
+
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/next.config.ts ./next.config.ts
+COPY --from=builder /app/server.js ./server.js
 
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
-
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+RUN chown -R nextjs:nodejs .next public
 
 USER nextjs
 
