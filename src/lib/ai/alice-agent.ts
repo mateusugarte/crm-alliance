@@ -42,9 +42,6 @@ export interface AliceAgentOutput {
   send_pdf?: boolean
 }
 
-export const ALICE_FALLBACK_REPLY =
-  'Desculpa, tive uma instabilidade rapida aqui do meu lado. Pode repetir sua ultima mensagem, por favor?'
-
 function money(value: number | null) {
   if (value == null) return 'nao informado'
   return new Intl.NumberFormat('pt-BR', {
@@ -237,7 +234,6 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
     const response = await openai.chat.completions.create({
       model: CHAT_MODEL,
       temperature: 0.4,
-      max_tokens: 1200,
       tools: aliceTools,
       messages,
     })
@@ -278,7 +274,6 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
     const forced = await openai.chat.completions.create({
       model: CHAT_MODEL,
       temperature: 0.4,
-      max_tokens: 1200,
       tool_choice: 'none',
       messages: [
         ...messages,
@@ -288,17 +283,46 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
     result = forced.choices[0].message
   }
 
-  let parsed: AliceAgentOutput
-  try {
-    parsed = parseJson(result.content ?? '')
-  } catch (err) {
-    console.error('[alice-agent] failed to parse model output, using fallback reply', err, result.content)
-    parsed = { reply: ALICE_FALLBACK_REPLY, actions: [], lead_updates: {} }
+  const MAX_JSON_ATTEMPTS = 6
+  let parsed: AliceAgentOutput | null = null
+  let silentFailure = false
+
+  for (let attempt = 1; attempt <= MAX_JSON_ATTEMPTS; attempt += 1) {
+    try {
+      parsed = parseJson(result.content ?? '')
+      break
+    } catch (err) {
+      console.error(`[alice-agent] failed to parse model output (attempt ${attempt}/${MAX_JSON_ATTEMPTS})`, err, result.content)
+
+      if (attempt === MAX_JSON_ATTEMPTS) {
+        console.error('[alice-agent] exhausted all attempts, staying silent')
+        parsed = { reply: null, actions: [], lead_updates: {} }
+        silentFailure = true
+        break
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 5000))
+
+      const retry = await openai.chat.completions.create({
+        model: CHAT_MODEL,
+        temperature: 0.4,
+        tool_choice: 'none',
+        messages: [
+          ...messages,
+          { role: 'user', content: 'Responda agora apenas com o JSON final, sem novas tool calls.' },
+        ],
+      })
+      result = retry.choices[0].message
+    }
   }
 
-  const firstPdfSend = !input.lead.pdf_enviado
+  if (!parsed) {
+    throw new Error('Alice agent did not produce a parsed output')
+  }
+
+  const firstPdfSend = !input.lead.pdf_enviado && !silentFailure
   const allActions = [...new Set([...toolState.actions, ...parsed.actions])] as AliceAction[]
-  const sendPdf = firstPdfSend || allActions.includes('reenviar_pdf')
+  const sendPdf = !silentFailure && (firstPdfSend || allActions.includes('reenviar_pdf'))
 
   return {
     ...parsed,

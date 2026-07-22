@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { runAliceAgent, ALICE_FALLBACK_REPLY } from '@/lib/ai/alice-agent'
+import { runAliceAgent } from '@/lib/ai/alice-agent'
 import { toWhatsAppNumber } from '@/lib/format-phone'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { Database } from '@/lib/supabase/types'
@@ -265,12 +265,12 @@ export async function POST(request: NextRequest) {
         reactivation,
       })
     } catch (agentError) {
-      console.error('[n8n-agent/run] Alice agent failed, falling back to safe reply', agentError)
+      console.error('[n8n-agent/run] Alice agent failed, staying silent instead of replying', agentError)
       output = {
-        reply: ALICE_FALLBACK_REPLY,
+        reply: null,
         actions: [],
         lead_updates: {},
-        send_pdf: !lead.pdf_enviado,
+        send_pdf: false,
       }
     }
 
