@@ -275,7 +275,6 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
     const forced = await openai.chat.completions.create({
       model: CHAT_MODEL,
       temperature: 0.4,
-      tool_choice: 'none',
       messages: [
         ...messages,
         { role: 'user', content: 'Responda agora apenas com o JSON final, sem novas tool calls.' },
@@ -307,7 +306,6 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
       const retry = await openai.chat.completions.create({
         model: CHAT_MODEL,
         temperature: 0.4,
-        tool_choice: 'none',
         messages: [
           ...messages,
           { role: 'user', content: 'Responda agora apenas com o JSON final, sem novas tool calls.' },
