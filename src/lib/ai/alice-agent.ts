@@ -21,6 +21,7 @@ export interface AliceAgentInput {
   history: Pick<Interaction, 'direction' | 'sender_type' | 'sender_name' | 'content' | 'created_at'>[]
   imoveis: Imovel[]
   nowIso: string
+  reactivation?: boolean
 }
 
 export interface AliceAgentOutput {
@@ -121,6 +122,11 @@ Antes de valores, mapeie no minimo 4 necessidades. Se pedir valores antes, respo
 Para valores, use somente dados reais dos imoveis disponiveis e da tool simulacao. Nunca invente preco, desconto, prazo, vaga ou beneficio.
 Para consultor: so conduza depois de 4 necessidades, valores apresentados e interesse real. Ao aceitar consultor, retorne actions: qualificado, aceitou_ligacao, pausar_IA.
 
+RECONTATO MANUAL
+reactivation desta chamada: ${input.reactivation ? 'true' : 'false'}
+- Se reactivation for true, este e um recontato manual disparado pela equipe apos um periodo sem resposta nesta conversa. Comece a resposta cumprimentando conforme o horario (bom dia/boa tarde/boa noite), pergunte como o lead esta, e se reapresente rapidamente como Alice da Alliance antes de continuar. So faca isso na mensagem atual; verifique o HISTORICO RECENTE abaixo e, se ja houver uma saudacao de recontato sua, nao repita.
+- Se reactivation for false, nao adicione nenhuma saudacao extra de recontato.
+
 NAO REPITA PERGUNTAS
 Antes de perguntar qualquer dado de qualificacao (nome, cidade, intencao morar/investir, se conhecia o La Reserva, metragem, quartos, imovel de interesse), verifique DADOS ATUAIS DO LEAD e o HISTORICO RECENTE abaixo.
 Se o dado ja aparecer preenchido, ou se o lead ja tiver dito isso em qualquer ponto da conversa (mesmo como resposta a outra pergunta, ou de forma espontanea), chame a tool leads imediatamente para registrar e siga para o proximo passo sem perguntar de novo.
@@ -216,9 +222,13 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
   const openai = getOpenAI()
   const toolState: AliceToolState = { actions: [], lead_updates: {} }
 
+  const currentMessageLabel = input.reactivation
+    ? 'Nota interna da equipe (motivo do recontato, pode nao ser fala literal do lead)'
+    : 'Mensagem atual do lead'
+
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt(input) },
-    { role: 'user', content: `Horario atual: ${input.nowIso}\nMensagem atual do lead: ${input.message}` },
+    { role: 'user', content: `Horario atual: ${input.nowIso}\n${currentMessageLabel}: ${input.message}` },
   ]
 
   let result: OpenAI.Chat.Completions.ChatCompletionMessage | null = null

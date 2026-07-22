@@ -33,6 +33,7 @@ interface N8NAgentPayload {
   conversation?: string
   wa_message_id?: string
   message_id?: string
+  reactivation?: boolean
 }
 
 function unauthorized() {
@@ -163,6 +164,7 @@ export async function POST(request: NextRequest) {
 
   const payload = await request.json() as N8NAgentPayload
   const message = (payload.message ?? payload.conversation ?? '').trim()
+  const reactivation = payload.reactivation === true || (payload.reactivation as unknown) === 'true'
 
   if (!message) {
     return NextResponse.json({ error: 'message is required' }, { status: 400 })
@@ -177,41 +179,46 @@ export async function POST(request: NextRequest) {
     }
 
     const waMessageId = payload.wa_message_id ?? payload.message_id ?? null
-    if (waMessageId) {
-      const { data: existingInteraction, error: duplicateError } = await supabase
-        .from('interactions')
-        .select('id')
-        .eq('wa_message_id', waMessageId)
-        .maybeSingle()
 
-      if (duplicateError) throw duplicateError
-      if (existingInteraction) {
-        return NextResponse.json({
-          data: {
-            lead_id: lead.id,
-            duplicate: true,
-            reply: null,
-            actions: [],
-          },
-        })
+    // Reactivation is a manual recontact: the message is context for Alice (either a lead
+    // message that never got answered, or an internal cue), not a fresh inbound event to log/dedupe.
+    if (!reactivation) {
+      if (waMessageId) {
+        const { data: existingInteraction, error: duplicateError } = await supabase
+          .from('interactions')
+          .select('id')
+          .eq('wa_message_id', waMessageId)
+          .maybeSingle()
+
+        if (duplicateError) throw duplicateError
+        if (existingInteraction) {
+          return NextResponse.json({
+            data: {
+              lead_id: lead.id,
+              duplicate: true,
+              reply: null,
+              actions: [],
+            },
+          })
+        }
       }
+
+      const inbound: InteractionInsert = {
+        lead_id: lead.id,
+        direction: 'inbound',
+        sender_type: 'lead',
+        sender_name: lead.name,
+        content: message,
+        wa_message_id: waMessageId,
+      }
+
+      const { error: inboundError } = await supabase
+        .from('interactions')
+        .insert(inbound as never)
+
+      if (inboundError) throw inboundError
+      await supabase.rpc('increment_interaction_count', { lead_uuid: lead.id } as never)
     }
-
-    const inbound: InteractionInsert = {
-      lead_id: lead.id,
-      direction: 'inbound',
-      sender_type: 'lead',
-      sender_name: lead.name,
-      content: message,
-      wa_message_id: waMessageId,
-    }
-
-    const { error: inboundError } = await supabase
-      .from('interactions')
-      .insert(inbound as never)
-
-    if (inboundError) throw inboundError
-    await supabase.rpc('increment_interaction_count', { lead_uuid: lead.id } as never)
 
     if (lead.automation_paused) {
       return NextResponse.json({
@@ -255,6 +262,7 @@ export async function POST(request: NextRequest) {
         history: ((historyData ?? []) as Interaction[]).reverse(),
         imoveis: imoveisData ?? [],
         nowIso: new Date().toISOString(),
+        reactivation,
       })
     } catch (agentError) {
       console.error('[n8n-agent/run] Alice agent failed, falling back to safe reply', agentError)
