@@ -196,6 +196,67 @@ Depois de usar as tools necessarias, sua ULTIMA mensagem de texto (sem tool call
 }`
 }
 
+const ALICE_RESPONSE_FORMAT: OpenAI.Chat.Completions.ChatCompletionCreateParams['response_format'] = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'alice_response',
+    strict: true,
+    schema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        reply: { type: ['string', 'null'] },
+        actions: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: ['leads', 'qualificado', 'pausar_IA', 'aceitou_ligacao', 'stop', 'reenviar_pdf'],
+          },
+        },
+        lead_updates: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            name: { type: ['string', 'null'] },
+            city: { type: ['string', 'null'] },
+            intention: { type: ['string', 'null'], enum: ['morar', 'investir', null] },
+            imovel_interesse: { type: ['string', 'null'] },
+            stage: {
+              type: ['string', 'null'],
+              enum: [
+                'nao_respondeu',
+                'lead_frio',
+                'lead_morno',
+                'lead_quente',
+                'follow_up',
+                'reuniao_agendada',
+                'visita_confirmada',
+                'cliente',
+                null,
+              ],
+            },
+            summary: { type: ['string', 'null'] },
+            automation_paused: { type: ['boolean', 'null'] },
+            aceitou_consultor: { type: ['boolean', 'null'] },
+          },
+          required: [
+            'name',
+            'city',
+            'intention',
+            'imovel_interesse',
+            'stage',
+            'summary',
+            'automation_paused',
+            'aceitou_consultor',
+          ],
+        },
+        internal_summary: { type: ['string', 'null'] },
+      },
+      required: ['reply', 'actions', 'lead_updates', 'internal_summary'],
+    },
+  },
+}
+
 function parseJson(text: string): AliceAgentOutput {
   const trimmed = text.trim()
   const jsonText = trimmed.startsWith('{')
@@ -236,6 +297,7 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
       model: CHAT_MODEL,
       temperature: 0.4,
       tools: aliceTools,
+      response_format: ALICE_RESPONSE_FORMAT,
       messages,
     })
 
@@ -275,6 +337,7 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
     const forced = await openai.chat.completions.create({
       model: CHAT_MODEL,
       temperature: 0.4,
+      response_format: ALICE_RESPONSE_FORMAT,
       messages: [
         ...messages,
         { role: 'user', content: 'Responda agora apenas com o JSON final, sem novas tool calls.' },
@@ -306,6 +369,7 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
       const retry = await openai.chat.completions.create({
         model: CHAT_MODEL,
         temperature: 0.4,
+        response_format: ALICE_RESPONSE_FORMAT,
         messages: [
           ...messages,
           { role: 'user', content: 'Responda agora apenas com o JSON final, sem novas tool calls.' },
