@@ -55,6 +55,7 @@ export interface Database {
           last_reactivated_at: string | null
           aceitou_consultor: boolean | null
           via_disparo: boolean | null
+          pdf_enviado: boolean | null
           labels?: Array<{ id: string; name: string; color: string }>
           created_at: string
           updated_at: string
@@ -85,6 +86,7 @@ export interface Database {
           last_reactivated_at?: string | null
           aceitou_consultor?: boolean | null
           via_disparo?: boolean | null
+          pdf_enviado?: boolean | null
           created_at?: string
           updated_at?: string
         }

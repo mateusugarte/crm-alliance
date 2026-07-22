@@ -13,6 +13,7 @@ export type AliceAction =
   | 'pausar_IA'
   | 'aceitou_ligacao'
   | 'stop'
+  | 'reenviar_pdf'
 
 export interface AliceAgentInput {
   lead: Lead
@@ -34,9 +35,14 @@ export interface AliceAgentOutput {
     summary?: string | null
     automation_paused?: boolean
     aceitou_consultor?: boolean | null
+    pdf_enviado?: boolean
   }
   internal_summary?: string | null
+  send_pdf?: boolean
 }
+
+export const ALICE_FALLBACK_REPLY =
+  'Desculpa, tive uma instabilidade rapida aqui do meu lado. Pode repetir sua ultima mensagem, por favor?'
 
 function money(value: number | null) {
   if (value == null) return 'nao informado'
@@ -107,11 +113,18 @@ Nao aplique trava de 4 necessidades. Nao proponha data. Se houver interesse, con
 Ao aceitar consultor, retorne actions: aceitou_ligacao, qualificado, pausar_IA.
 
 FLUXO B - padrao
-Na primeira interacao, cumprimente conforme horario, diga que enviou o PDF de apresentacao do La Reserva e pergunte como pode chamar o lead.
+pdf_enviado do lead atual: ${input.lead.pdf_enviado ? 'true' : 'false'}
+- Se pdf_enviado for false, esta e a primeira interacao com este lead. Nessa ordem, na mesma mensagem: primeiro cumprimente conforme o horario, depois pergunte como pode chamar o lead, e so por ultimo diga que esta te enviando agora o PDF de apresentacao do La Reserva. Nunca comece a mensagem falando do PDF.
+- Se pdf_enviado for true, NAO mencione envio de PDF por conta propria. So volte a falar do PDF se o lead pedir explicitamente para receber de novo; nesse caso, use a tool reenviar_pdf e confirme o reenvio na resposta.
 Depois colete um dado por vez, em conversa natural: nome, cidade, intencao morar/investir, se conhecia o La Reserva, metragem, quartos.
 Antes de valores, mapeie no minimo 4 necessidades. Se pedir valores antes, responda brevemente que chega nisso em breve e continue descoberta.
 Para valores, use somente dados reais dos imoveis disponiveis e da tool simulacao. Nunca invente preco, desconto, prazo, vaga ou beneficio.
 Para consultor: so conduza depois de 4 necessidades, valores apresentados e interesse real. Ao aceitar consultor, retorne actions: qualificado, aceitou_ligacao, pausar_IA.
+
+NAO REPITA PERGUNTAS
+Antes de perguntar qualquer dado de qualificacao (nome, cidade, intencao morar/investir, se conhecia o La Reserva, metragem, quartos, imovel de interesse), verifique DADOS ATUAIS DO LEAD e o HISTORICO RECENTE abaixo.
+Se o dado ja aparecer preenchido, ou se o lead ja tiver dito isso em qualquer ponto da conversa (mesmo como resposta a outra pergunta, ou de forma espontanea), chame a tool leads imediatamente para registrar e siga para o proximo passo sem perguntar de novo.
+Exemplo: se o lead disser "quero investir" mesmo sem voce ter perguntado, registre intencao=investir via tool leads e nao pergunte "quer morar ou investir".
 
 REGRA DE OURO
 Antes de conduzir o fluxo, responda o que o lead perguntou. Nunca ignore pergunta. Se a informacao nao estiver nos dados, diga: "Essa informacao eu confirmo com nosso time e te passo em seguida."
@@ -137,6 +150,7 @@ Voce tem tools reais conectadas ao CRM. Use-as antes de montar a resposta final:
 - aceitou_ligacao: quando aceitar contato de consultor.
 - pausar_IA: quando aceitar consultor ou disser que vai verificar com alguem e retornar.
 - stop: quando nao tem interesse, ja comprou, nao pode comprar, for bot/IA/empresa ou assunto impossibilitar compra.
+- reenviar_pdf: somente quando o lead pedir explicitamente para receber o PDF novamente.
 
 Depois de usar as tools necessarias, retorne o JSON final. O JSON final deve refletir as tools acionadas.
 
@@ -150,6 +164,7 @@ imovel_interesse: ${input.lead.imovel_interesse || 'nao informado'}
 stage: ${input.lead.stage}
 automation_paused: ${input.lead.automation_paused}
 aceitou_consultor: ${input.lead.aceitou_consultor ?? 'nao informado'}
+pdf_enviado: ${input.lead.pdf_enviado ? 'true' : 'false'}
 summary: ${input.lead.summary || 'nao informado'}
 
 IMOVEIS DISPONIVEIS DO SUPABASE
@@ -249,14 +264,40 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
     throw new Error('Alice agent did not return a response')
   }
 
-  const parsed = parseJson(result.content ?? '')
+  if (result.tool_calls?.filter((call) => call.type === 'function').length) {
+    const forced = await openai.chat.completions.create({
+      model: CHAT_MODEL,
+      temperature: 0.4,
+      max_tokens: 1200,
+      tool_choice: 'none',
+      messages: [
+        ...messages,
+        { role: 'user', content: 'Responda agora apenas com o JSON final, sem novas tool calls.' },
+      ],
+    })
+    result = forced.choices[0].message
+  }
+
+  let parsed: AliceAgentOutput
+  try {
+    parsed = parseJson(result.content ?? '')
+  } catch (err) {
+    console.error('[alice-agent] failed to parse model output, using fallback reply', err, result.content)
+    parsed = { reply: ALICE_FALLBACK_REPLY, actions: [], lead_updates: {} }
+  }
+
+  const firstPdfSend = !input.lead.pdf_enviado
+  const allActions = [...new Set([...toolState.actions, ...parsed.actions])] as AliceAction[]
+  const sendPdf = firstPdfSend || allActions.includes('reenviar_pdf')
 
   return {
     ...parsed,
-    actions: [...new Set([...toolState.actions, ...parsed.actions])] as AliceAction[],
+    actions: allActions,
     lead_updates: {
       ...toolState.lead_updates,
       ...parsed.lead_updates,
+      ...(firstPdfSend ? { pdf_enviado: true } : {}),
     },
+    send_pdf: sendPdf,
   }
 }

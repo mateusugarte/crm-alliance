@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { runAliceAgent } from '@/lib/ai/alice-agent'
+import { runAliceAgent, ALICE_FALLBACK_REPLY } from '@/lib/ai/alice-agent'
 import { toWhatsAppNumber } from '@/lib/format-phone'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { Database } from '@/lib/supabase/types'
@@ -134,6 +134,9 @@ function buildLeadUpdates(lead: Lead, output: Awaited<ReturnType<typeof runAlice
   if (typeof leadUpdates.aceitou_consultor === 'boolean') {
     updates.aceitou_consultor = leadUpdates.aceitou_consultor
   }
+  if (typeof leadUpdates.pdf_enviado === 'boolean') {
+    updates.pdf_enviado = leadUpdates.pdf_enviado
+  }
 
   if (output.actions.includes('pausar_IA') || output.actions.includes('stop')) {
     updates.automation_paused = true
@@ -226,9 +229,11 @@ export async function POST(request: NextRequest) {
       .select('direction, sender_type, sender_name, content, created_at')
       .eq('lead_id', lead.id)
       .order('created_at', { ascending: false })
-      .limit(30)
+      .limit(60)
 
-    if (historyError) throw historyError
+    if (historyError) {
+      console.error('[n8n-agent/run] failed to load history, continuing without it', historyError)
+    }
 
     const { data: imoveisData, error: imoveisError } = await supabase
       .from('imoveis')
@@ -238,15 +243,28 @@ export async function POST(request: NextRequest) {
       .order('pavimento', { ascending: true })
       .order('numero_unidade', { ascending: true })
 
-    if (imoveisError) throw imoveisError
+    if (imoveisError) {
+      console.error('[n8n-agent/run] failed to load imoveis, continuing without them', imoveisError)
+    }
 
-    const output = await runAliceAgent({
-      lead,
-      message,
-      history: ((historyData ?? []) as Interaction[]).reverse(),
-      imoveis: imoveisData ?? [],
-      nowIso: new Date().toISOString(),
-    })
+    let output: Awaited<ReturnType<typeof runAliceAgent>>
+    try {
+      output = await runAliceAgent({
+        lead,
+        message,
+        history: ((historyData ?? []) as Interaction[]).reverse(),
+        imoveis: imoveisData ?? [],
+        nowIso: new Date().toISOString(),
+      })
+    } catch (agentError) {
+      console.error('[n8n-agent/run] Alice agent failed, falling back to safe reply', agentError)
+      output = {
+        reply: ALICE_FALLBACK_REPLY,
+        actions: [],
+        lead_updates: {},
+        send_pdf: !lead.pdf_enviado,
+      }
+    }
 
     const updates = buildLeadUpdates(lead, output)
     const { data: updatedLead, error: updateError } = await supabase
@@ -256,7 +274,9 @@ export async function POST(request: NextRequest) {
       .select('*')
       .single()
 
-    if (updateError) throw updateError
+    if (updateError) {
+      console.error('[n8n-agent/run] failed to persist lead updates, reply still goes out', updateError)
+    }
 
     if (output.reply) {
       const outbound: InteractionInsert = {
@@ -271,16 +291,19 @@ export async function POST(request: NextRequest) {
         .from('interactions')
         .insert(outbound as never)
 
-      if (outboundError) throw outboundError
+      if (outboundError) {
+        console.error('[n8n-agent/run] failed to log outbound interaction, reply still goes out', outboundError)
+      }
     }
 
     return NextResponse.json({
       data: {
         lead_id: lead.id,
         reply: output.reply,
+        send_pdf: output.send_pdf ?? false,
         actions: output.actions,
         lead_updates: updates,
-        lead: updatedLead,
+        lead: updatedLead ?? lead,
         internal_summary: output.internal_summary,
       },
     })

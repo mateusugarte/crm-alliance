@@ -14,6 +14,7 @@ export type AliceToolName =
   | 'pausar_IA'
   | 'aceitou_ligacao'
   | 'stop'
+  | 'reenviar_pdf'
 
 export interface AliceToolState {
   actions: AliceToolName[]
@@ -26,6 +27,7 @@ export interface AliceToolState {
     summary?: string | null
     automation_paused?: boolean
     aceitou_consultor?: boolean | null
+    pdf_enviado?: boolean
   }
 }
 
@@ -148,6 +150,19 @@ export const aliceTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     function: {
       name: 'stop',
       description: 'Use quando o lead nao tem interesse, ja comprou, nao pode comprar, for bot/IA/empresa ou algo impossibilitar compra.',
+      parameters: {
+        type: 'object',
+        properties: {
+          motivo: { type: 'string' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'reenviar_pdf',
+      description: 'Use somente quando o lead pedir explicitamente para receber o PDF do La Reserva novamente. Nunca use por conta propria.',
       parameters: {
         type: 'object',
         properties: {
@@ -296,6 +311,11 @@ export async function executeAliceTool(context: AliceToolContext, name: string, 
       state.lead_updates.stage = 'lead_frio'
       if (typeof args.motivo === 'string') state.lead_updates.summary = args.motivo.trim()
       return 'Atendimento automatico encerrado para este lead.'
+    }
+
+    case 'reenviar_pdf': {
+      addAction(state, 'reenviar_pdf')
+      return 'PDF marcado para reenvio nesta resposta.'
     }
 
     default:
