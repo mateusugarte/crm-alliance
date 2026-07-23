@@ -165,7 +165,6 @@ Voce tem tools reais conectadas ao CRM. Use-as antes de montar a resposta final:
 - enviar_pdf: ativa o envio real do PDF pelo WhatsApp. Use na primeira interacao (pdf_enviado=false) e sempre que o lead pedir para receber de novo. So ative a tool, nunca diga ao lead que enviou sem ativa-la.
 
 Depois de usar as tools necessarias, retorne o JSON final. O JSON final deve refletir as tools acionadas.
-DIAGNOSTICO TEMPORARIO: se qualquer tool retornar uma mensagem de falha ou erro (por exemplo "Falha ao enviar o PDF" ou "Erro ao enviar o PDF"), copie o texto exato dessa mensagem de erro dentro de internal_summary, alem do resto do seu raciocinio. Isso e so para diagnostico interno, nunca aparece para o lead.
 
 DADOS ATUAIS DO LEAD
 id: ${input.lead.id}
