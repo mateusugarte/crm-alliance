@@ -2,7 +2,7 @@ import type OpenAI from 'openai'
 import type { Database } from '@/lib/supabase/types'
 import { searchKnowledgeBase } from './rag'
 import { createServiceClient } from '@/lib/supabase/service'
-import { sendDocumentMessage } from '@/lib/whatsapp/send'
+import { sendDocumentMessage, sendTextMessage } from '@/lib/whatsapp/send'
 import { toWhatsAppNumber } from '@/lib/format-phone'
 
 type Lead = Database['public']['Tables']['leads']['Row']
@@ -12,6 +12,22 @@ const LA_RESERVA_PDF_URL =
   process.env.LA_RESERVA_PDF_URL ||
   'https://lmvdruvmpybutmmidrfp.supabase.co/storage/v1/object/public/la%20reserva/LaReserva%20(2).pdf'
 const LA_RESERVA_PDF_CAPTION = 'PDF de apresentacao do La Reserva'
+
+const QUALIFICADO_ALERT_GROUP_JID = process.env.QUALIFICADO_ALERT_GROUP_JID || '120363429109259182@g.us'
+
+async function getConnectedInstanceToken(): Promise<string | null> {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('wa_instances')
+    .select('instance_id')
+    .eq('status', 'connected')
+    .order('connected_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as { instance_id: string } | null)?.instance_id ?? null
+}
 
 export type AliceToolName =
   | 'leads'
@@ -116,7 +132,8 @@ export const aliceTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'qualificado',
-      description: 'Ative imediatamente quando o lead aceitar falar com consultor. Inclua resumo e imovel de interesse.',
+      description:
+        'Ative imediatamente quando o lead aceitar falar com consultor. Inclua resumo e imovel de interesse. Essa tool tambem notifica de verdade o grupo interno da equipe no WhatsApp — nao anuncie isso ao lead.',
       parameters: {
         type: 'object',
         properties: {
@@ -299,7 +316,52 @@ export async function executeAliceTool(context: AliceToolContext, name: string, 
       state.lead_updates.stage = 'lead_quente'
       if (typeof args.resumo === 'string') state.lead_updates.summary = args.resumo.trim()
       if (typeof args.imovel === 'string') state.lead_updates.imovel_interesse = args.imovel.trim() || null
-      return 'Lead marcado como qualificado para contato do consultor.'
+
+      try {
+        const instanceToken = await getConnectedInstanceToken()
+        if (!instanceToken) {
+          return 'Lead marcado como qualificado, mas falha ao notificar o grupo: nenhuma instancia do WhatsApp conectada.'
+        }
+
+        const numero = toWhatsAppNumber(context.lead.phone)
+        const resumo = state.lead_updates.summary || context.lead.summary || 'nao informado'
+        const nome = state.lead_updates.name ?? context.lead.name
+        const cidade = state.lead_updates.city ?? context.lead.city
+        const intencao = state.lead_updates.intention ?? context.lead.intention
+        const imovel = state.lead_updates.imovel_interesse ?? context.lead.imovel_interesse
+
+        const infoColetada = [
+          nome ? `Nome: ${nome}` : null,
+          cidade ? `Cidade: ${cidade}` : null,
+          intencao ? `Intencao: ${intencao}` : null,
+          imovel ? `Imovel de interesse: ${imovel}` : null,
+        ]
+          .filter(Boolean)
+          .join('\n')
+
+        const message = [
+          '🚨ATENÇÃO🚨',
+          '',
+          `Cliente qualificado: ${numero}`,
+          '',
+          `Resumo da conversa: ${resumo}`,
+          '',
+          `Informações coletadas na conversa: ${infoColetada || 'nao informado'}`,
+          '',
+          'entre em contato rapidamente e atenda-o',
+          '',
+          'IA PAUSADA 🛑🤖',
+        ].join('\n')
+
+        const result = await sendTextMessage(instanceToken, QUALIFICADO_ALERT_GROUP_JID, message)
+        if (!result.success) {
+          return `Lead marcado como qualificado, mas falha ao notificar o grupo (${result.error}).`
+        }
+
+        return 'Lead marcado como qualificado para contato do consultor e grupo notificado com sucesso.'
+      } catch (err) {
+        return `Lead marcado como qualificado, mas erro ao notificar o grupo (${(err as Error).message}).`
+      }
     }
 
     case 'pausar_IA': {
@@ -329,23 +391,13 @@ export async function executeAliceTool(context: AliceToolContext, name: string, 
       addAction(state, 'enviar_pdf')
 
       try {
-        const supabase = createServiceClient()
-        const { data: instance, error } = await supabase
-          .from('wa_instances')
-          .select('instance_id')
-          .eq('status', 'connected')
-          .order('connected_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-
-        if (error) throw error
-        const instanceRow = instance as { instance_id: string } | null
-        if (!instanceRow) {
+        const instanceToken = await getConnectedInstanceToken()
+        if (!instanceToken) {
           return 'Falha ao enviar o PDF: nenhuma instancia do WhatsApp conectada. Nao diga ao lead que enviou — diga que vai confirmar com o time.'
         }
 
         const to = toWhatsAppNumber(context.lead.phone)
-        const result = await sendDocumentMessage(instanceRow.instance_id, to, LA_RESERVA_PDF_URL, LA_RESERVA_PDF_CAPTION)
+        const result = await sendDocumentMessage(instanceToken, to, LA_RESERVA_PDF_URL, LA_RESERVA_PDF_CAPTION)
 
         if (!result.success) {
           return `Falha ao enviar o PDF (${result.error}). Nao diga ao lead que enviou — diga que vai confirmar com o time.`
