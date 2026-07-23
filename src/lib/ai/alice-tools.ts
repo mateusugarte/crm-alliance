@@ -236,6 +236,20 @@ function asRecord(input: unknown): Record<string, unknown> {
   return input && typeof input === 'object' ? (input as Record<string, unknown>) : {}
 }
 
+// Node's fetch often wraps the real network failure (DNS, connection refused, etc.)
+// inside `.cause` and leaves `.message` as a generic "fetch failed".
+function describeError(err: unknown): string {
+  const error = err as { message?: string; cause?: unknown }
+  const cause = error?.cause
+  const causeText =
+    cause && typeof cause === 'object'
+      ? JSON.stringify(cause, Object.getOwnPropertyNames(cause))
+      : cause
+        ? String(cause)
+        : null
+  return causeText ? `${error?.message ?? String(err)} | cause: ${causeText}` : (error?.message ?? String(err))
+}
+
 export async function executeAliceTool(context: AliceToolContext, name: string, input: unknown): Promise<string> {
   const args = asRecord(input)
   const { state } = context
@@ -360,7 +374,7 @@ export async function executeAliceTool(context: AliceToolContext, name: string, 
 
         return 'Lead marcado como qualificado para contato do consultor e grupo notificado com sucesso.'
       } catch (err) {
-        return `Lead marcado como qualificado, mas erro ao notificar o grupo (${(err as Error).message}).`
+        return `Lead marcado como qualificado, mas erro ao notificar o grupo (${describeError(err)}).`
       }
     }
 
@@ -406,7 +420,7 @@ export async function executeAliceTool(context: AliceToolContext, name: string, 
         state.lead_updates.pdf_enviado = true
         return 'PDF enviado com sucesso para o WhatsApp do lead.'
       } catch (err) {
-        return `Erro ao enviar o PDF (${(err as Error).message}). Nao diga ao lead que enviou — diga que vai confirmar com o time.`
+        return `Erro ao enviar o PDF (${describeError(err)}). Nao diga ao lead que enviou — diga que vai confirmar com o time.`
       }
     }
 
