@@ -13,7 +13,7 @@ export type AliceAction =
   | 'pausar_IA'
   | 'aceitou_ligacao'
   | 'stop'
-  | 'reenviar_pdf'
+  | 'enviar_pdf'
 
 export interface AliceAgentInput {
   lead: Lead
@@ -39,7 +39,6 @@ export interface AliceAgentOutput {
     pdf_enviado?: boolean
   }
   internal_summary?: string | null
-  send_pdf?: boolean
 }
 
 function money(value: number | null) {
@@ -122,8 +121,8 @@ No exato momento em que o lead aceitar, ative as tres tools juntas, na mesma res
 
 FLUXO B - padrao
 pdf_enviado do lead atual: ${input.lead.pdf_enviado ? 'true' : 'false'}
-- Se pdf_enviado for false, esta e a primeira interacao com este lead. Nessa ordem, na mesma mensagem: primeiro cumprimente conforme o horario (bom dia, boa tarde ou boa noite), depois pergunte se o lead esta bem, e so por ultimo diga que esta te enviando agora o PDF de apresentacao do La Reserva. Nunca comece a mensagem falando do PDF.
-- Se pdf_enviado for true, NAO mencione envio de PDF por conta propria. So volte a falar do PDF se o lead pedir explicitamente para receber de novo; nesse caso, use a tool reenviar_pdf e confirme o reenvio na resposta.
+- Se pdf_enviado for false, esta e a primeira interacao com este lead: ative a tool enviar_pdf (ela realmente envia o arquivo pelo WhatsApp) e, na mensagem, cumprimente conforme o horario (bom dia, boa tarde ou boa noite), pergunte se o lead esta bem, e diga que esta te enviando o PDF de apresentacao do La Reserva. A ordem entre o arquivo chegar e o texto da saudacao nao importa mais — pode ativar a tool antes ou depois de escrever a mensagem.
+- Se pdf_enviado for true, NAO ative enviar_pdf nem mencione PDF por conta propria. So ative enviar_pdf de novo se o lead pedir explicitamente para receber outra vez; nesse caso confirme o reenvio na resposta.
 Depois colete um dado por vez, em conversa natural: nome, cidade, intencao morar/investir, se conhecia o La Reserva, metragem, quartos.
 Antes de valores, mapeie no minimo 4 necessidades. Se pedir valores antes, responda brevemente que chega nisso em breve e continue descoberta.
 Para valores, use somente dados reais dos imoveis disponiveis e da tool simulacao. Nunca invente preco, desconto, prazo, vaga ou beneficio.
@@ -164,7 +163,7 @@ Voce tem tools reais conectadas ao CRM. Use-as antes de montar a resposta final:
 - aceitou_ligacao: quando aceitar contato de consultor.
 - pausar_IA: quando aceitar consultor ou disser que vai verificar com alguem e retornar.
 - stop: quando nao tem interesse, ja comprou, nao pode comprar, for bot/IA/empresa ou assunto impossibilitar compra. Ative IMEDIATAMENTE nesta mesma resposta, mesmo que o lead agradeca ou a conversa pareca amigavel — nao ofereca manter contato para novidades futuras nem tente reverter a objecao, apenas encerre com cordialidade.
-- reenviar_pdf: somente quando o lead pedir explicitamente para receber o PDF novamente.
+- enviar_pdf: ativa o envio real do PDF pelo WhatsApp. Use na primeira interacao (pdf_enviado=false) e sempre que o lead pedir para receber de novo. So ative a tool, nunca diga ao lead que enviou sem ativa-la.
 
 Depois de usar as tools necessarias, retorne o JSON final. O JSON final deve refletir as tools acionadas.
 
@@ -220,7 +219,7 @@ const ALICE_RESPONSE_FORMAT: OpenAI.Chat.Completions.ChatCompletionCreateParams[
           type: 'array',
           items: {
             type: 'string',
-            enum: ['leads', 'qualificado', 'pausar_IA', 'aceitou_ligacao', 'stop', 'reenviar_pdf'],
+            enum: ['leads', 'qualificado', 'pausar_IA', 'aceitou_ligacao', 'stop', 'enviar_pdf'],
           },
         },
         lead_updates: {
@@ -393,9 +392,28 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
     throw new Error('Alice agent did not produce a parsed output')
   }
 
-  const firstPdfSend = !input.lead.pdf_enviado && !silentFailure
+  const actionsBeforePdfFallback = [...new Set([...toolState.actions, ...parsed.actions])] as AliceAction[]
+
+  // Safety net: FLUXO B's first message must send the PDF even if the model forgot to call
+  // the tool. FLUXO A (via_disparo) never auto-sends — it only reacts to an explicit request.
+  const shouldForcePdf =
+    !silentFailure &&
+    input.lead.via_disparo !== true &&
+    !input.lead.pdf_enviado &&
+    !actionsBeforePdfFallback.includes('enviar_pdf')
+
+  if (shouldForcePdf) {
+    const fallbackResult = await executeAliceTool(
+      { lead: input.lead, imoveis: input.imoveis, state: toolState },
+      'enviar_pdf',
+      {}
+    )
+    if (!toolState.lead_updates.pdf_enviado) {
+      console.error('[alice-agent] fallback enviar_pdf call did not succeed', fallbackResult)
+    }
+  }
+
   const allActions = [...new Set([...toolState.actions, ...parsed.actions])] as AliceAction[]
-  const sendPdf = !silentFailure && (firstPdfSend || allActions.includes('reenviar_pdf'))
 
   return {
     ...parsed,
@@ -406,8 +424,7 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
       // Tool calls are ground truth: never let the model's own JSON contradict an action it just fired.
       ...((allActions.includes('pausar_IA') || allActions.includes('stop')) ? { automation_paused: true } : {}),
       ...(allActions.includes('aceitou_ligacao') ? { aceitou_consultor: true } : {}),
-      ...(firstPdfSend ? { pdf_enviado: true } : {}),
+      ...(toolState.lead_updates.pdf_enviado ? { pdf_enviado: true } : {}),
     },
-    send_pdf: sendPdf,
   }
 }

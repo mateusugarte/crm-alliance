@@ -270,7 +270,6 @@ export async function POST(request: NextRequest) {
         reply: null,
         actions: [],
         lead_updates: {},
-        send_pdf: false,
       }
     }
 
@@ -308,7 +307,6 @@ export async function POST(request: NextRequest) {
       data: {
         lead_id: lead.id,
         reply: output.reply,
-        send_pdf: output.send_pdf ?? false,
         actions: output.actions,
         lead_updates: updates,
         lead: updatedLead ?? lead,

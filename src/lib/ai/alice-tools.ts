@@ -1,9 +1,17 @@
 import type OpenAI from 'openai'
 import type { Database } from '@/lib/supabase/types'
 import { searchKnowledgeBase } from './rag'
+import { createServiceClient } from '@/lib/supabase/service'
+import { sendDocumentMessage } from '@/lib/whatsapp/send'
+import { toWhatsAppNumber } from '@/lib/format-phone'
 
 type Lead = Database['public']['Tables']['leads']['Row']
 type Imovel = Database['public']['Tables']['imoveis']['Row']
+
+const LA_RESERVA_PDF_URL =
+  process.env.LA_RESERVA_PDF_URL ||
+  'https://lmvdruvmpybutmmidrfp.supabase.co/storage/v1/object/public/la%20reserva/LaReserva%20(2).pdf'
+const LA_RESERVA_PDF_CAPTION = 'PDF de apresentacao do La Reserva'
 
 export type AliceToolName =
   | 'leads'
@@ -14,7 +22,7 @@ export type AliceToolName =
   | 'pausar_IA'
   | 'aceitou_ligacao'
   | 'stop'
-  | 'reenviar_pdf'
+  | 'enviar_pdf'
 
 export interface AliceToolState {
   actions: AliceToolName[]
@@ -161,8 +169,9 @@ export const aliceTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
-      name: 'reenviar_pdf',
-      description: 'Use somente quando o lead pedir explicitamente para receber o PDF do La Reserva novamente. Nunca use por conta propria.',
+      name: 'enviar_pdf',
+      description:
+        'Envia de verdade o PDF de apresentacao do La Reserva pelo WhatsApp do lead. Ative na primeira interacao (pdf_enviado=false) e sempre que o lead pedir para receber o PDF novamente. Nao ative fora desses dois casos.',
       parameters: {
         type: 'object',
         properties: {
@@ -313,9 +322,40 @@ export async function executeAliceTool(context: AliceToolContext, name: string, 
       return 'Atendimento automatico encerrado para este lead.'
     }
 
-    case 'reenviar_pdf': {
-      addAction(state, 'reenviar_pdf')
-      return 'PDF marcado para reenvio nesta resposta.'
+    case 'enviar_pdf': {
+      if (state.actions.includes('enviar_pdf')) {
+        return 'PDF ja foi enviado nesta mesma resposta. Nao ative de novo, apenas siga a conversa.'
+      }
+      addAction(state, 'enviar_pdf')
+
+      try {
+        const supabase = createServiceClient()
+        const { data: instance, error } = await supabase
+          .from('wa_instances')
+          .select('instance_id')
+          .eq('status', 'connected')
+          .order('connected_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (error) throw error
+        const instanceRow = instance as { instance_id: string } | null
+        if (!instanceRow) {
+          return 'Falha ao enviar o PDF: nenhuma instancia do WhatsApp conectada. Nao diga ao lead que enviou — diga que vai confirmar com o time.'
+        }
+
+        const to = toWhatsAppNumber(context.lead.phone)
+        const result = await sendDocumentMessage(instanceRow.instance_id, to, LA_RESERVA_PDF_URL, LA_RESERVA_PDF_CAPTION)
+
+        if (!result.success) {
+          return `Falha ao enviar o PDF (${result.error}). Nao diga ao lead que enviou — diga que vai confirmar com o time.`
+        }
+
+        state.lead_updates.pdf_enviado = true
+        return 'PDF enviado com sucesso para o WhatsApp do lead.'
+      } catch (err) {
+        return `Erro ao enviar o PDF (${(err as Error).message}). Nao diga ao lead que enviou — diga que vai confirmar com o time.`
+      }
     }
 
     default:
