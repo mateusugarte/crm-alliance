@@ -103,7 +103,8 @@ export default function ReativarDetailPage() {
       return
     }
 
-    const apiUrl = process.env.NEXT_PUBLIC_DISPARO_API_URL || 'http://localhost:3001'
+    // Sem NEXT_PUBLIC_DISPARO_API_URL, conecta na própria origem (mesmo processo do server.js)
+    const apiUrl = process.env.NEXT_PUBLIC_DISPARO_API_URL || undefined
 
     import('socket.io-client').then(({ io }) => {
       const socket = io(apiUrl, { transports: ['websocket'] })
