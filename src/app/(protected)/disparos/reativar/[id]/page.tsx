@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ArrowLeft, RefreshCw, Play, Pause, Square } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Play, Pause, Square, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { disparoFetch } from '@/lib/disparo-api'
 import type { ReactivationCampaign, ReactivationDispatch } from '@/lib/supabase/types'
@@ -74,6 +74,7 @@ export default function ReativarDetailPage() {
   const [dispatches, setDispatches] = useState<ReactivationDispatch[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [countdown, setCountdown] = useState<CountdownState | null>(null)
   const socketRef = useRef<ReturnType<typeof import('socket.io-client').io> | null>(null)
 
@@ -165,10 +166,18 @@ export default function ReativarDetailPage() {
   const handleAction = async (action: 'start' | 'pause' | 'stop') => {
     if (!campaign) return
     setActionLoading(true)
+    setActionError(null)
     try {
-      await disparoFetch(`/api/reactivation/${id}/${action}`, { method: 'POST' })
-      await loadData()
-    } catch { /* silent */ }
+      const res = await disparoFetch(`/api/reactivation/${id}/${action}`, { method: 'POST' })
+      if (!res.ok) {
+        const err = await res.json() as { error?: string }
+        setActionError(err.error ?? 'Erro ao executar ação')
+      } else {
+        await loadData()
+      }
+    } catch {
+      setActionError('Erro de conexão')
+    }
     setActionLoading(false)
   }
 
@@ -267,6 +276,12 @@ export default function ReativarDetailPage() {
             )}
           </div>
         </div>
+        {/* Action error */}
+        {actionError && (
+          <div className="mt-3 flex items-center gap-2 px-4 py-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-500">
+            <AlertTriangle size={14} /> {actionError}
+          </div>
+        )}
       </div>
 
       {/* Stats cards */}
