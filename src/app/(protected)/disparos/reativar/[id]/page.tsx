@@ -135,7 +135,9 @@ export default function ReativarDetailPage() {
 
       socket.on('reactivation:countdown', (payload: { campaignId: string; remaining: number; total: number }) => {
         if (payload.campaignId !== id) return
-        setCountdown({ remaining: payload.remaining, total: payload.total })
+        // O motor emite remaining/total em milissegundos — convertemos pra segundos aqui,
+        // uma única vez, pra quem exibe não precisar saber da unidade original.
+        setCountdown({ remaining: Math.round(payload.remaining / 1000), total: Math.round(payload.total / 1000) })
       })
 
       socket.on('reactivation:completed', (payload?: { campaignId?: string }) => {
@@ -322,7 +324,11 @@ export default function ReativarDetailPage() {
         <div className="bg-card border border-border rounded-2xl p-5">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-medium text-foreground">Próximo envio em</p>
-            <p className="text-sm font-bold text-alliance-blue">{countdown.remaining}s</p>
+            <p className="text-sm font-bold text-alliance-blue">
+              {Math.floor(countdown.remaining / 60) > 0
+                ? `${Math.floor(countdown.remaining / 60)}m ${String(countdown.remaining % 60).padStart(2, '0')}s`
+                : `${countdown.remaining}s`}
+            </p>
           </div>
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <motion.div

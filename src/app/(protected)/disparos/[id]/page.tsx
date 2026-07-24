@@ -201,7 +201,9 @@ export default function DisparoDetailPage() {
         setCampaign(prev => prev ? { ...prev, failed_count: prev.failed_count + 1 } : prev)
       })
       socket.on('campaign:countdown', (payload: { remaining: number; total: number }) => {
-        setCountdown({ remaining: payload.remaining, total: payload.total })
+        // O motor emite remaining/total em milissegundos — convertemos pra segundos aqui,
+        // já que o resto da tela (inclusive o timer local de fallback) trabalha em segundos.
+        setCountdown({ remaining: Math.round(payload.remaining / 1000), total: Math.round(payload.total / 1000) })
       })
       socket.on('campaign:completed', () => { setCountdown(null); stopLocalTimer(); loadData() })
       socket.on('campaign:paused',    () => { setCountdown(null); stopLocalTimer(); loadData() })
