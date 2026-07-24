@@ -22,11 +22,14 @@ interface DispatchRow {
   phone: string
   message_sent: string | null
   typing_delay: number | null
+  scheduled_at: string | null
 }
 
 interface ReactivationCampaignRow {
   status: string
   instance_id: string
+  interval_min: number
+  interval_max: number
   allowed_hours_start: number
   allowed_hours_end: number
 }
@@ -37,6 +40,26 @@ interface ReactivationDispatchRow {
   message_sent: string | null
   typing_delay: number | null
   interval_delay_ms: number | null
+  scheduled_at: string | null
+}
+
+/**
+ * Garante que `dispatch` tenha um horário absoluto de envio persistido e devolve
+ * quanto falta (ms) até lá. Sem isso o intervalo só existe em memória (setTimeout) —
+ * um restart do processo no meio da espera perde a contagem e dispara na hora ao
+ * subir de novo, encurtando o intervalo configurado na prática.
+ */
+async function ensureScheduledWait(
+  table: 'dispatches' | 'reactivation_dispatches',
+  dispatch: { id: string; scheduled_at: string | null },
+  service: ReturnType<typeof createServiceClient>,
+): Promise<number> {
+  let scheduledAtMs = dispatch.scheduled_at ? new Date(dispatch.scheduled_at).getTime() : NaN
+  if (!Number.isFinite(scheduledAtMs)) {
+    scheduledAtMs = Date.now()
+    await service.from(table).update({ scheduled_at: new Date(scheduledAtMs).toISOString() } as never).eq('id', dispatch.id)
+  }
+  return scheduledAtMs - Date.now()
 }
 
 const campaignRunners = new Map<string, RunnerState>()
@@ -116,7 +139,7 @@ async function runCampaignLoop(campaignId: string): Promise<void> {
 
       const { data: nextRaw } = await service
         .from('dispatches')
-        .select('id, phone, message_sent, typing_delay')
+        .select('id, phone, message_sent, typing_delay, scheduled_at')
         .eq('campaign_id', campaignId)
         .eq('status', 'pending')
         .order('created_at', { ascending: true })
@@ -137,6 +160,15 @@ async function runCampaignLoop(campaignId: string): Promise<void> {
         await service.rpc('increment_campaign_failed', { p_campaign_id: campaignId } as never)
         getIO()?.emit('campaign:dispatch:failed', { dispatch_id: next.id, error: 'Mensagem não preparada' })
         continue
+      }
+
+      const waitMs = await ensureScheduledWait('dispatches', next, service)
+      if (waitMs > 0) {
+        await waitWithCountdown(waitMs, runner, (remaining, total) => {
+          getIO()?.emit('campaign:countdown', { campaignId, remaining, total })
+        })
+        if (runner.stopped) return
+        if (runner.paused) continue
       }
 
       const result = await sendTextMessage(
@@ -160,10 +192,21 @@ async function runCampaignLoop(campaignId: string): Promise<void> {
         getIO()?.emit('campaign:dispatch:failed', { dispatch_id: next.id, error: result.error })
       }
 
-      const delay = randomIntervalMs(campaign.interval_min, campaign.interval_max)
-      await waitWithCountdown(delay, runner, (remaining, total) => {
-        getIO()?.emit('campaign:countdown', { campaignId, remaining, total })
-      })
+      // Agenda o próximo pendente já aqui, persistido antes de qualquer queda do processo.
+      const { data: followingRaw } = await service
+        .from('dispatches')
+        .select('id')
+        .eq('campaign_id', campaignId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      if (followingRaw) {
+        const delay = randomIntervalMs(campaign.interval_min, campaign.interval_max)
+        await service.from('dispatches')
+          .update({ scheduled_at: new Date(Date.now() + delay).toISOString() } as never)
+          .eq('id', (followingRaw as { id: string }).id)
+      }
     }
   } catch (err) {
     console.error(`[disparo-engine] Erro no loop da campanha ${campaignId}:`, err)
@@ -225,7 +268,7 @@ async function runReactivationLoop(campaignId: string): Promise<void> {
 
       const { data: campaignRaw } = await service
         .from('reactivation_campaigns')
-        .select('status, instance_id, allowed_hours_start, allowed_hours_end')
+        .select('status, instance_id, interval_min, interval_max, allowed_hours_start, allowed_hours_end')
         .eq('id', campaignId)
         .single()
       const campaign = campaignRaw as ReactivationCampaignRow | null
@@ -236,7 +279,7 @@ async function runReactivationLoop(campaignId: string): Promise<void> {
 
       const { data: nextRaw } = await service
         .from('reactivation_dispatches')
-        .select('id, phone, message_sent, typing_delay, interval_delay_ms')
+        .select('id, phone, message_sent, typing_delay, interval_delay_ms, scheduled_at')
         .eq('reactivation_campaign_id', campaignId)
         .eq('status', 'pending')
         .order('created_at', { ascending: true })
@@ -257,6 +300,15 @@ async function runReactivationLoop(campaignId: string): Promise<void> {
         await service.rpc('increment_reactivation_failed', { p_campaign_id: campaignId } as never)
         getIO()?.emit('reactivation:dispatch:failed', { campaignId, dispatchId: next.id, phone: next.phone, error: 'Mensagem não preparada' })
         continue
+      }
+
+      const waitMs = await ensureScheduledWait('reactivation_dispatches', next, service)
+      if (waitMs > 0) {
+        await waitWithCountdown(waitMs, runner, (remaining, total) => {
+          getIO()?.emit('reactivation:countdown', { campaignId, remaining, total })
+        })
+        if (runner.stopped) return
+        if (runner.paused) continue
       }
 
       const result = await sendTextMessage(
@@ -280,10 +332,22 @@ async function runReactivationLoop(campaignId: string): Promise<void> {
         getIO()?.emit('reactivation:dispatch:failed', { campaignId, dispatchId: next.id, phone: next.phone, error: result.error })
       }
 
-      const delay = next.interval_delay_ms ?? randomIntervalMs(2, 5)
-      await waitWithCountdown(delay, runner, (remaining, total) => {
-        getIO()?.emit('reactivation:countdown', { campaignId, remaining, total })
-      })
+      // Agenda o próximo pendente já aqui, persistido antes de qualquer queda do processo.
+      const { data: followingRaw } = await service
+        .from('reactivation_dispatches')
+        .select('id, interval_delay_ms')
+        .eq('reactivation_campaign_id', campaignId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      if (followingRaw) {
+        const following = followingRaw as { id: string; interval_delay_ms: number | null }
+        const delay = following.interval_delay_ms ?? randomIntervalMs(campaign.interval_min, campaign.interval_max)
+        await service.from('reactivation_dispatches')
+          .update({ scheduled_at: new Date(Date.now() + delay).toISOString() } as never)
+          .eq('id', following.id)
+      }
     }
   } catch (err) {
     console.error(`[disparo-engine] Erro no loop de reativação ${campaignId}:`, err)

@@ -407,6 +407,7 @@ export interface Database {
           status: string
           message_sent: string | null
           typing_delay: number | null
+          scheduled_at: string | null
           sent_at: string | null
           error: string | null
           created_at: string
@@ -418,6 +419,7 @@ export interface Database {
           status?: string
           message_sent?: string | null
           typing_delay?: number | null
+          scheduled_at?: string | null
           sent_at?: string | null
           error?: string | null
           created_at?: string
@@ -467,6 +469,7 @@ export interface Database {
           message_sent: string | null
           typing_delay: number | null
           interval_delay_ms: number | null
+          scheduled_at: string | null
           sent_at: string | null
           error: string | null
           created_at: string
@@ -480,6 +483,7 @@ export interface Database {
           message_sent?: string | null
           typing_delay?: number | null
           interval_delay_ms?: number | null
+          scheduled_at?: string | null
           sent_at?: string | null
           error?: string | null
           created_at?: string

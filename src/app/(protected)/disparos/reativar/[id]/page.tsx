@@ -2,13 +2,21 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ArrowLeft, RefreshCw, Play, Pause, Square, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Play, Pause, Square, AlertTriangle, Settings, Pencil, Check, X, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { disparoFetch } from '@/lib/disparo-api'
 import type { ReactivationCampaign, ReactivationDispatch } from '@/lib/supabase/types'
+
+const INTERVAL_OPTIONS = [
+  { label: '1–2 min', min: 1, max: 2 },
+  { label: '2–5 min', min: 2, max: 5 },
+  { label: '5–10 min', min: 5, max: 10 },
+  { label: '10–20 min', min: 10, max: 20 },
+]
+const HOURS = Array.from({ length: 24 }, (_, i) => i)
 
 // ── Status maps ───────────────────────────────────────────────────────────────
 
@@ -78,6 +86,19 @@ export default function ReativarDetailPage() {
   const [countdown, setCountdown] = useState<CountdownState | null>(null)
   const socketRef = useRef<ReturnType<typeof import('socket.io-client').io> | null>(null)
 
+  // Inline message edit
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  // Edit campaign panel
+  const [showEdit, setShowEdit] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editIntervalIdx, setEditIntervalIdx] = useState(1)
+  const [editHoursStart, setEditHoursStart] = useState(0)
+  const [editHoursEnd, setEditHoursEnd] = useState(23)
+  const [savingEdit, setSavingEdit] = useState(false)
+
   const loadData = useCallback(async () => {
     try {
       const res = await disparoFetch(`/api/reactivation/${id}`)
@@ -93,6 +114,16 @@ export default function ReativarDetailPage() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  // Sync edit state when campaign loads
+  useEffect(() => {
+    if (!campaign) return
+    setEditName(campaign.name)
+    const idx = INTERVAL_OPTIONS.findIndex(o => o.min === campaign.interval_min && o.max === campaign.interval_max)
+    setEditIntervalIdx(idx >= 0 ? idx : 1)
+    setEditHoursStart(campaign.allowed_hours_start ?? 0)
+    setEditHoursEnd(campaign.allowed_hours_end ?? 23)
+  }, [campaign])
 
   // Socket.io — only connect when running
   useEffect(() => {
@@ -185,6 +216,53 @@ export default function ReativarDetailPage() {
     setActionLoading(false)
   }
 
+  // ── Inline message edit ─────────────────────────────────────────────────
+  const startEdit = (d: ReactivationDispatch) => { setEditingId(d.id); setEditValue(d.message_sent ?? '') }
+  const cancelEdit = () => { setEditingId(null); setEditValue('') }
+
+  const saveEdit = async (dispatchId: string) => {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/reactivation/${id}/dispatches/${dispatchId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: editValue }),
+      })
+      if (res.ok) {
+        setDispatches(prev => prev.map(d =>
+          d.id === dispatchId ? { ...d, message_sent: editValue.trim() } : d
+        ))
+        setEditingId(null)
+        setEditValue('')
+      }
+    } catch { /* silent */ }
+    setSaving(false)
+  }
+
+  // ── Edit campaign ─────────────────────────────────────────────────────────
+  const handleSaveEdit = async () => {
+    setSavingEdit(true)
+    const opt = INTERVAL_OPTIONS[editIntervalIdx]!
+    try {
+      const res = await fetch(`/api/reactivation/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editName,
+          interval_min: opt.min,
+          interval_max: opt.max,
+          allowed_hours_start: editHoursStart,
+          allowed_hours_end: editHoursEnd,
+        }),
+      })
+      if (res.ok) {
+        setShowEdit(false)
+        await loadData()
+      }
+    } catch { /* silent */ }
+    setSavingEdit(false)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -241,6 +319,14 @@ export default function ReativarDetailPage() {
             >
               <RefreshCw size={14} className="text-muted-foreground" />
             </button>
+            {campaign.status !== 'running' && (
+              <button
+                onClick={() => setShowEdit(true)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
+              >
+                <Settings size={13} /> Editar
+              </button>
+            )}
             {(campaign.status === 'draft' || campaign.status === 'paused') && (
               <button
                 onClick={() => handleAction('start')}
@@ -358,34 +444,148 @@ export default function ReativarDetailPage() {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mensagem enviada</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Enviado em</th>
+                  <th className="w-16 px-5 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {dispatches.map(d => (
-                  <tr key={d.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-5 py-3.5 font-mono text-xs text-foreground">{d.phone}</td>
-                    <td className="px-5 py-3.5 text-muted-foreground max-w-xs">
-                      {d.message_sent
-                        ? d.message_sent.length > 90
-                          ? `${d.message_sent.slice(0, 90)}…`
-                          : d.message_sent
-                        : '—'}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', DISPATCH_STATUS_STYLES[d.status] ?? DISPATCH_STATUS_STYLES.pending)}>
-                        {DISPATCH_STATUS_LABELS[d.status] ?? d.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-muted-foreground text-xs">
-                      {d.sent_at ? format(new Date(d.sent_at), 'dd/MM HH:mm:ss', { locale: ptBR }) : '—'}
-                    </td>
-                  </tr>
-                ))}
+                {dispatches.map(d => {
+                  const isEditing = editingId === d.id
+                  return (
+                    <tr key={d.id} className="hover:bg-muted/30 transition-colors align-top">
+                      <td className="px-5 py-3.5 font-mono text-xs text-foreground whitespace-nowrap">{d.phone}</td>
+                      <td className="px-5 py-3.5 text-muted-foreground max-w-xs">
+                        {isEditing ? (
+                          <textarea
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            rows={3}
+                            autoFocus
+                            className="w-full px-2 py-1.5 rounded-lg border border-alliance-blue/40 bg-background text-xs text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-alliance-blue/30"
+                          />
+                        ) : d.message_sent ? (
+                          d.message_sent.length > 90 ? `${d.message_sent.slice(0, 90)}…` : d.message_sent
+                        ) : '—'}
+                      </td>
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', DISPATCH_STATUS_STYLES[d.status] ?? DISPATCH_STATUS_STYLES.pending)}>
+                          {DISPATCH_STATUS_LABELS[d.status] ?? d.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-muted-foreground text-xs whitespace-nowrap">
+                        {d.sent_at ? format(new Date(d.sent_at), 'dd/MM HH:mm:ss', { locale: ptBR }) : '—'}
+                      </td>
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        {isEditing ? (
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => saveEdit(d.id)} disabled={saving}
+                              className="p-1.5 rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors cursor-pointer disabled:opacity-50" title="Salvar">
+                              {saving ? <RefreshCw size={11} className="animate-spin" /> : <Check size={11} />}
+                            </button>
+                            <button onClick={cancelEdit} disabled={saving}
+                              className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors cursor-pointer" title="Cancelar">
+                              <X size={11} />
+                            </button>
+                          </div>
+                        ) : d.status === 'pending' ? (
+                          <button onClick={() => startEdit(d)}
+                            className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer text-muted-foreground hover:text-foreground" title="Editar mensagem">
+                            <Pencil size={12} />
+                          </button>
+                        ) : null}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {/* ── Edit campaign panel ───────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showEdit && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={e => { if (e.target === e.currentTarget) setShowEdit(false) }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }}
+              className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md flex flex-col gap-5 p-6"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-bold text-foreground">Editar campanha</h2>
+                <button onClick={() => setShowEdit(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer">
+                  <X size={15} className="text-muted-foreground" />
+                </button>
+              </div>
+              <div className="flex flex-col gap-4">
+                {/* Name */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Nome</label>
+                  <input
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    className="px-3 py-2 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-alliance-blue/30"
+                  />
+                </div>
+                {/* Interval */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Intervalo entre envios</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {INTERVAL_OPTIONS.map((opt, i) => (
+                      <button key={i} onClick={() => setEditIntervalIdx(i)}
+                        className={cn(
+                          'px-3 py-2 rounded-xl border text-sm font-medium transition-colors cursor-pointer',
+                          editIntervalIdx === i
+                            ? 'border-alliance-blue bg-alliance-blue/10 text-alliance-blue'
+                            : 'border-border text-muted-foreground hover:bg-muted',
+                        )}>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Allowed hours */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                    <Clock size={11} /> Horário permitido para envio
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <select
+                      value={editHoursStart}
+                      onChange={e => setEditHoursStart(Number(e.target.value))}
+                      className="flex-1 px-3 py-2 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-alliance-blue/30"
+                    >
+                      {HOURS.map(h => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
+                    </select>
+                    <span className="text-muted-foreground text-sm">até</span>
+                    <select
+                      value={editHoursEnd}
+                      onChange={e => setEditHoursEnd(Number(e.target.value))}
+                      className="flex-1 px-3 py-2 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-alliance-blue/30"
+                    >
+                      {HOURS.map(h => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setShowEdit(false)} className="px-4 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
+                  Cancelar
+                </button>
+                <button onClick={handleSaveEdit} disabled={savingEdit || !editName.trim()}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-alliance-blue text-white text-sm font-semibold hover:bg-alliance-dark transition-colors cursor-pointer disabled:opacity-50">
+                  {savingEdit ? <RefreshCw size={13} className="animate-spin" /> : <Check size={13} />}
+                  Salvar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

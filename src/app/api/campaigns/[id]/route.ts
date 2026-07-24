@@ -55,6 +55,16 @@ export async function PATCH(
   const { error } = await service.from('campaigns').update(update as never).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  // Intervalo mudou: os pendentes já tinham scheduled_at calculado com o intervalo antigo.
+  // Limpa pra o motor recalcular com o novo intervalo assim que retomar.
+  if (body.interval_min !== undefined || body.interval_max !== undefined) {
+    await service
+      .from('dispatches')
+      .update({ scheduled_at: null } as never)
+      .eq('campaign_id', id)
+      .eq('status', 'pending')
+  }
+
   return NextResponse.json({ ok: true })
 }
 
