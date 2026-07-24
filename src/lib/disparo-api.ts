@@ -1,14 +1,13 @@
 /**
  * disparoFetch — wraps fetch para as rotas do sistema de disparos.
  *
- * Em produção as rotas vivem no próprio Next.js (/api/reactivation, etc.).
- * NEXT_PUBLIC_DISPARO_API_URL pode ser definida para apontar a um serviço externo
- * quando necessário; se não estiver definida, usa rotas internas (string vazia = relativo).
+ * Sempre relativo à própria origem. Quando este deploy roda na Vercel (serverless,
+ * sem o processo persistente do server.js), o next.config.ts encaminha as ações
+ * start/pause/stop para o EasyPanel via rewrite — o browser continua chamando o
+ * mesmo domínio, então cookies de sessão seguem normalmente (sem CORS).
  */
-const DISPARO_API = process.env.NEXT_PUBLIC_DISPARO_API_URL ?? ''
-
 export function disparoFetch(path: string, init?: RequestInit): Promise<Response> {
-  return fetch(`${DISPARO_API}${path}`, {
+  return fetch(path, {
     ...init,
     headers: {
       'Content-Type': 'application/json',

@@ -180,8 +180,10 @@ export default function DisparoDetailPage() {
       if (socketRef.current) { socketRef.current.disconnect(); socketRef.current = null }
       return
     }
-    // Sem NEXT_PUBLIC_DISPARO_API_URL, conecta na própria origem (mesmo processo do server.js)
-    const apiUrl = process.env.NEXT_PUBLIC_DISPARO_API_URL || undefined
+    // O socket precisa do processo persistente do server.js (EasyPanel) — em deploys
+    // serverless (Vercel), NEXT_PUBLIC_DISPARO_SOCKET_URL aponta pra lá diretamente.
+    // Sem essa variável, conecta na própria origem (é o que o EasyPanel já é).
+    const apiUrl = process.env.NEXT_PUBLIC_DISPARO_SOCKET_URL || undefined
     import('socket.io-client').then(({ io }) => {
       const socket = io(apiUrl, { transports: ['websocket'] })
       socketRef.current = socket
