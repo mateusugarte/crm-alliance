@@ -116,6 +116,11 @@ async function waitWithCountdown(
 async function runCampaignLoop(campaignId: string): Promise<void> {
   const service = createServiceClient()
 
+  // Se o processo caiu no meio de uma espera, o disparo fica "preso" com status
+  // 'sending' (reivindicado mas nunca enviado nem revertido). Como só um loop
+  // roda por campanha neste processo, é seguro devolver esses registros à fila.
+  await service.from('dispatches').update({ status: 'pending' } as never).eq('campaign_id', campaignId).eq('status', 'sending')
+
   try {
     while (true) {
       const runner = campaignRunners.get(campaignId)
@@ -153,6 +158,21 @@ async function runCampaignLoop(campaignId: string): Promise<void> {
         return
       }
 
+      // Reivindica o disparo atomicamente antes de processá-lo: se outra instância
+      // do motor (ex.: um restart sobreposto) já pegou esse mesmo registro entre o
+      // SELECT acima e este UPDATE, a condição status='pending' não bate e claimed
+      // vem null. Sem isso, duas instâncias podem avançar a fila em paralelo e
+      // encurtar o intervalo configurado na prática, mesmo sem enviar a mesma
+      // mensagem duas vezes.
+      const { data: claimed } = await service
+        .from('dispatches')
+        .update({ status: 'sending' } as never)
+        .eq('id', next.id)
+        .eq('status', 'pending')
+        .select('id')
+        .maybeSingle()
+      if (!claimed) continue
+
       if (!next.message_sent) {
         await service.from('dispatches')
           .update({ status: 'failed', error: 'Mensagem não preparada' } as never)
@@ -167,8 +187,14 @@ async function runCampaignLoop(campaignId: string): Promise<void> {
         await waitWithCountdown(waitMs, runner, (remaining, total) => {
           getIO()?.emit('campaign:countdown', { campaignId, remaining, total })
         })
-        if (runner.stopped) return
-        if (runner.paused) continue
+        if (runner.stopped) {
+          await service.from('dispatches').update({ status: 'pending' } as never).eq('id', next.id)
+          return
+        }
+        if (runner.paused) {
+          await service.from('dispatches').update({ status: 'pending' } as never).eq('id', next.id)
+          continue
+        }
       }
 
       const result = await sendTextMessage(
@@ -256,6 +282,11 @@ export async function stopCampaign(campaignId: string): Promise<void> {
 async function runReactivationLoop(campaignId: string): Promise<void> {
   const service = createServiceClient()
 
+  // Se o processo caiu no meio de uma espera, o disparo fica "preso" com status
+  // 'sending' (reivindicado mas nunca enviado nem revertido). Como só um loop
+  // roda por campanha neste processo, é seguro devolver esses registros à fila.
+  await service.from('reactivation_dispatches').update({ status: 'pending' } as never).eq('reactivation_campaign_id', campaignId).eq('status', 'sending')
+
   try {
     while (true) {
       const runner = reactivationRunners.get(campaignId)
@@ -293,6 +324,20 @@ async function runReactivationLoop(campaignId: string): Promise<void> {
         return
       }
 
+      // Reivindica o disparo atomicamente antes de processá-lo: se outra instância
+      // do motor já pegou esse mesmo registro entre o SELECT acima e este UPDATE,
+      // a condição status='pending' não bate e claimed vem null. Sem isso, duas
+      // instâncias podem avançar a fila em paralelo e encurtar o intervalo
+      // configurado na prática, mesmo sem enviar a mesma mensagem duas vezes.
+      const { data: claimed } = await service
+        .from('reactivation_dispatches')
+        .update({ status: 'sending' } as never)
+        .eq('id', next.id)
+        .eq('status', 'pending')
+        .select('id')
+        .maybeSingle()
+      if (!claimed) continue
+
       if (!next.message_sent) {
         await service.from('reactivation_dispatches')
           .update({ status: 'failed', error: 'Mensagem não preparada' } as never)
@@ -307,8 +352,14 @@ async function runReactivationLoop(campaignId: string): Promise<void> {
         await waitWithCountdown(waitMs, runner, (remaining, total) => {
           getIO()?.emit('reactivation:countdown', { campaignId, remaining, total })
         })
-        if (runner.stopped) return
-        if (runner.paused) continue
+        if (runner.stopped) {
+          await service.from('reactivation_dispatches').update({ status: 'pending' } as never).eq('id', next.id)
+          return
+        }
+        if (runner.paused) {
+          await service.from('reactivation_dispatches').update({ status: 'pending' } as never).eq('id', next.id)
+          continue
+        }
       }
 
       const result = await sendTextMessage(
