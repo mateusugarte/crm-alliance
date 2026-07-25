@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runAliceAgent } from '@/lib/ai/alice-agent'
+import { notifyInternalGroup } from '@/lib/ai/alice-tools'
 import { toWhatsAppNumber } from '@/lib/format-phone'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { Database } from '@/lib/supabase/types'
@@ -38,6 +39,40 @@ interface N8NAgentPayload {
 
 function unauthorized() {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+}
+
+function decodePercentEncoding(text: string) {
+  if (!/%[0-9A-Fa-f]{2}/.test(text)) return text
+  try {
+    return decodeURIComponent(text)
+  } catch {
+    return text
+  }
+}
+
+/**
+ * Mensagens vindas de anuncio (Click-to-WhatsApp) chegam como o payload cru da
+ * UazAPI: um JSON com `text` mais um `contextInfo` que carrega ate 10 KB de
+ * thumbnail em base64. Guardar e mandar isso para a Alice polui o historico,
+ * queima tokens e aparece como lixo no chat do corretor — extraimos so o texto.
+ */
+function extractLeadText(raw: string): string {
+  const trimmed = raw.trim()
+  if (!trimmed.startsWith('{')) return decodePercentEncoding(trimmed)
+
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>
+    for (const key of ['text', 'conversation', 'caption', 'body']) {
+      const value = parsed[key]
+      if (typeof value === 'string' && value.trim()) {
+        return decodePercentEncoding(value.trim())
+      }
+    }
+  } catch {
+    // nao era JSON valido — segue com o texto original
+  }
+
+  return decodePercentEncoding(trimmed)
 }
 
 function phoneCandidates(raw: string) {
@@ -163,7 +198,7 @@ export async function POST(request: NextRequest) {
   }
 
   const payload = await request.json() as N8NAgentPayload
-  const message = (payload.message ?? payload.conversation ?? '').trim()
+  const message = extractLeadText(payload.message ?? payload.conversation ?? '')
   const reactivation = payload.reactivation === true || (payload.reactivation as unknown) === 'true'
 
   if (!message) {
@@ -266,6 +301,25 @@ export async function POST(request: NextRequest) {
       })
     } catch (agentError) {
       console.error('[n8n-agent/run] Alice agent failed, staying silent instead of replying', agentError)
+
+      // Ficar em silencio e o comportamento correto (melhor nao responder do que
+      // responder errado), mas silencio invisivel deixou lead sem atendimento sem
+      // ninguem perceber: a execucao no n8n fica verde e nada no CRM indica falha.
+      // A equipe precisa ser avisada para assumir a conversa na mao.
+      const detail = agentError instanceof Error ? agentError.message : String(agentError)
+      await notifyInternalGroup(
+        [
+          '⚠️ FALHA NO ATENDIMENTO AUTOMÁTICO',
+          '',
+          `Lead: ${lead.name || 'sem nome'} (${toWhatsAppNumber(lead.phone)})`,
+          `Mensagem do lead: ${message.slice(0, 300)}`,
+          '',
+          `Erro: ${detail}`,
+          '',
+          'A Alice NÃO respondeu. Assumam a conversa manualmente.',
+        ].join('\n')
+      )
+
       output = {
         reply: null,
         actions: [],

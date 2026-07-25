@@ -29,6 +29,32 @@ async function getConnectedInstanceToken(): Promise<string | null> {
   return (data as { instance_id: string } | null)?.instance_id ?? null
 }
 
+/**
+ * Avisa o grupo interno da equipe. Usado tanto pela tool `qualificado` quanto
+ * pelo alerta de falha do agente — um lead nunca pode ficar sem resposta sem
+ * que alguem saiba disso.
+ */
+export async function notifyInternalGroup(message: string): Promise<boolean> {
+  try {
+    const instanceToken = await getConnectedInstanceToken()
+    if (!instanceToken) {
+      console.error('[notifyInternalGroup] nenhuma instancia do WhatsApp conectada')
+      return false
+    }
+
+    const result = await sendTextMessage(instanceToken, QUALIFICADO_ALERT_GROUP_JID, message)
+    if (!result.success) {
+      console.error('[notifyInternalGroup] falha ao enviar', result.error)
+      return false
+    }
+
+    return true
+  } catch (err) {
+    console.error('[notifyInternalGroup] erro', describeError(err))
+    return false
+  }
+}
+
 export type AliceToolName =
   | 'leads'
   | 'imoveis'

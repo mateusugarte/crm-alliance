@@ -265,6 +265,39 @@ const ALICE_RESPONSE_FORMAT: OpenAI.Chat.Completions.ChatCompletionCreateParams[
   },
 }
 
+const MAX_API_ATTEMPTS = 3
+
+/**
+ * A OpenAI cair (429, 5xx, timeout de rede) fazia o agente inteiro lancar, e o
+ * caller respondia com silencio — o lead ficava sem resposta para sempre.
+ * Erros transitorios agora sao repetidos antes de desistir.
+ */
+async function createCompletion(
+  openai: ReturnType<typeof getOpenAI>,
+  params: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
+) {
+  let lastError: unknown
+
+  for (let attempt = 1; attempt <= MAX_API_ATTEMPTS; attempt += 1) {
+    try {
+      return await openai.chat.completions.create(params)
+    } catch (err) {
+      lastError = err
+      const status = (err as { status?: number }).status
+
+      // 4xx que nao seja rate limit (prompt invalido, contexto estourado, chave errada)
+      // nao melhora com retry — falha imediatamente para o caller tratar.
+      if (typeof status === 'number' && status !== 429 && status < 500) throw err
+
+      if (attempt === MAX_API_ATTEMPTS) break
+      console.error(`[alice-agent] OpenAI falhou (tentativa ${attempt}/${MAX_API_ATTEMPTS}), repetindo`, err)
+      await new Promise((resolve) => setTimeout(resolve, 1500 * attempt))
+    }
+  }
+
+  throw lastError
+}
+
 function parseJson(text: string): AliceAgentOutput {
   const trimmed = text.trim()
   const jsonText = trimmed.startsWith('{')
@@ -301,7 +334,7 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
   let result: OpenAI.Chat.Completions.ChatCompletionMessage | null = null
 
   for (let i = 0; i < 6; i += 1) {
-    const response = await openai.chat.completions.create({
+    const response = await createCompletion(openai, {
       model: CHAT_MODEL,
       temperature: 0.4,
       tools: aliceTools,
@@ -342,7 +375,7 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
   }
 
   if (result.tool_calls?.filter((call) => call.type === 'function').length) {
-    const forced = await openai.chat.completions.create({
+    const forced = await createCompletion(openai, {
       model: CHAT_MODEL,
       temperature: 0.4,
       response_format: ALICE_RESPONSE_FORMAT,
@@ -356,7 +389,6 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
 
   const MAX_JSON_ATTEMPTS = 6
   let parsed: AliceAgentOutput | null = null
-  let silentFailure = false
 
   for (let attempt = 1; attempt <= MAX_JSON_ATTEMPTS; attempt += 1) {
     try {
@@ -365,16 +397,15 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
     } catch (err) {
       console.error(`[alice-agent] failed to parse model output (attempt ${attempt}/${MAX_JSON_ATTEMPTS})`, err, result.content)
 
+      // Esgotar as tentativas e falha de verdade: lanca para o caller alertar a
+      // equipe, em vez de devolver silencio que ninguem enxerga.
       if (attempt === MAX_JSON_ATTEMPTS) {
-        console.error('[alice-agent] exhausted all attempts, staying silent')
-        parsed = { reply: null, actions: [], lead_updates: {} }
-        silentFailure = true
-        break
+        throw new Error(`Alice nao produziu JSON valido apos ${MAX_JSON_ATTEMPTS} tentativas`)
       }
 
       await new Promise((resolve) => setTimeout(resolve, 5000))
 
-      const retry = await openai.chat.completions.create({
+      const retry = await createCompletion(openai, {
         model: CHAT_MODEL,
         temperature: 0.4,
         response_format: ALICE_RESPONSE_FORMAT,
@@ -396,7 +427,6 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
   // Safety net: FLUXO B's first message must send the PDF even if the model forgot to call
   // the tool. FLUXO A (via_disparo) never auto-sends — it only reacts to an explicit request.
   const shouldForcePdf =
-    !silentFailure &&
     input.lead.via_disparo !== true &&
     !input.lead.pdf_enviado &&
     !actionsBeforePdfFallback.includes('enviar_pdf')
