@@ -119,6 +119,9 @@ Objetivo unico: despertar interesse nas condicoes especiais e repassar para cons
 Nao aplique trava de 4 necessidades. Nao proponha data. Se houver interesse, conduza para aceitar contato de consultor.
 No exato momento em que o lead aceitar, ative as tres tools juntas, na mesma resposta: aceitou_ligacao, qualificado, pausar_IA — nao adie pausar_IA para uma proxima mensagem, mesmo que ainda pergunte a preferencia de contato.
 
+PEDIDOS FORA DO PADRAO (troca, permuta, negociacao de terreno, parceria ou qualquer pedido que nao seja compra direta de unidade)
+Esses casos NUNCA passam pela trava de 4 necessidades nem pela trava de valores — essas travas valem somente para venda direta de apartamento. No momento em que o lead concordar em ser contatado por um consultor para tratar do assunto (mesmo que so tenha dito "pode me chamar", "sim, pelo WhatsApp" ou indicado um horario/periodo do dia), isso JA e aceite. Ative qualificado, aceitou_ligacao e pausar_IA imediatamente nessa mesma resposta — nunca continue oferecendo apartamentos ou novas perguntas de qualificacao depois desse aceite.
+
 FLUXO B - padrao
 pdf_enviado do lead atual: ${input.lead.pdf_enviado ? 'true' : 'false'}
 - Se pdf_enviado for false, esta e a primeira interacao com este lead: ative a tool enviar_pdf (ela realmente envia o arquivo pelo WhatsApp) e, na mensagem, cumprimente conforme o horario (bom dia, boa tarde ou boa noite), pergunte se o lead esta bem, e diga que esta te enviando o PDF de apresentacao do La Reserva. A ordem entre o arquivo chegar e o texto da saudacao nao importa mais — pode ativar a tool antes ou depois de escrever a mensagem.
@@ -126,6 +129,7 @@ pdf_enviado do lead atual: ${input.lead.pdf_enviado ? 'true' : 'false'}
 Ao longo da conversa, procure entender de forma natural: nome, cidade, intencao morar/investir, se conhecia o La Reserva, metragem, quartos. Isso e uma conversa, nao um formulario ou entrevista: pergunte um dado por vez, encaixado no papo, e se o lead pular, nao responder ou preferir seguir para outro assunto, deixe pra la e continue naturalmente — nunca insista ou repita a mesma pergunta so para completar um checklist.
 Para valores, use somente dados reais dos imoveis disponiveis e da tool simulacao. Nunca invente preco, desconto, prazo, vaga ou beneficio. Apresente valores assim que fizer sentido na conversa, mesmo que nem todos os dados de qualificacao tenham sido coletados — nao trave a conversa esperando completar uma lista.
 Para consultor: conduza quando a conversa tiver fluido naturalmente e o lead demonstrar interesse real — nao exija ter coletado todos os dados antes disso. No exato momento em que o lead aceitar falar com o consultor, ative as tres tools juntas, na mesma resposta, sem esperar mais nada do lead: qualificado, aceitou_ligacao, pausar_IA. Mesmo que a mensagem ainda pergunte uma preferencia de contato (ligacao ou mensagem), as tres tools ja devem ser ativadas agora — nao adie pausar_IA para uma proxima mensagem.
+Isso vale tambem para pedidos fora do padrao de venda direta (troca de imovel, permuta, negociacao de terreno, parceria etc): a trava de 4 necessidades e a trava de valores nao se aplicam a esses casos. Qualquer confirmacao do lead para ser contatado por um consultor sobre esse assunto — mesmo curta, como "pode me chamar" ou so um horario/periodo do dia — e aceite: ative as tres tools imediatamente e nao continue oferecendo qualificacao padrao (metragem, quartos, valores) depois desse aceite.
 
 RECONTATO MANUAL
 reactivation desta chamada: ${input.reactivation ? 'true' : 'false'}
@@ -440,6 +444,28 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
     if (!toolState.lead_updates.pdf_enviado) {
       console.error('[alice-agent] fallback enviar_pdf call did not succeed', fallbackResult)
     }
+  }
+
+  // Safety net: the model sometimes promises a consultant handoff in the reply text
+  // (e.g. "vou avisar nosso consultor para te chamar") without actually firing the
+  // qualificado/aceitou_ligacao/pausar_IA tools — leaving the CRM stage unset, the
+  // team group unnotified and the IA still active. If the reply itself confirms a
+  // handoff but the tools never fired, force them so the CRM and group alert never
+  // depend solely on the model remembering the tool call.
+  const promisedConsultantHandoff =
+    !!parsed.reply &&
+    /consultor/i.test(parsed.reply) &&
+    /(vou avisar|vou organizar|entrar[aá] em contato|vai te (chamar|ligar)|te chamar[aá]?|confirmar[aá] (a )?disponibilidade)/i.test(
+      parsed.reply
+    )
+
+  const actionsBeforeHandoffFallback = [...new Set([...toolState.actions, ...parsed.actions])] as AliceAction[]
+
+  if (promisedConsultantHandoff && !actionsBeforeHandoffFallback.includes('qualificado')) {
+    const resumo = input.lead.summary || parsed.internal_summary || 'Lead aceitou contato de consultor.'
+    await executeAliceTool({ lead: input.lead, imoveis: input.imoveis, state: toolState }, 'qualificado', { resumo })
+    await executeAliceTool({ lead: input.lead, imoveis: input.imoveis, state: toolState }, 'aceitou_ligacao', {})
+    await executeAliceTool({ lead: input.lead, imoveis: input.imoveis, state: toolState }, 'pausar_IA', {})
   }
 
   const allActions = [...new Set([...toolState.actions, ...parsed.actions])] as AliceAction[]
