@@ -28,6 +28,7 @@ const STAGE_OPTIONS: { value: Lead['stage']; label: string }[] = [
   { value: 'lead_morno', label: 'Lead Morno' },
   { value: 'lead_quente', label: 'Lead Quente' },
   { value: 'follow_up', label: 'Follow Up' },
+  { value: 'sem_interesse', label: 'Sem interesse' },
   { value: 'reuniao_agendada', label: 'Reunião Agendada' },
   { value: 'visita_confirmada', label: 'Venda Confirmada' },
   { value: 'cliente', label: 'Cliente' },

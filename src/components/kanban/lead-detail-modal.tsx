@@ -15,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Lead } from '@/lib/supabase/types'
-import type { Label, Interaction, LeadFull } from './types'
+import type { Interaction, LeadFull } from './types'
 import { LabelsSection } from './lead-labels-section'
 import { LeadChatSection } from './lead-chat-section'
 import { LeadCommentsSection } from '@/components/shared/lead-comments-section'
@@ -28,6 +28,7 @@ const STAGE_LABELS: Record<Lead['stage'], string> = {
   lead_morno: 'Lead Morno',
   lead_quente: 'Lead Quente',
   follow_up: 'Follow Up',
+  sem_interesse: 'Sem interesse',
   reuniao_agendada: 'Reunião Agendada',
   visita_confirmada: 'Venda Confirmada',
   cliente: 'Cliente',
@@ -39,6 +40,7 @@ const STAGE_COLORS: Record<Lead['stage'], string> = {
   lead_morno: 'var(--color-stage-morno)',
   lead_quente: 'var(--color-stage-quente)',
   follow_up: 'var(--color-stage-follow-up)',
+  sem_interesse: 'var(--color-stage-sem-interesse)',
   reuniao_agendada: 'var(--color-stage-reuniao)',
   visita_confirmada: 'var(--color-stage-visita)',
   cliente: 'var(--color-stage-cliente)',

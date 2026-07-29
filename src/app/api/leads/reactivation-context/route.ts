@@ -9,6 +9,7 @@ const STAGE_LABELS: Record<string, string> = {
   lead_morno:        'Lead Morno',
   lead_quente:       'Lead Quente',
   follow_up:         'Follow-up',
+  sem_interesse:     'Sem interesse',
   reuniao_agendada:  'Reunião Agendada',
   visita_confirmada: 'Venda Confirmada',
   cliente:           'Cliente',

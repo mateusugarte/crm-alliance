@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS leads (
   stage              text NOT NULL DEFAULT 'lead_frio'
                        CHECK (stage IN (
                          'lead_frio','lead_morno','lead_quente',
-                         'follow_up','reuniao_agendada','visita_confirmada','cliente'
+                         'follow_up','sem_interesse','reuniao_agendada','visita_confirmada','cliente'
                        )),
   assigned_to        uuid, -- FK para auth.users gerenciada pela aplicação (não via constraint)
   automation_paused  boolean DEFAULT false,
