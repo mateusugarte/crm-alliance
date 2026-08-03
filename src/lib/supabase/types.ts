@@ -28,6 +28,33 @@ export interface Database {
         }
         Update: Partial<Database['public']['Tables']['user_profiles']['Insert']>
       }
+      login_logs: {
+        Row: {
+          id: string
+          user_id: string
+          email: string
+          full_name: string | null
+          role: 'adm' | 'corretor'
+          source: string
+          ip_address: string | null
+          user_agent: string | null
+          logged_at: string
+          logged_date: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          email: string
+          full_name?: string | null
+          role?: 'adm' | 'corretor'
+          source?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          logged_at?: string
+          logged_date?: string
+        }
+        Update: Partial<Database['public']['Tables']['login_logs']['Insert']>
+      }
       leads: {
         Row: {
           id: string
@@ -507,6 +534,27 @@ export interface Database {
         Args: { lead_uuid: string; new_stage: string }
         Returns: undefined
       }
+      list_user_access_overview: {
+        Args: Record<string, never>
+        Returns: {
+          id: string
+          email: string
+          full_name: string | null
+          role: 'adm' | 'corretor' | null
+          badge_color: string | null
+          created_at: string
+          confirmed_at: string | null
+          last_sign_in_at: string | null
+          last_login_at: string | null
+          login_count: number
+          login_count_7d: number
+          login_count_30d: number
+        }[]
+      }
+      record_user_access_event: {
+        Args: { p_ip_address?: string | null; p_user_agent?: string | null }
+        Returns: undefined
+      }
       toggle_imovel_disponivel: {
         Args: { imovel_uuid: string }
         Returns: boolean
@@ -522,6 +570,7 @@ export interface Database {
 
 // Tipos de conveniência
 export type UserProfile = Database['public']['Tables']['user_profiles']['Row']
+export type LoginLog = Database['public']['Tables']['login_logs']['Row']
 export type Lead = Database['public']['Tables']['leads']['Row']
 export type Interaction = Database['public']['Tables']['interactions']['Row']
 export type SenderType = Interaction['sender_type']

@@ -29,9 +29,10 @@ const DISPARO_ITEMS = [
 interface NavShellProps {
   userInitial?: string
   userName?: string
+  isAdm?: boolean
 }
 
-export default function NavShell({ userInitial = 'C', userName = 'consultor' }: NavShellProps) {
+export default function NavShell({ userInitial = 'C', userName = 'consultor', isAdm = false }: NavShellProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
 
@@ -230,28 +231,43 @@ export default function NavShell({ userInitial = 'C', userName = 'consultor' }: 
             </motion.p>
           )}
         </AnimatePresence>
-        <span
-          title={collapsed ? 'Configurações' : undefined}
-          className={cn(
-            'flex items-center rounded-xl text-sm font-medium text-white/25 cursor-not-allowed',
-            collapsed ? 'justify-center px-0 py-2' : 'gap-3 px-3 py-2',
-          )}
-        >
-          <Settings size={15} strokeWidth={1.8} className="flex-shrink-0" />
-          <AnimatePresence initial={false}>
-            {!collapsed && (
-              <motion.span
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: 'auto' }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.14 }}
-                className="whitespace-nowrap overflow-hidden"
-              >
-                Configurações
-              </motion.span>
+        {isAdm && (
+          <Link
+            href="/configuracoes"
+            title={collapsed ? 'Configurações' : undefined}
+            className={cn(
+              'relative flex items-center rounded-xl text-sm font-medium transition-colors duration-150 overflow-hidden',
+              collapsed ? 'justify-center px-0 py-2' : 'gap-3 px-3 py-2',
+              pathname.startsWith('/configuracoes') ? 'text-white' : 'text-white/50 hover:text-white/85',
             )}
-          </AnimatePresence>
-        </span>
+          >
+            {pathname.startsWith('/configuracoes') && (
+              <motion.div
+                layoutId="nav-active-bg"
+                className="absolute inset-0 rounded-xl bg-white/15"
+                transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+              />
+            )}
+            <span className={cn(
+              'absolute inset-0 rounded-xl transition-colors duration-150',
+              !pathname.startsWith('/configuracoes') && 'hover:bg-white/8',
+            )} />
+            <Settings size={15} strokeWidth={1.8} className="flex-shrink-0 relative z-10" />
+            <AnimatePresence initial={false}>
+              {!collapsed && (
+                <motion.span
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: 'auto' }}
+                  exit={{ opacity: 0, width: 0 }}
+                  transition={{ duration: 0.14 }}
+                  className="whitespace-nowrap overflow-hidden relative z-10"
+                >
+                  Configurações
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </Link>
+        )}
       </div>
 
       {/* Divider footer */}
