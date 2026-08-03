@@ -161,6 +161,8 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
   const [leads, setLeads] = useState<LeadRow[]>([])
   const [leadsLoading, setLeadsLoading] = useState(false)
   const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set())
+  const [randomColdCount, setRandomColdCount] = useState('')
+  const [randomColdFeedback, setRandomColdFeedback] = useState<string | null>(null)
 
   // Step 2: Mode + messages
   const [mode, setMode] = useState<'template' | 'context' | null>(null)
@@ -197,6 +199,11 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
     [leads, selectedLeadIds],
   )
 
+  const availableColdZeroImpactLeads = useMemo(
+    () => (leadsByStage.lead_frio ?? []).filter(l => (l.reactivation_count ?? 0) === 0),
+    [leadsByStage],
+  )
+
   const messagesReady = useMemo(() => {
     if (!mode || selectedLeadObjects.length === 0) return false
     const map = mode === 'template' ? mixedMessages : generatedMessages
@@ -227,6 +234,8 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
   const openWizard = async () => {
     setStep(1)
     setSelectedLeadIds(new Set())
+    setRandomColdCount('')
+    setRandomColdFeedback(null)
     setMode(null)
     setSelectedTemplate(null)
     setMixedMessages({})
@@ -265,9 +274,46 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
 
   const toggleLead = useCallback((id: string) => {
     setSelectedLeadIds(prev => {
-      const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n
+      const n = new Set(prev)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
     })
   }, [])
+
+  const handleRandomColdSelection = useCallback(() => {
+    const requested = Number.parseInt(randomColdCount, 10)
+
+    if (!Number.isFinite(requested) || requested <= 0) {
+      setRandomColdFeedback('Informe uma quantidade válida.')
+      return
+    }
+
+    if (availableColdZeroImpactLeads.length === 0) {
+      setRandomColdFeedback('Não há leads frios 0× disponíveis para sorteio.')
+      return
+    }
+
+    const pool = [...availableColdZeroImpactLeads]
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[pool[i], pool[j]] = [pool[j]!, pool[i]!]
+    }
+
+    const selected = pool.slice(0, Math.min(requested, pool.length))
+    setSelectedLeadIds(new Set(selected.map(l => l.id)))
+    setMode(null)
+    setSelectedTemplate(null)
+    setMixedMessages({})
+    setGeneratedMessages({})
+    setMixError(null)
+    setContextError(null)
+    setRandomColdFeedback(
+      selected.length < requested
+        ? `Selecionei ${selected.length}. Só existem ${availableColdZeroImpactLeads.length} leads frios 0× disponíveis.`
+        : `${selected.length} leads frios 0× selecionados aleatoriamente.`,
+    )
+  }, [availableColdZeroImpactLeads, randomColdCount])
 
   const handleMixTemplate = async () => {
     if (!selectedTemplate) return
@@ -521,6 +567,46 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                                   {allSelected ? '✓ Todos selecionados' : someSelected ? `${selectedInStage} selecionado${selectedInStage !== 1 ? 's' : ''}` : 'Selecionar todos'}
                                 </p>
                               </button>
+                              {col.id === 'lead_frio' && (
+                                <div className="flex flex-col gap-1.5 rounded-xl border border-dashed border-alliance-blue/25 bg-alliance-blue/5 p-2">
+                                  <div className="flex items-center justify-between gap-1">
+                                    <span className="text-[10px] font-semibold text-alliance-blue">
+                                      Sortear 0×
+                                    </span>
+                                    <span className="text-[9px] font-semibold text-muted-foreground">
+                                      {availableColdZeroImpactLeads.length} disp.
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      max={availableColdZeroImpactLeads.length || undefined}
+                                      value={randomColdCount}
+                                      onChange={e => {
+                                        setRandomColdCount(e.target.value)
+                                        setRandomColdFeedback(null)
+                                      }}
+                                      placeholder="30"
+                                      className="h-7 min-w-0 flex-1 rounded-lg border border-border bg-background px-2 text-xs text-foreground outline-none focus:ring-2 focus:ring-alliance-blue/30"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={handleRandomColdSelection}
+                                      disabled={availableColdZeroImpactLeads.length === 0}
+                                      title="Selecionar aleatoriamente leads frios sem disparo"
+                                      className="flex h-7 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-alliance-blue text-white transition-colors hover:bg-alliance-dark disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+                                    >
+                                      <Shuffle size={12} />
+                                    </button>
+                                  </div>
+                                  {randomColdFeedback && (
+                                    <p className="text-[9px] leading-tight text-muted-foreground">
+                                      {randomColdFeedback}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
                               <div className="flex flex-col gap-1 max-h-52 overflow-y-auto">
                                 {stageLeads.map(lead => {
                                   const sel = selectedLeadIds.has(lead.id)
