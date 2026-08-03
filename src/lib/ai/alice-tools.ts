@@ -4,6 +4,7 @@ import { searchKnowledgeBase } from './rag'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendDocumentMessage, sendTextMessage } from '@/lib/whatsapp/send'
 import { toWhatsAppNumber } from '@/lib/format-phone'
+import { normalizeLeadName } from '@/lib/lead-name'
 
 type Lead = Database['public']['Tables']['leads']['Row']
 type Imovel = Database['public']['Tables']['imoveis']['Row']
@@ -343,7 +344,7 @@ export async function executeAliceTool(context: AliceToolContext, name: string, 
 
     case 'leads': {
       addAction(state, 'leads')
-      if (typeof args.nome === 'string' && args.nome.trim()) state.lead_updates.name = args.nome.trim()
+      if (typeof args.nome === 'string' && args.nome.trim()) state.lead_updates.name = normalizeLeadName(args.nome)
       if (typeof args.cidade === 'string') state.lead_updates.city = args.cidade.trim() || null
       if (args.intencao === 'morar' || args.intencao === 'investir') state.lead_updates.intention = args.intencao
       if (typeof args.imovel === 'string') state.lead_updates.imovel_interesse = args.imovel.trim() || null

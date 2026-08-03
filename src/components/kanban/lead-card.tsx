@@ -23,6 +23,22 @@ export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = fals
   const displayName = lead.name?.trim() || formatPhone(lead.phone) || 'Lead sem nome'
   const isBeforeAI = lead.antes_ia === true
   const aceitouConsultor = lead.aceitou_consultor === true
+  const leadScore = Math.max(0, Math.min(100, lead.lead_score ?? 0))
+  const scoreLabel = (leadScore / 10).toFixed(1).replace('.', ',')
+  const scoreClass = (() => {
+    switch (lead.lead_score_band) {
+      case 'prioridade':
+        return 'bg-emerald-600 text-white border-emerald-600'
+      case 'quente':
+        return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/25'
+      case 'morno':
+        return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/25'
+      case 'frio':
+        return 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/25'
+      default:
+        return 'bg-gray-50 text-gray-500 border-gray-200 dark:bg-white/8 dark:text-white/45 dark:border-white/10'
+    }
+  })()
 
   // Placeholder ghost que fica na coluna enquanto o DragOverlay segue o cursor
   if (isDragging) {
@@ -80,9 +96,17 @@ export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = fals
       <div className="flex flex-col gap-2">
         {/* Nome + badges */}
         <div className="flex items-start justify-between gap-1">
-          <span className="font-semibold text-sm text-alliance-dark dark:text-white leading-tight">
-            {displayName}
-          </span>
+          <div className="min-w-0 flex flex-1 items-start gap-1.5">
+            <span className="font-semibold text-sm text-alliance-dark dark:text-white leading-tight truncate">
+              {displayName}
+            </span>
+            <span
+              className={`inline-flex items-center justify-center h-5 min-w-7 px-1.5 rounded-full border text-[10px] font-bold leading-none flex-shrink-0 ${scoreClass}`}
+              title={`Score do lead: ${scoreLabel}/10`}
+            >
+              {scoreLabel}
+            </span>
+          </div>
           <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
             {aceitouConsultor && (
               <span className="inline-flex items-center gap-0.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap">

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/types'
+import { normalizeLeadName } from '@/lib/lead-name'
 
 type LeadInsert = Database['public']['Tables']['leads']['Insert']
 
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
   }
 
   const insert: LeadInsert = {
-    name: body.name.trim(),
+    name: normalizeLeadName(body.name),
     phone: body.phone.trim(),
     city: body.city?.trim() || null,
     stage: body.stage ?? 'lead_frio',

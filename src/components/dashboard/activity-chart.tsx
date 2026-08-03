@@ -19,6 +19,7 @@ interface ActivityChartProps {
   title: string
   labels: string[]
   data: number[]
+  totalOverride?: number
   categoryLabel?: string
   peakLabel?: string
 }
@@ -27,11 +28,13 @@ export function ActivityChart({
   title,
   labels,
   data,
+  totalOverride,
   categoryLabel = 'Dia normal',
   peakLabel = 'Pico',
 }: ActivityChartProps) {
-  const total = data.reduce((a, b) => a + b, 0)
-  const avg   = data.length > 0 ? total / data.length : 0
+  const dataTotal = data.reduce((a, b) => a + b, 0)
+  const total = totalOverride ?? dataTotal
+  const avg   = data.length > 0 ? dataTotal / data.length : 0
   const threshold = avg * 2
 
   const backgroundColors = data.map(v =>

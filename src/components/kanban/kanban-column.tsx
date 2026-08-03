@@ -1,8 +1,8 @@
 'use client'
 
-import { memo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
-import { ChevronDown } from 'lucide-react'
+import { ArrowDownNarrowWide, ChevronDown } from 'lucide-react'
 import { LeadCard } from './lead-card'
 import type { KanbanColumnConfig } from './types'
 import type { Lead } from '@/lib/supabase/types'
@@ -21,8 +21,18 @@ export const KanbanColumn = memo(function KanbanColumn({ column, leads, onLeadCl
   const Icon = column.icon
 
   const [visibleCount, setVisibleCount] = useState(INITIAL_LIMIT)
+  const [sortByScore, setSortByScore] = useState(false)
 
-  const visibleLeads = leads.slice(0, visibleCount)
+  const sortedLeads = useMemo(() => {
+    if (!sortByScore) return leads
+    return [...leads].sort((a, b) => {
+      const scoreDiff = (b.lead_score ?? 0) - (a.lead_score ?? 0)
+      if (scoreDiff !== 0) return scoreDiff
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    })
+  }, [leads, sortByScore])
+
+  const visibleLeads = sortedLeads.slice(0, visibleCount)
   const hasMore = leads.length > visibleCount
   const hiddenCount = leads.length - visibleCount
 
@@ -49,12 +59,32 @@ export const KanbanColumn = memo(function KanbanColumn({ column, leads, onLeadCl
               {column.label}
             </span>
           </div>
-          <span
-            className="text-xs font-bold text-white w-5 h-5 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: column.color }}
-          >
-            {leads.length}
-          </span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                setSortByScore(prev => !prev)
+                setVisibleCount(INITIAL_LIMIT)
+              }}
+              className="w-6 h-6 rounded-full flex items-center justify-center border transition-all cursor-pointer"
+              style={{
+                backgroundColor: sortByScore ? column.color : '#FFFFFF',
+                borderColor: column.color + '45',
+                color: sortByScore ? '#FFFFFF' : column.color,
+              }}
+              title={sortByScore ? 'Voltar para últimos categorizados' : 'Ordenar por melhor score'}
+              aria-pressed={sortByScore}
+              aria-label={sortByScore ? 'Voltar para últimos categorizados' : 'Ordenar por melhor score'}
+            >
+              <ArrowDownNarrowWide size={12} strokeWidth={2.2} />
+            </button>
+            <span
+              className="text-xs font-bold text-white w-5 h-5 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: column.color }}
+            >
+              {leads.length}
+            </span>
+          </div>
         </div>
       </div>
 

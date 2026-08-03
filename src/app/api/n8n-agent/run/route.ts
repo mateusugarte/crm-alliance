@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { runAliceAgent } from '@/lib/ai/alice-agent'
 import { notifyInternalGroup } from '@/lib/ai/alice-tools'
 import { toWhatsAppNumber } from '@/lib/format-phone'
+import { normalizeLeadName } from '@/lib/lead-name'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { Database } from '@/lib/supabase/types'
 
@@ -122,7 +123,7 @@ async function findOrCreateLead(
   if (existing) return existing as Lead
 
   const insert: LeadInsert = {
-    name: payload.name?.trim() || payload.pushName?.trim() || digits,
+    name: normalizeLeadName(payload.name || payload.pushName || null),
     phone: `${digits}@s.whatsapp.net`,
     wa_contact_id: payload.wa_contact_id ?? payload.remoteJid ?? null,
     stage: 'lead_frio',
@@ -144,7 +145,7 @@ function buildLeadUpdates(lead: Lead, output: Awaited<ReturnType<typeof runAlice
   const leadUpdates = output.lead_updates ?? {}
 
   if (typeof leadUpdates.name === 'string' && leadUpdates.name.trim()) {
-    updates.name = leadUpdates.name.trim()
+    updates.name = normalizeLeadName(leadUpdates.name)
   }
   if (typeof leadUpdates.city === 'string') {
     updates.city = leadUpdates.city.trim() || null
@@ -180,8 +181,13 @@ function buildLeadUpdates(lead: Lead, output: Awaited<ReturnType<typeof runAlice
   if (output.actions.includes('aceitou_ligacao')) {
     updates.aceitou_consultor = true
   }
+  if (output.actions.includes('aceitou_ligacao') && !updates.stage) {
+    updates.stage = lead.stage === 'lead_frio' || lead.stage === 'lead_morno' || lead.stage === 'nao_respondeu'
+      ? 'lead_quente'
+      : lead.stage
+  }
   if (output.actions.includes('qualificado') && !updates.stage) {
-    updates.stage = lead.stage === 'lead_frio' || lead.stage === 'nao_respondeu'
+    updates.stage = lead.stage === 'lead_frio' || lead.stage === 'lead_morno' || lead.stage === 'nao_respondeu'
       ? 'lead_quente'
       : lead.stage
   }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { createCampaignSnapshots } from '@/lib/disparo/analytics'
 
 // GET /api/campaigns/[id]/contacts?limit=20
 // Returns up to `limit` leads with reactivation_count=0 not already in this campaign
@@ -84,15 +85,29 @@ export async function POST(
 
   if (!normalized.length) return NextResponse.json({ error: 'Nenhum número válido informado' }, { status: 400 })
 
-  const { error: insertErr } = await service
+  const { data: insertedDispatches, error: insertErr } = await service
     .from('dispatches')
     .insert(normalized.map(phone => ({
       campaign_id: id,
       phone,
       status: 'pending',
     })) as never)
+    .select('id, phone, message_sent, created_at')
 
   if (insertErr) return NextResponse.json({ error: insertErr.message }, { status: 500 })
+
+  try {
+    await createCampaignSnapshots(
+      service,
+      id,
+      (insertedDispatches ?? []) as Array<{
+        id: string
+        phone: string
+        message_sent: string | null
+        created_at: string | null
+      }>,
+    )
+  } catch { /* non-critical */ }
 
   await service
     .from('campaigns')

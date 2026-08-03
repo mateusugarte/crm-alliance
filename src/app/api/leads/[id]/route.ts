@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/types'
+import { normalizeLeadName } from '@/lib/lead-name'
 
 type LeadUpdate = Database['public']['Tables']['leads']['Update']
 
@@ -57,7 +58,7 @@ export async function PUT(
   }>
 
   const update: LeadUpdate = {
-    ...(body.name !== undefined && { name: body.name }),
+    ...(body.name !== undefined && { name: normalizeLeadName(body.name) }),
     ...(body.phone !== undefined && { phone: body.phone }),
     ...(body.city !== undefined && { city: body.city }),
     ...(body.stage !== undefined && { stage: body.stage }),

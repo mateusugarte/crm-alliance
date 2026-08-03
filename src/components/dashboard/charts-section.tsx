@@ -7,6 +7,7 @@ import type { TodayMeeting, PipelineStage } from '@/app/(protected)/dashboard/pa
 interface ChartData {
   labels: string[]
   data: number[]
+  total?: number
 }
 
 interface ChartsSectionProps {
@@ -39,6 +40,7 @@ export function ChartsSection({ reunioes, leads, todayMeetings, pipeline }: Char
           title="Reuniões"
           labels={reunioes.labels}
           data={reunioes.data}
+          totalOverride={reunioes.total}
           categoryLabel="Dia normal"
           peakLabel="Pico de reuniões"
         />

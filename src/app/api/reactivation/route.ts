@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { updateDisparoLabels } from '@/lib/disparo-labels'
+import { createReactivationSnapshots } from '@/lib/disparo/analytics'
 
 interface ContactInput {
   id?: string | null
@@ -71,9 +72,10 @@ export async function POST(req: NextRequest) {
     status: 'pending',
   }))
 
-  const { error: dispError } = await service
+  const { data: insertedDispatches, error: dispError } = await service
     .from('reactivation_dispatches')
     .insert(dispatches as never)
+    .select('id, lead_id, phone, message_sent, created_at')
 
   if (dispError) {
     // Cleanup: remove campaign if dispatches failed
@@ -81,7 +83,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: dispError.message }, { status: 500 })
   }
 
-  // 3. Update disparo count labels for lead contacts (non-critical)
+  // 3. Criar snapshots analiticos antes de incrementar o contador de disparo.
+  try {
+    await createReactivationSnapshots(
+      service,
+      campaignId,
+      (insertedDispatches ?? []) as Array<{
+        id: string
+        lead_id: string | null
+        phone: string
+        message_sent: string | null
+        created_at: string | null
+      }>,
+    )
+  } catch { /* non-critical */ }
+
+  // 4. Update disparo count labels for lead contacts (non-critical)
   try {
     const leadIds = contacts
       .map(c => c.id)

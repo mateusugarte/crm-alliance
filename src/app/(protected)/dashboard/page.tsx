@@ -5,6 +5,7 @@ import { Smile } from 'lucide-react'
 import { Suspense } from 'react'
 import { MetricsGrid } from '@/components/dashboard/metrics-grid'
 import { ChartsSection } from '@/components/dashboard/charts-section'
+import { DisparosSection } from '@/components/dashboard/disparos-section'
 import { DateFilter } from '@/components/ui/date-filter'
 import {
   format, subDays, eachDayOfInterval,
@@ -13,6 +14,39 @@ import {
 import { ptBR } from 'date-fns/locale'
 
 import type { Lead, UserProfile } from '@/lib/supabase/types'
+
+const MEETING_STAGE_KEYS = ['reuniao_agendada', 'follow_up', 'sem_interesse', 'visita_confirmada', 'cliente']
+
+type DisparoSnapshotRow = {
+  lead_id: string | null
+  sent_at: string | null
+  responded_at: string | null
+  advanced_at: string | null
+  meeting_at: string | null
+  became_client_at: string | null
+}
+
+export interface DisparoFunnelItem {
+  key: string
+  label: string
+  value: number
+  color: string
+  conversionFromPrevious: number
+}
+
+export interface DisparoDashboardData {
+  impactedLeads: number
+  totalSent: number
+  averageDispatchesPerLead: number
+  respondedLeads: number
+  responseRate: number
+  advancedLeads: number
+  advanceRate: number
+  meetingLeads: number
+  clientLeads: number
+  coldZeroRemaining: number
+  funnel: DisparoFunnelItem[]
+}
 
 export interface TodayMeeting {
   id: string
@@ -86,31 +120,133 @@ async function getUserName(): Promise<string> {
 async function getMetrics() {
   try {
     const supabase = await createClient()
-    const todayStart = startOfDay(new Date()).toISOString()
-    const todayEnd = endOfDay(new Date()).toISOString()
 
-    const [{ data: leadsData }, { data: mtgs }] = await Promise.all([
+    const [{ data: leadsData }] = await Promise.all([
       supabase.from('leads')
-        .select('stage, interaction_count, automation_paused'),
-      supabase.from('meetings')
-        .select('id')
-        .gte('datetime', todayStart)
-        .lte('datetime', todayEnd)
-        .eq('status', 'scheduled'),
+        .select('stage, interaction_count, automation_paused, lead_score, lead_score_band'),
     ])
 
-    const leads = (leadsData ?? []) as Pick<Lead, 'stage' | 'interaction_count' | 'automation_paused'>[]
+    const leads = (leadsData ?? []) as Pick<Lead, 'stage' | 'interaction_count' | 'automation_paused' | 'lead_score' | 'lead_score_band'>[]
+    const scoreAverage = (items: typeof leads) => items.length > 0
+      ? items.reduce((sum, lead) => sum + (lead.lead_score ?? 0), 0) / items.length / 10
+      : 0
+    const meetingStageCount = leads.filter(l => MEETING_STAGE_KEYS.includes(l.stage)).length
+    const coldLeads = leads.filter(l => l.stage === 'lead_frio')
+    const warmLeads = leads.filter(l => l.stage === 'lead_morno')
+    const hotLeads = leads.filter(l => l.stage === 'lead_quente')
 
     return {
       total_leads: leads.length,
-      reunioes: mtgs?.length ?? 0,
+      reunioes: meetingStageCount,
       sem_resposta: leads.filter(l => l.interaction_count === 0).length,
       aquecidos: leads.filter(l => l.stage === 'lead_quente').length,
       pausadas: leads.filter(l => l.automation_paused).length,
-      disponiveis: leads.filter(l => l.stage === 'visita_confirmada' || l.stage === 'reuniao_agendada').length,
+      disponiveis: meetingStageCount,
+      score_medio: scoreAverage(leads),
+      score_medio_frio: scoreAverage(coldLeads),
+      score_medio_morno: scoreAverage(warmLeads),
+      score_medio_quente: scoreAverage(hotLeads),
     }
   } catch {
-    return { total_leads: 0, reunioes: 0, sem_resposta: 0, aquecidos: 0, pausadas: 0, disponiveis: 0 }
+    return {
+      total_leads: 0,
+      reunioes: 0,
+      sem_resposta: 0,
+      aquecidos: 0,
+      pausadas: 0,
+      disponiveis: 0,
+      score_medio: 0,
+      score_medio_frio: 0,
+      score_medio_morno: 0,
+      score_medio_quente: 0,
+    }
+  }
+}
+
+function uniqueLeadCount(rows: DisparoSnapshotRow[], predicate: (row: DisparoSnapshotRow) => boolean) {
+  return new Set(rows.filter(row => row.lead_id && predicate(row)).map(row => row.lead_id as string)).size
+}
+
+function rate(part: number, total: number) {
+  if (!total) return 0
+  return (part / total) * 100
+}
+
+async function getDisparoDashboardData(): Promise<DisparoDashboardData> {
+  try {
+    const supabase = await createClient()
+
+    const [{ data: snapshotsRaw }, { data: coldZeroRaw }] = await Promise.all([
+      supabase
+        .from('disparo_lead_snapshots')
+        .select('lead_id, sent_at, responded_at, advanced_at, meeting_at, became_client_at'),
+      supabase
+        .from('leads')
+        .select('id')
+        .eq('stage', 'lead_frio')
+        .eq('reactivation_count', 0),
+    ])
+
+    const snapshots = (snapshotsRaw ?? []) as DisparoSnapshotRow[]
+    const sentSnapshots = snapshots.filter(row => !!row.sent_at)
+    const impactedLeads = uniqueLeadCount(sentSnapshots, () => true)
+    const totalSent = sentSnapshots.length
+    const respondedLeads = uniqueLeadCount(sentSnapshots, row => !!row.responded_at)
+    const advancedLeads = uniqueLeadCount(sentSnapshots, row => !!row.advanced_at)
+    const meetingLeads = uniqueLeadCount(sentSnapshots, row => !!row.meeting_at)
+    const clientLeads = uniqueLeadCount(sentSnapshots, row => !!row.became_client_at)
+    const averageDispatchesPerLead = impactedLeads > 0 ? totalSent / impactedLeads : 0
+
+    const funnelBase = [
+      { key: 'impactados', label: 'Impactados', value: impactedLeads, color: '#0A2EAD' },
+      { key: 'responderam', label: 'Responderam', value: respondedLeads, color: '#1E90FF' },
+      { key: 'avancaram', label: 'Avançaram no pipeline', value: advancedLeads, color: '#FF8C00' },
+      { key: 'reunioes', label: 'Agendaram reunião', value: meetingLeads, color: '#228B22' },
+      { key: 'clientes', label: 'Viraram cliente', value: clientLeads, color: '#2ECC71' },
+    ]
+
+    const funnel = funnelBase.map((item, index) => ({
+      ...item,
+      conversionFromPrevious: index === 0
+        ? 100
+        : rate(item.value, funnelBase[index - 1]?.value ?? 0),
+    }))
+
+    return {
+      impactedLeads,
+      totalSent,
+      averageDispatchesPerLead,
+      respondedLeads,
+      responseRate: rate(respondedLeads, impactedLeads),
+      advancedLeads,
+      advanceRate: rate(advancedLeads, impactedLeads),
+      meetingLeads,
+      clientLeads,
+      coldZeroRemaining: coldZeroRaw?.length ?? 0,
+      funnel,
+    }
+  } catch {
+    const emptyFunnel = [
+      { key: 'impactados', label: 'Impactados', value: 0, color: '#0A2EAD', conversionFromPrevious: 100 },
+      { key: 'responderam', label: 'Responderam', value: 0, color: '#1E90FF', conversionFromPrevious: 0 },
+      { key: 'avancaram', label: 'Avançaram no pipeline', value: 0, color: '#FF8C00', conversionFromPrevious: 0 },
+      { key: 'reunioes', label: 'Agendaram reunião', value: 0, color: '#228B22', conversionFromPrevious: 0 },
+      { key: 'clientes', label: 'Viraram cliente', value: 0, color: '#2ECC71', conversionFromPrevious: 0 },
+    ]
+
+    return {
+      impactedLeads: 0,
+      totalSent: 0,
+      averageDispatchesPerLead: 0,
+      respondedLeads: 0,
+      responseRate: 0,
+      advancedLeads: 0,
+      advanceRate: 0,
+      meetingLeads: 0,
+      clientLeads: 0,
+      coldZeroRemaining: 0,
+      funnel: emptyFunnel,
+    }
   }
 }
 
@@ -127,10 +263,13 @@ async function getChartData(dateRange: { start: Date; end: Date } | null) {
     const displayFormat = days.length <= 7 ? 'EEE' : 'dd/MM'
     const labels = days.map(d => format(d, displayFormat, { locale: ptBR }).replace('.', ''))
 
-    const [{ data: mtgRows }, { data: leadRows }] = await Promise.all([
-      supabase.from('meetings').select('datetime')
-        .gte('datetime', effectiveStart.toISOString())
-        .lte('datetime', effectiveEnd.toISOString()),
+    const [{ data: meetingStageRows }, { count: totalMeetingStages }, { data: leadRows }] = await Promise.all([
+      supabase.from('leads').select('updated_at')
+        .in('stage', MEETING_STAGE_KEYS)
+        .gte('updated_at', effectiveStart.toISOString())
+        .lte('updated_at', effectiveEnd.toISOString()),
+      supabase.from('leads').select('id', { count: 'exact', head: true })
+        .in('stage', MEETING_STAGE_KEYS),
       supabase.from('leads').select('created_at')
         .gte('created_at', effectiveStart.toISOString())
         .lte('created_at', effectiveEnd.toISOString()),
@@ -146,7 +285,11 @@ async function getChartData(dateRange: { start: Date; end: Date } | null) {
       })
 
     return {
-      reunioes: { labels, data: countByDay(mtgRows as Array<{ datetime: string }> ?? [], 'datetime') },
+      reunioes: {
+        labels,
+        data: countByDay(meetingStageRows as Array<{ updated_at: string }> ?? [], 'updated_at'),
+        total: totalMeetingStages ?? 0,
+      },
       leads: { labels, data: countByDay(leadRows as Array<{ created_at: string }> ?? [], 'created_at') },
     }
   } catch {
@@ -154,7 +297,7 @@ async function getChartData(dateRange: { start: Date; end: Date } | null) {
       format(subDays(new Date(), 6 - i), 'EEE', { locale: ptBR }).replace('.', '')
     )
     return {
-      reunioes: { labels, data: [0, 0, 0, 0, 0, 0, 0] },
+      reunioes: { labels, data: [0, 0, 0, 0, 0, 0, 0], total: 0 },
       leads:    { labels, data: [0, 0, 0, 0, 0, 0, 0] },
     }
   }
@@ -243,12 +386,13 @@ export default async function DashboardPage({
   const params = await searchParams
   const dateRange = getDateRange(params.period ?? 'tudo', params.from, params.to)
 
-  const [userName, metrics, chartData, todayMeetings, pipeline] = await Promise.all([
+  const [userName, metrics, chartData, todayMeetings, pipeline, disparos] = await Promise.all([
     getUserName(),
     getMetrics(),
     getChartData(dateRange),
     getTodayMeetings(),
     getPipelineDistribution(),
+    getDisparoDashboardData(),
   ])
 
   const greeting = getGreeting()
@@ -291,6 +435,7 @@ export default async function DashboardPage({
         todayMeetings={todayMeetings}
         pipeline={pipeline}
       />
+      <DisparosSection data={disparos} />
     </div>
   )
 }

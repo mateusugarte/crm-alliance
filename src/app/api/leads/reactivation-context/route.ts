@@ -43,14 +43,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'OPENAI_API_KEY não configurada' }, { status: 500 })
   }
 
-  const body = await req.json() as { lead_ids?: string[]; manual_contexts?: Record<string, string> }
-  const { lead_ids, manual_contexts = {} } = body
+  const body = await req.json() as {
+    lead_ids?: string[]
+    campaign_theme?: string
+    manual_contexts?: Record<string, string>
+  }
+  const { lead_ids, campaign_theme, manual_contexts = {} } = body
+  const campaignTheme = campaign_theme?.trim() ?? ''
 
   if (!Array.isArray(lead_ids) || lead_ids.length === 0) {
     return NextResponse.json({ error: 'lead_ids obrigatório' }, { status: 400 })
   }
   if (lead_ids.length > 50) {
     return NextResponse.json({ error: 'Máximo 50 leads por vez' }, { status: 400 })
+  }
+  if (!campaignTheme) {
+    return NextResponse.json({ error: 'campaign_theme obrigatório' }, { status: 400 })
   }
 
   const service = createServiceClient()
@@ -66,14 +74,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Nenhum lead encontrado' }, { status: 404 })
   }
 
-  const { data: interactionsRaw } = await service
-    .from('interactions')
-    .select('lead_id, direction, sender_type, content, created_at')
-    .in('lead_id', lead_ids)
-    .order('created_at', { ascending: false })
-    .limit(lead_ids.length * 20)
+  const interactions: InteractionRow[] = []
+  for (let i = 0; i < lead_ids.length; i += 10) {
+    const batchIds = lead_ids.slice(i, i + 10)
+    const batchResults = await Promise.all(
+      batchIds.map(async (leadId) => {
+        const { data } = await service
+          .from('interactions')
+          .select('lead_id, direction, sender_type, content, created_at')
+          .eq('lead_id', leadId)
+          .order('created_at', { ascending: false })
+          .limit(20)
 
-  const interactions = (interactionsRaw ?? []) as InteractionRow[]
+        return (data ?? []) as InteractionRow[]
+      }),
+    )
+    interactions.push(...batchResults.flat())
+  }
 
   const interactionsByLead: Record<string, InteractionRow[]> = {}
   for (const row of interactions) {
@@ -94,9 +111,16 @@ export async function POST(req: NextRequest) {
         }).join('\n')
       : '(sem histórico de conversa)'
 
-    const prompt = `Você é especialista em vendas imobiliárias de alto padrão.
+    const hasUsefulContext = leadInteractions.length > 0 || !!lead.summary || !!lead.intention || !!manualContext
+
+    const prompt = `Você é especialista em vendas imobiliárias de alto padrão e copywriting para WhatsApp.
 
 Contexto: Você é corretor da Alliance Investimentos Imobiliários. O lead abaixo não está mais respondendo e você precisa criar UMA mensagem de reativação personalizada para WhatsApp.
+
+Tema obrigatório da campanha:
+"""
+${campaignTheme}
+"""
 
 Lead: ${lead.name ?? 'Lead'}
 Etapa: ${STAGE_LABELS[lead.stage ?? ''] ?? lead.stage ?? 'Desconhecida'}${lead.intention ? `\nInteresse: ${lead.intention === 'morar' ? 'Morar' : 'Investir'}` : ''}${lead.summary ? `\nResumo: ${lead.summary}` : ''}${manualContext ? `\nContexto adicional informado pelo corretor: ${manualContext}` : ''}
@@ -104,18 +128,21 @@ Etapa: ${STAGE_LABELS[lead.stage ?? ''] ?? lead.stage ?? 'Desconhecida'}${lead.i
 Histórico da conversa (mais recentes):
 ${conversationText}
 
-${manualContext
-  ? `O corretor forneceu contexto adicional acima — use-o como ponto central da mensagem, combinando com o histórico para criar continuidade.`
-  : `Use o histórico da conversa para criar uma mensagem que dê continuidade natural ao que foi discutido.`
+${hasUsefulContext
+  ? `Use o tema obrigatório como direção central e adapte a mensagem ao contexto real do lead. Se houver histórico, faça a mensagem parecer uma continuação natural da conversa, sem inventar fatos.`
+  : `Este lead não tem contexto suficiente. Use somente o tema obrigatório como base, criando uma variação natural e específica, sem fingir que já houve uma conversa detalhada.`
 }
 
 A mensagem DEVE:
 - Ser uma mensagem de REATIVAÇÃO — o lead parou de responder e você está tentando retomar o contato
-- Fazer sentido com a situação do lead (não pode ser genérica ou sem contexto)
-- Referenciar algo específico da conversa, do interesse ou do contexto fornecido
+- Manter o tema da campanha como assunto principal
+- Ser uma variação única, diferente das demais mensagens da campanha
+- Fazer sentido com a situação do lead
+- Referenciar algo específico da conversa, do interesse ou do contexto fornecido quando isso existir
 - Ser curta (1 a 3 frases), natural, como uma pessoa enviaria no WhatsApp
 - Criar curiosidade ou abertura para retomar a conversa — sem pressão excessiva
 - Estar em português brasileiro informal
+- Evitar frases genéricas como "estava pensando na nossa última conversa" quando não houver histórico real
 
 Retorne APENAS a mensagem, sem aspas, sem explicações.`
 

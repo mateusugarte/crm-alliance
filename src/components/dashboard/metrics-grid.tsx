@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Users, Calendar, MessageSquareOff, Flame, PauseCircle, Home } from 'lucide-react'
+import { Users, Calendar, MessageSquareOff, Flame, PauseCircle, Home, Gauge, Snowflake, ThermometerSun, Zap } from 'lucide-react'
 import { staggerContainer } from '@/lib/animations'
 import { MetricCard } from './metric-card'
 
@@ -12,6 +12,10 @@ interface MetricsData {
   aquecidos: number
   pausadas: number
   disponiveis: number
+  score_medio: number
+  score_medio_frio: number
+  score_medio_morno: number
+  score_medio_quente: number
 }
 
 interface MetricsGridProps {
@@ -43,7 +47,7 @@ export function MetricsGrid({ metrics }: MetricsGridProps) {
         </div>
 
         <MetricCard
-          label="Reuniões Hoje"
+          label="Reuniões"
           value={metrics.reunioes}
           icon={<Calendar size={14} />}
           accentColor="var(--color-stage-follow-up)"
@@ -69,14 +73,50 @@ export function MetricsGrid({ metrics }: MetricsGridProps) {
         />
       </div>
 
-      {/* Linha 3: full width */}
+      {/* Linha 3: funil */}
       <MetricCard
-        label="Disponíveis — visita ou reunião agendada"
+        label="Leads pós-reunião"
         value={metrics.disponiveis}
         variant="wide"
         icon={<Home size={14} />}
         accentColor="var(--color-stage-reuniao)"
       />
+
+      {/* Linha 4: score por temperatura */}
+      <div className="grid grid-cols-4 gap-3">
+        <MetricCard
+          label="Score médio global"
+          value={metrics.score_medio}
+          variant="wide"
+          icon={<Gauge size={14} />}
+          accentColor="#185FA5"
+          decimals={1}
+        />
+        <MetricCard
+          label="Score médio frio"
+          value={metrics.score_medio_frio}
+          variant="wide"
+          icon={<Snowflake size={14} />}
+          accentColor="var(--color-stage-frio)"
+          decimals={1}
+        />
+        <MetricCard
+          label="Score médio morno"
+          value={metrics.score_medio_morno}
+          variant="wide"
+          icon={<ThermometerSun size={14} />}
+          accentColor="var(--color-stage-morno)"
+          decimals={1}
+        />
+        <MetricCard
+          label="Score médio quente"
+          value={metrics.score_medio_quente}
+          variant="wide"
+          icon={<Zap size={14} />}
+          accentColor="var(--color-stage-quente)"
+          decimals={1}
+        />
+      </div>
     </motion.div>
   )
 }

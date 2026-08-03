@@ -103,7 +103,10 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
         body: JSON.stringify({ name: nameValue.trim() }),
       })
       if (!res.ok) throw new Error()
-      onLeadUpdated({ name: nameValue.trim() })
+      const json = await res.json() as { data?: { name?: string } }
+      const normalizedName = json.data?.name ?? nameValue.trim()
+      setNameValue(normalizedName)
+      onLeadUpdated({ name: normalizedName })
       toast.success('Nome atualizado')
     } catch {
       toast.error('Erro ao salvar nome.')

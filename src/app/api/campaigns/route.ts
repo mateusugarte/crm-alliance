@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { updateDisparoLabels } from '@/lib/disparo-labels'
 import { recordDispatchToMemory } from '@/lib/pg-memory'
+import { createCampaignSnapshots } from '@/lib/disparo/analytics'
 
 interface ContactInput {
   phone: string
@@ -97,7 +98,7 @@ export async function POST(req: NextRequest) {
   const campaignId = (campaign as { id: string }).id
 
   // 2. Create dispatches (incluindo message_sent e typing_delay quando disponíveis)
-  const { error: dispError } = await service
+  const { data: insertedDispatches, error: dispError } = await service
     .from('dispatches')
     .insert(normalizedContacts.map(c => ({
       campaign_id: campaignId,
@@ -106,13 +107,28 @@ export async function POST(req: NextRequest) {
       message_sent: c.message ?? null,
       typing_delay: c.typing_delay ?? null,
     })) as never)
+    .select('id, phone, message_sent, created_at')
 
   if (dispError) {
     await service.from('campaigns').delete().eq('id', campaignId)
     return NextResponse.json({ error: dispError.message }, { status: 500 })
   }
 
-  // 3. Registrar mensagens na memória do agente IA (não-crítico)
+  // 3. Criar snapshots analiticos antes de incrementar o contador de disparo.
+  try {
+    await createCampaignSnapshots(
+      service,
+      campaignId,
+      (insertedDispatches ?? []) as Array<{
+        id: string
+        phone: string
+        message_sent: string | null
+        created_at: string | null
+      }>,
+    )
+  } catch { /* non-critical */ }
+
+  // 4. Registrar mensagens na memória do agente IA (não-crítico)
   const toRecord = normalizedContacts.filter(c => !!c.message)
   if (toRecord.length) {
     await Promise.allSettled(
@@ -120,7 +136,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // 4. Update disparo count labels for matched leads (non-critical)
+  // 5. Update disparo count labels for matched leads (non-critical)
   try {
     const { data: allLeads } = await service.from('leads').select('id, phone')
     if (allLeads) {

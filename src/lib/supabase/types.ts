@@ -84,6 +84,10 @@ export interface Database {
           aceitou_consultor: boolean | null
           via_disparo: boolean | null
           pdf_enviado: boolean | null
+          lead_score: number
+          lead_score_band: 'muito_frio' | 'frio' | 'morno' | 'quente' | 'prioridade'
+          lead_score_reasons: Json
+          lead_score_updated_at: string | null
           labels?: Array<{ id: string; name: string; color: string }>
           created_at: string
           updated_at: string
@@ -116,6 +120,10 @@ export interface Database {
           aceitou_consultor?: boolean | null
           via_disparo?: boolean | null
           pdf_enviado?: boolean | null
+          lead_score?: number
+          lead_score_band?: 'muito_frio' | 'frio' | 'morno' | 'quente' | 'prioridade'
+          lead_score_reasons?: Json
+          lead_score_updated_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -519,6 +527,57 @@ export interface Database {
         }
         Update: Partial<Database['public']['Tables']['reactivation_dispatches']['Insert']>
       }
+      disparo_lead_snapshots: {
+        Row: {
+          id: string
+          campaign_type: 'campaign' | 'reactivation'
+          campaign_id: string | null
+          dispatch_id: string | null
+          reactivation_campaign_id: string | null
+          reactivation_dispatch_id: string | null
+          lead_id: string | null
+          phone: string
+          message_sent: string | null
+          stage_at_impact: string | null
+          stage_current: string | null
+          impact_count_at_snapshot: number | null
+          impacted_at: string
+          sent_at: string | null
+          responded_at: string | null
+          response_interaction_id: string | null
+          advanced_at: string | null
+          advanced_to_stage: string | null
+          meeting_at: string | null
+          became_client_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          campaign_type?: 'campaign' | 'reactivation'
+          campaign_id?: string | null
+          dispatch_id?: string | null
+          reactivation_campaign_id?: string | null
+          reactivation_dispatch_id?: string | null
+          lead_id?: string | null
+          phone: string
+          message_sent?: string | null
+          stage_at_impact?: string | null
+          stage_current?: string | null
+          impact_count_at_snapshot?: number | null
+          impacted_at?: string
+          sent_at?: string | null
+          responded_at?: string | null
+          response_interaction_id?: string | null
+          advanced_at?: string | null
+          advanced_to_stage?: string | null
+          meeting_at?: string | null
+          became_client_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['disparo_lead_snapshots']['Insert']>
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -532,6 +591,19 @@ export interface Database {
       }
       move_lead_stage: {
         Args: { lead_uuid: string; new_stage: string }
+        Returns: undefined
+      }
+      calculate_lead_score: {
+        Args: { p_lead_id: string }
+        Returns: {
+          score: number
+          score_10: number
+          band: 'muito_frio' | 'frio' | 'morno' | 'quente' | 'prioridade'
+          reasons: Json
+        }[]
+      }
+      refresh_lead_score: {
+        Args: { p_lead_id: string }
         Returns: undefined
       }
       list_user_access_overview: {
@@ -588,4 +660,5 @@ export type Campaign = Database['public']['Tables']['campaigns']['Row']
 export type Dispatch = Database['public']['Tables']['dispatches']['Row']
 export type ReactivationCampaign = Database['public']['Tables']['reactivation_campaigns']['Row']
 export type ReactivationDispatch = Database['public']['Tables']['reactivation_dispatches']['Row']
+export type DisparoLeadSnapshot = Database['public']['Tables']['disparo_lead_snapshots']['Row']
 export type LeadComment = Database['public']['Tables']['lead_comments']['Row']

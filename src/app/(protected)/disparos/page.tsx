@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -21,7 +21,6 @@ type Lead = Database['public']['Tables']['leads']['Row']
 type LeadRow = Pick<Lead, 'id' | 'name' | 'phone' | 'stage' | 'reactivation_count' | 'last_reactivated_at'>
 type CampaignLeadRow = Pick<Lead, 'id' | 'name' | 'phone' | 'stage' | 'reactivation_count'>
 
-interface ReactivationStats { once: number; twice: number; thrice: number }
 interface FormState { name: string; content: string; media_url: string; media_type: string }
 
 interface MixedContact {
@@ -171,6 +170,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
   const [mixedMessages, setMixedMessages] = useState<Record<string, string>>({})
   const [mixing, setMixing] = useState(false)
   const [mixError, setMixError] = useState<string | null>(null)
+  const [campaignTheme, setCampaignTheme] = useState('')
   const [generatedMessages, setGeneratedMessages] = useState<Record<string, string>>({})
   const [generatingContext, setGeneratingContext] = useState(false)
   const [contextError, setContextError] = useState<string | null>(null)
@@ -240,6 +240,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
     setSelectedTemplate(null)
     setMixedMessages({})
     setMixError(null)
+    setCampaignTheme('')
     setGeneratedMessages({})
     setContextError(null)
     setCreateError(null)
@@ -305,6 +306,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
     setMode(null)
     setSelectedTemplate(null)
     setMixedMessages({})
+    setCampaignTheme('')
     setGeneratedMessages({})
     setMixError(null)
     setContextError(null)
@@ -338,12 +340,21 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
   }
 
   const handleGenerateContext = async () => {
+    const theme = campaignTheme.trim()
+    if (!theme) {
+      setContextError('Informe o tema da campanha antes de gerar as mensagens.')
+      return
+    }
+
     setGeneratingContext(true); setContextError(null)
     try {
       const res = await fetch('/api/leads/reactivation-context', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lead_ids: Array.from(selectedLeadIds) }),
+        body: JSON.stringify({
+          lead_ids: Array.from(selectedLeadIds),
+          campaign_theme: theme,
+        }),
       })
       if (!res.ok) {
         const err = await res.json() as { error?: string }
@@ -640,7 +651,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                     {/* Mode selector */}
                     <div className="grid grid-cols-2 gap-4">
                       <button
-                        onClick={() => { setMode('template'); setGeneratedMessages({}) }}
+                        onClick={() => { setMode('template'); setGeneratedMessages({}); setContextError(null) }}
                         className={cn('flex flex-col items-start gap-3 p-5 rounded-2xl border-2 text-left transition-colors cursor-pointer',
                           mode === 'template' ? 'border-alliance-blue bg-alliance-blue/5' : 'border-border bg-card hover:bg-muted')}>
                         <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', mode === 'template' ? 'bg-alliance-blue/10' : 'bg-muted')}>
@@ -652,7 +663,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                         </div>
                       </button>
                       <button
-                        onClick={() => { setMode('context'); setMixedMessages({}); setSelectedTemplate(null) }}
+                        onClick={() => { setMode('context'); setMixedMessages({}); setSelectedTemplate(null); setContextError(null) }}
                         className={cn('flex flex-col items-start gap-3 p-5 rounded-2xl border-2 text-left transition-colors cursor-pointer',
                           mode === 'context' ? 'border-alliance-blue bg-alliance-blue/5' : 'border-border bg-card hover:bg-muted')}>
                         <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', mode === 'context' ? 'bg-alliance-blue/10' : 'bg-muted')}>
@@ -723,9 +734,25 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                     {/* Context mode */}
                     {mode === 'context' && (
                       <div className="flex flex-col gap-4">
-                        <button onClick={handleGenerateContext} disabled={generatingContext}
+                        <label className="flex flex-col gap-2">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Tema da campanha
+                          </span>
+                          <textarea
+                            value={campaignTheme}
+                            onChange={e => {
+                              setCampaignTheme(e.target.value)
+                              setContextError(null)
+                              setGeneratedMessages({})
+                            }}
+                            rows={4}
+                            placeholder="Ex: Em agosto, queremos falar que uma fase importante da obra já foi executada e que restam poucas unidades do La Reserva."
+                            className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-muted-foreground/50"
+                          />
+                        </label>
+                        <button onClick={handleGenerateContext} disabled={generatingContext || !campaignTheme.trim()}
                           className={cn('flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
-                            !generatingContext ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-muted-foreground cursor-not-allowed')}>
+                            !generatingContext && campaignTheme.trim() ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-muted-foreground cursor-not-allowed')}>
                           {generatingContext ? <><RefreshCw size={14} className="animate-spin" /> Gerando com IA...</> : <><Sparkles size={14} /> Gerar mensagens para {selectedLeadObjects.length} lead{selectedLeadObjects.length !== 1 ? 's' : ''}</>}
                         </button>
                         {contextError && (
@@ -907,7 +934,11 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
   const toggleLead = useCallback((id: string) => {
     setSelectedLeadIds(prev => {
       const n = new Set(prev)
-      n.has(id) ? n.delete(id) : n.add(id)
+      if (n.has(id)) {
+        n.delete(id)
+      } else {
+        n.add(id)
+      }
       return n
     })
   }, [])

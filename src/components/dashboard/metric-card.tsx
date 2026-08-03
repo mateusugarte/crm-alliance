@@ -13,9 +13,11 @@ interface MetricCardProps {
   accentColor?: string
   trend?: number
   className?: string
+  decimals?: number
+  suffix?: string
 }
 
-function useCountUp(target: number, duration = 600) {
+function useCountUp(target: number, duration = 600, decimals = 0) {
   const [count, setCount] = useState(0)
   useEffect(() => {
     if (target === 0) { setCount(0); return }
@@ -24,11 +26,12 @@ function useCountUp(target: number, duration = 600) {
       const elapsed = now - start
       const progress = Math.min(elapsed / duration, 1)
       const eased = 1 - Math.pow(1 - progress, 3)
-      setCount(Math.round(eased * target))
+      const next = eased * target
+      setCount(decimals > 0 ? Number(next.toFixed(decimals)) : Math.round(next))
       if (progress < 1) requestAnimationFrame(frame)
     }
     requestAnimationFrame(frame)
-  }, [target, duration])
+  }, [target, duration, decimals])
   return count
 }
 
@@ -54,8 +57,11 @@ export function MetricCard({
   accentColor = '#1E90FF',
   trend,
   className,
+  decimals = 0,
+  suffix = '',
 }: MetricCardProps) {
-  const count = useCountUp(value)
+  const count = useCountUp(value, 600, decimals)
+  const displayValue = decimals > 0 ? count.toFixed(decimals).replace('.', ',') : count.toString()
 
   if (variant === 'featured') {
     return (
@@ -80,7 +86,7 @@ export function MetricCard({
 
         <div className="relative flex items-baseline gap-2 mt-3">
           <span className="text-[2rem] font-bold tabular-nums leading-none text-white">
-            {count}
+            {displayValue}{suffix}
           </span>
           {trend !== undefined && <TrendBadge trend={trend} />}
         </div>
@@ -110,7 +116,7 @@ export function MetricCard({
           </span>
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-bold tabular-nums" style={{ color: accentColor }}>
-              {count}
+              {displayValue}{suffix}
             </span>
             {trend !== undefined && <TrendBadge trend={trend} />}
           </div>
@@ -144,7 +150,7 @@ export function MetricCard({
         </div>
         <div className="flex items-baseline gap-2">
           <span className="text-2xl font-bold tabular-nums text-gray-900 dark:text-white leading-none">
-            {count}
+            {displayValue}{suffix}
           </span>
           {trend !== undefined && <TrendBadge trend={trend} />}
         </div>
