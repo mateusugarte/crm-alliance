@@ -103,42 +103,42 @@ function NewLeadModal({
 
         <div className="flex flex-col gap-3 py-1">
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-gray-600">Nome <span className="text-red-400">*</span></label>
+            <label className="text-xs font-semibold text-ink">Nome <span className="text-red-400">*</span></label>
             <input
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="Nome completo"
-              className="text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue"
+              className="text-sm border border-line-strong rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-gray-600">Telefone <span className="text-red-400">*</span></label>
+            <label className="text-xs font-semibold text-ink">Telefone <span className="text-red-400">*</span></label>
             <input
               value={phone}
               onChange={e => setPhone(e.target.value)}
               placeholder="5511999990000"
-              className="text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue"
+              className="text-sm border border-line-strong rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue"
             />
-            <p className="text-[11px] text-gray-400">Com código do país: 55 + DDD + número</p>
+            <p className="text-xs text-ink-subtle">Com código do país: 55 + DDD + número</p>
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-gray-600">Cidade</label>
+            <label className="text-xs font-semibold text-ink">Cidade</label>
             <input
               value={city}
               onChange={e => setCity(e.target.value)}
               placeholder="Ex: Castelo, ES"
-              className="text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue"
+              className="text-sm border border-line-strong rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-gray-600">Stage inicial</label>
+            <label className="text-xs font-semibold text-ink">Stage inicial</label>
             <select
               value={stage}
               onChange={e => setStage(e.target.value as Lead['stage'])}
-              className="text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-white"
+              className="text-sm border border-line-strong rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-white"
             >
               {STAGE_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -150,7 +150,7 @@ function NewLeadModal({
         <DialogFooter className="gap-2">
           <button
             onClick={handleClose}
-            className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+            className="px-4 py-2 text-sm text-ink-muted hover:text-ink transition-colors cursor-pointer"
           >
             Cancelar
           </button>
@@ -232,22 +232,22 @@ function LabelsSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
         className="p-0 flex flex-col"
       >
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-100 flex-shrink-0">
+        <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-line flex-shrink-0">
           <div>
             <h2 className="font-bold text-alliance-dark text-base">Etiquetas</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Gerencie as etiquetas dos leads</p>
+            <p className="text-xs text-ink-subtle mt-0.5">Gerencie as etiquetas dos leads</p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg cursor-pointer"
+            className="text-ink-subtle hover:text-ink transition-colors p-1 rounded-lg cursor-pointer"
           >
             <X size={16} />
           </button>
         </div>
 
         {/* Nova etiqueta */}
-        <div className="px-6 py-4 border-b border-gray-100 flex-shrink-0">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Nova etiqueta</p>
+        <div className="px-6 py-4 border-b border-line flex-shrink-0">
+          <p className="text-2xs font-bold text-ink-subtle   mb-3">Nova etiqueta</p>
           <div className="flex gap-2 mb-2">
             {LABEL_PALETTE.map(c => (
               <button
@@ -255,7 +255,7 @@ function LabelsSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
                 onClick={() => setNewColor(c)}
                 className={cn(
                   'w-5 h-5 rounded-full flex-shrink-0 transition-transform cursor-pointer',
-                  newColor === c && 'ring-2 ring-offset-1 ring-gray-400 scale-110'
+                  newColor === c && 'ring-2 ring-offset-1 ring-line-strong scale-110'
                 )}
                 style={{ backgroundColor: c }}
               />
@@ -267,7 +267,7 @@ function LabelsSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
               onChange={e => setNewName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleCreate() }}
               placeholder="Nome da etiqueta..."
-              className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue"
+              className="flex-1 text-sm border border-line-strong rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue"
             />
             <button
               onClick={handleCreate}
@@ -286,25 +286,25 @@ function LabelsSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
               <Loader2 size={20} className="animate-spin text-alliance-blue" />
             </div>
           ) : labels.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">Nenhuma etiqueta criada ainda</p>
+            <p className="text-sm text-ink-subtle text-center py-8">Nenhuma etiqueta criada ainda</p>
           ) : (
             <div className="flex flex-col gap-2">
               {labels.map(label => (
                 <div
                   key={label.id}
-                  className="flex items-center justify-between gap-3 px-3 py-2.5 bg-gray-50 rounded-xl"
+                  className="flex items-center justify-between gap-3 px-3 py-2.5 bg-surface-sunken rounded-xl"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span
                       className="w-3 h-3 rounded-full flex-shrink-0"
                       style={{ backgroundColor: label.color }}
                     />
-                    <span className="text-sm text-gray-700 font-medium truncate">{label.name}</span>
+                    <span className="text-sm text-ink font-medium truncate">{label.name}</span>
                   </div>
                   <button
                     onClick={() => handleDelete(label)}
                     disabled={deletingId === label.id}
-                    className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 cursor-pointer disabled:opacity-50"
+                    className="text-ink-subtle hover:text-red-500 transition-colors flex-shrink-0 cursor-pointer disabled:opacity-50"
                   >
                     {deletingId === label.id
                       ? <Loader2 size={13} className="animate-spin" />
@@ -337,7 +337,7 @@ export function KanbanPageHeader() {
       <div className="flex gap-2">
         <button
           onClick={() => setLabelsSheetOpen(true)}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium border border-gray-200 rounded-xl hover:border-alliance-dark hover:text-alliance-dark transition-colors bg-white cursor-pointer"
+          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium border border-line-strong rounded-xl hover:border-alliance-dark hover:text-alliance-dark transition-colors bg-white cursor-pointer"
         >
           <Tag size={14} />
           Etiquetas

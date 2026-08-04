@@ -95,26 +95,26 @@ export function LeadCommentsSection({ leadId, currentUserId }: LeadCommentsSecti
       <div ref={commentsListRef} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-0.5">
         {loading ? (
           <div className="flex items-center justify-center py-6">
-            <Loader2 size={16} className="animate-spin text-gray-300" />
+            <Loader2 size={16} className="animate-spin text-ink-subtle" />
           </div>
         ) : comments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-5 gap-1.5">
-            <StickyNote size={18} className="text-gray-200" />
-            <p className="text-xs text-gray-300">Nenhum comentário ainda.</p>
+            <StickyNote size={18} className="text-ink-subtle" />
+            <p className="text-xs text-ink-subtle">Nenhum comentário ainda.</p>
           </div>
         ) : (
           comments.map(c => (
             <div key={c.id} className="flex items-start gap-1.5 group">
               <div className="flex-1 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wide">
+                  <span className="text-2xs font-bold text-amber-700  ">
                     {c.user_name}
                   </span>
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-2xs text-ink-subtle">
                     {format(new Date(c.created_at), 'dd/MM HH:mm', { locale: ptBR })}
                   </span>
                 </div>
-                <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
+                <p className="text-xs text-ink leading-relaxed whitespace-pre-wrap break-words">
                   {c.content}
                 </p>
               </div>
@@ -122,7 +122,7 @@ export function LeadCommentsSection({ leadId, currentUserId }: LeadCommentsSecti
                 <button
                   onClick={() => handleDelete(c.id)}
                   disabled={deletingId === c.id}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity mt-1.5 p-1 text-gray-300 hover:text-red-400 disabled:opacity-40 cursor-pointer rounded-lg hover:bg-red-50"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity mt-1.5 p-1 text-ink-subtle hover:text-red-400 disabled:opacity-40 cursor-pointer rounded-lg hover:bg-red-50"
                   aria-label="Excluir comentário"
                 >
                   {deletingId === c.id
@@ -148,13 +148,13 @@ export function LeadCommentsSection({ leadId, currentUserId }: LeadCommentsSecti
           }}
           placeholder="Comentário interno... (Enter para enviar)"
           rows={1}
-          className="flex-1 resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs leading-snug focus:outline-none focus:ring-2 focus:ring-alliance-blue/20"
+          className="flex-1 resize-none rounded-lg border border-line-strong bg-surface-sunken px-3 py-2 text-xs leading-snug focus:outline-none focus:ring-2 focus:ring-alliance-blue/20"
         />
         <button
           onClick={handleSubmit}
           disabled={!newComment.trim() || submitting}
           aria-label="Enviar comentário"
-          className="flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg bg-gray-950 text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
+          className="flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg bg-ink text-white transition-colors hover:bg-ink/88 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {submitting
             ? <Loader2 size={13} className="animate-spin" />

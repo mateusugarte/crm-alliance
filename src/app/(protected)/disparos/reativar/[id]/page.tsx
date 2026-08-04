@@ -21,7 +21,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i)
 // ── Status maps ───────────────────────────────────────────────────────────────
 
 const STATUS_STYLES: Record<string, string> = {
-  draft:     'bg-muted text-muted-foreground',
+  draft:     'bg-muted text-ink-muted',
   running:   'bg-blue-500/15 text-blue-500',
   paused:    'bg-amber-500/15 text-amber-500',
   completed: 'bg-green-500/15 text-green-600',
@@ -37,10 +37,10 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 const DISPATCH_STATUS_STYLES: Record<string, string> = {
-  pending:   'bg-muted text-muted-foreground',
+  pending:   'bg-muted text-ink-muted',
   sent:      'bg-green-500/15 text-green-600',
   failed:    'bg-red-500/15 text-red-500',
-  cancelled: 'bg-muted text-muted-foreground',
+  cancelled: 'bg-muted text-ink-muted',
 }
 
 const DISPATCH_STATUS_LABELS: Record<string, string> = {
@@ -266,7 +266,7 @@ export default function ReativarDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <RefreshCw size={24} className="animate-spin text-muted-foreground" />
+        <RefreshCw size={24} className="animate-spin text-ink-muted" />
       </div>
     )
   }
@@ -276,11 +276,11 @@ export default function ReativarDetailPage() {
       <div className="px-8 py-7">
         <button
           onClick={() => router.push('/disparos?tab=reativar')}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer mb-4"
+          className="flex items-center gap-2 text-sm text-ink-muted hover:text-foreground transition-colors cursor-pointer mb-4"
         >
           <ArrowLeft size={15} /> Reativar
         </button>
-        <p className="text-muted-foreground">Campanha não encontrada.</p>
+        <p className="text-ink-muted">Campanha não encontrada.</p>
       </div>
     )
   }
@@ -296,7 +296,7 @@ export default function ReativarDetailPage() {
       <div>
         <button
           onClick={() => router.push('/disparos?tab=reativar')}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer mb-3"
+          className="flex items-center gap-2 text-sm text-ink-muted hover:text-foreground transition-colors cursor-pointer mb-3"
         >
           <ArrowLeft size={14} /> Reativar
         </button>
@@ -306,7 +306,7 @@ export default function ReativarDetailPage() {
               <h1 className="text-2xl font-bold text-foreground">{campaign.name}</h1>
               <StatusBadge status={campaign.status} />
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-ink-muted">
               Criado em {format(new Date(campaign.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
               {' · '}Intervalo: {campaign.interval_min}–{campaign.interval_max} min
             </p>
@@ -317,12 +317,12 @@ export default function ReativarDetailPage() {
               className="p-2 rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer"
               title="Atualizar"
             >
-              <RefreshCw size={14} className="text-muted-foreground" />
+              <RefreshCw size={14} className="text-ink-muted" />
             </button>
             {campaign.status !== 'running' && (
               <button
                 onClick={() => setShowEdit(true)}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border text-sm text-ink-muted hover:bg-muted transition-colors cursor-pointer"
               >
                 <Settings size={13} /> Editar
               </button>
@@ -380,17 +380,17 @@ export default function ReativarDetailPage() {
           { label: 'Total',     value: campaign.total_leads,  color: 'text-foreground' },
           { label: 'Enviados',  value: campaign.sent_count,   color: 'text-green-600' },
           { label: 'Falhas',    value: campaign.failed_count, color: 'text-red-500' },
-          { label: 'Pendentes', value: pending,               color: 'text-muted-foreground' },
+          { label: 'Pendentes', value: pending,               color: 'text-ink-muted' },
         ].map(({ label, value, color }) => (
-          <div key={label} className="bg-card border border-border rounded-2xl p-5">
-            <p className="text-sm text-muted-foreground mb-1">{label}</p>
+          <div key={label} className="bg-card border border-border rounded-[var(--radius-panel)] p-5">
+            <p className="text-sm text-ink-muted mb-1">{label}</p>
             <p className={cn('text-3xl font-bold', color)}>{value}</p>
           </div>
         ))}
       </div>
 
       {/* Progress bar */}
-      <div className="bg-card border border-border rounded-2xl p-5">
+      <div className="bg-card border border-border rounded-[var(--radius-panel)] p-5">
         <div className="flex items-center justify-between mb-2">
           <p className="text-sm font-medium text-foreground">Progresso</p>
           <p className="text-sm font-bold text-foreground">{progress}%</p>
@@ -407,7 +407,7 @@ export default function ReativarDetailPage() {
 
       {/* Countdown bar (when running) */}
       {countdown && campaign.status === 'running' && (
-        <div className="bg-card border border-border rounded-2xl p-5">
+        <div className="bg-card border border-border rounded-[var(--radius-panel)] p-5">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-medium text-foreground">Próximo envio em</p>
             <p className="text-sm font-bold text-alliance-blue">
@@ -427,23 +427,23 @@ export default function ReativarDetailPage() {
       )}
 
       {/* Dispatches table */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+      <div className="bg-card border border-border rounded-[var(--radius-panel)] overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
           <h2 className="text-sm font-semibold text-foreground">Envios ({dispatches.length})</h2>
         </div>
         {dispatches.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <p className="text-sm text-muted-foreground">Nenhum envio registrado</p>
+            <p className="text-sm text-ink-muted">Nenhum envio registrado</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Telefone</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mensagem enviada</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Enviado em</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-muted  ">Telefone</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-muted  ">Mensagem enviada</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-muted  ">Status</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-muted  ">Enviado em</th>
                   <th className="w-16 px-5 py-3"></th>
                 </tr>
               </thead>
@@ -453,7 +453,7 @@ export default function ReativarDetailPage() {
                   return (
                     <tr key={d.id} className="hover:bg-muted/30 transition-colors align-top">
                       <td className="px-5 py-3.5 font-mono text-xs text-foreground whitespace-nowrap">{d.phone}</td>
-                      <td className="px-5 py-3.5 text-muted-foreground max-w-xs">
+                      <td className="px-5 py-3.5 text-ink-muted max-w-xs">
                         {isEditing ? (
                           <textarea
                             value={editValue}
@@ -471,7 +471,7 @@ export default function ReativarDetailPage() {
                           {DISPATCH_STATUS_LABELS[d.status] ?? d.status}
                         </span>
                       </td>
-                      <td className="px-5 py-3.5 text-muted-foreground text-xs whitespace-nowrap">
+                      <td className="px-5 py-3.5 text-ink-muted text-xs whitespace-nowrap">
                         {d.sent_at ? format(new Date(d.sent_at), 'dd/MM HH:mm:ss', { locale: ptBR }) : '—'}
                       </td>
                       <td className="px-5 py-3.5 whitespace-nowrap">
@@ -482,13 +482,13 @@ export default function ReativarDetailPage() {
                               {saving ? <RefreshCw size={11} className="animate-spin" /> : <Check size={11} />}
                             </button>
                             <button onClick={cancelEdit} disabled={saving}
-                              className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors cursor-pointer" title="Cancelar">
+                              className="p-1.5 rounded-lg bg-muted text-ink-muted hover:bg-muted/80 transition-colors cursor-pointer" title="Cancelar">
                               <X size={11} />
                             </button>
                           </div>
                         ) : d.status === 'pending' ? (
                           <button onClick={() => startEdit(d)}
-                            className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer text-muted-foreground hover:text-foreground" title="Editar mensagem">
+                            className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer text-ink-muted hover:text-foreground" title="Editar mensagem">
                             <Pencil size={12} />
                           </button>
                         ) : null}
@@ -512,19 +512,19 @@ export default function ReativarDetailPage() {
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }}
-              className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md flex flex-col gap-5 p-6"
+              className="bg-card border border-border rounded-[var(--radius-panel)] shadow-2xl w-full max-w-md flex flex-col gap-5 p-6"
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-bold text-foreground">Editar campanha</h2>
                 <button onClick={() => setShowEdit(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer">
-                  <X size={15} className="text-muted-foreground" />
+                  <X size={15} className="text-ink-muted" />
                 </button>
               </div>
               <div className="flex flex-col gap-4">
                 {/* Name */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Nome</label>
+                  <label className="text-xs font-medium text-ink-muted">Nome</label>
                   <input
                     value={editName}
                     onChange={e => setEditName(e.target.value)}
@@ -533,7 +533,7 @@ export default function ReativarDetailPage() {
                 </div>
                 {/* Interval */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Intervalo entre envios</label>
+                  <label className="text-xs font-medium text-ink-muted">Intervalo entre envios</label>
                   <div className="grid grid-cols-2 gap-2">
                     {INTERVAL_OPTIONS.map((opt, i) => (
                       <button key={i} onClick={() => setEditIntervalIdx(i)}
@@ -541,7 +541,7 @@ export default function ReativarDetailPage() {
                           'px-3 py-2 rounded-xl border text-sm font-medium transition-colors cursor-pointer',
                           editIntervalIdx === i
                             ? 'border-alliance-blue bg-alliance-blue/10 text-alliance-blue'
-                            : 'border-border text-muted-foreground hover:bg-muted',
+                            : 'border-border text-ink-muted hover:bg-muted',
                         )}>
                         {opt.label}
                       </button>
@@ -550,7 +550,7 @@ export default function ReativarDetailPage() {
                 </div>
                 {/* Allowed hours */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <label className="text-xs font-medium text-ink-muted flex items-center gap-1.5">
                     <Clock size={11} /> Horário permitido para envio
                   </label>
                   <div className="flex items-center gap-3">
@@ -561,7 +561,7 @@ export default function ReativarDetailPage() {
                     >
                       {HOURS.map(h => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
                     </select>
-                    <span className="text-muted-foreground text-sm">até</span>
+                    <span className="text-ink-muted text-sm">até</span>
                     <select
                       value={editHoursEnd}
                       onChange={e => setEditHoursEnd(Number(e.target.value))}
@@ -573,7 +573,7 @@ export default function ReativarDetailPage() {
                 </div>
               </div>
               <div className="flex justify-end gap-2">
-                <button onClick={() => setShowEdit(false)} className="px-4 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
+                <button onClick={() => setShowEdit(false)} className="px-4 py-2 rounded-xl border border-border text-sm text-ink-muted hover:bg-muted transition-colors cursor-pointer">
                   Cancelar
                 </button>
                 <button onClick={handleSaveEdit} disabled={savingEdit || !editName.trim()}

@@ -16,12 +16,12 @@ function getInitials(name: string) {
 
 function getAvatarColor(name: string) {
   const colors = [
-    'linear-gradient(135deg, #1E90FF 0%, #0A2EAD 100%)',
-    'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
-    'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-    'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-    'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-    'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)',
+    'var(--brand)',
+    'var(--stage-follow-up)',
+    'var(--stage-cliente)',
+    'var(--stage-morno)',
+    'var(--stage-quente)',
+    'var(--stage-sem-interesse)',
   ]
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
@@ -31,11 +31,11 @@ function getAvatarColor(name: string) {
 export function ChatHeader({ lead, onInfoClick }: ChatHeaderProps) {
   return (
     <TooltipProvider delay={400}>
-      <div className="bg-white px-5 py-3.5 flex items-center justify-between border-b border-gray-100 flex-shrink-0 shadow-sm">
+      <div className="bg-white px-5 py-3.5 flex items-center justify-between border-b border-line flex-shrink-0 shadow-sm">
         {/* Avatar + info — clicável */}
         <button
           onClick={onInfoClick}
-          className="flex items-center gap-3 text-left group cursor-pointer rounded-xl px-2 py-1.5 -mx-2 -my-1.5 hover:bg-gray-50 transition-colors duration-150"
+          className="flex items-center gap-3 text-left group cursor-pointer rounded-xl px-2 py-1.5 -mx-2 -my-1.5 hover:bg-surface-sunken transition-colors duration-150"
         >
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 select-none"
@@ -45,10 +45,10 @@ export function ChatHeader({ lead, onInfoClick }: ChatHeaderProps) {
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <h2 className="font-bold text-gray-900 text-sm leading-tight">{lead.name}</h2>
-              <ChevronRight size={13} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
+              <h2 className="font-bold text-ink text-sm leading-tight">{lead.name}</h2>
+              <ChevronRight size={13} className="text-ink-subtle group-hover:text-ink-muted transition-colors" />
             </div>
-            <p className="text-gray-400 text-xs flex items-center gap-1 mt-0.5">
+            <p className="text-ink-subtle text-xs flex items-center gap-1 mt-0.5">
               <Phone size={10} />
               {formatPhone(lead.phone)}
             </p>

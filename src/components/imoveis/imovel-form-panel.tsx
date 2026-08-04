@@ -49,7 +49,7 @@ function gerarNome(pavimento: number, numeroUnidade: number): string {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+    <p className="text-2xs font-bold text-ink-subtle   mb-3">
       {children}
     </p>
   )
@@ -57,7 +57,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+    <label className="block text-xs font-semibold text-ink mb-1.5">
       {children}
       {required && <span className="text-red-400 ml-0.5">*</span>}
     </label>
@@ -84,8 +84,8 @@ function TextInput({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className={cn(
-        'w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 text-gray-800',
-        'placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue',
+        'w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 text-ink',
+        'placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue',
         'transition-colors bg-white',
         className,
       )}
@@ -240,7 +240,7 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
         {/* Header */}
         <div
           className="px-6 pt-6 pb-5 flex-shrink-0 flex items-center justify-between gap-3"
-          style={{ backgroundColor: '#0A2EAD' }}
+          style={{ background: 'linear-gradient(135deg, var(--nav-from) 0%, var(--brand) 100%)' }}
         >
           <div className="flex items-center gap-3 min-w-0">
             <Building2 size={20} className="text-white/80 flex-shrink-0" />
@@ -266,7 +266,7 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
         <div className="flex-1 overflow-y-auto flex flex-col">
 
           {/* Seção 1 — Localização */}
-          <div className="px-6 py-5 border-b border-gray-100">
+          <div className="px-6 py-5 border-b border-line">
             <SectionTitle>Localização</SectionTitle>
 
             <div className="grid grid-cols-2 gap-3 mb-3">
@@ -276,7 +276,7 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
                 <select
                   value={pavimento}
                   onChange={(e) => handlePavimentoChange(Number(e.target.value))}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-white transition-colors"
+                  className="w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 text-ink focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-white transition-colors"
                 >
                   {PAVIMENTOS.map((p) => (
                     <option key={p} value={p}>
@@ -292,7 +292,7 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
                 <select
                   value={numeroUnidade}
                   onChange={(e) => setNumeroUnidade(Number(e.target.value))}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-white transition-colors"
+                  className="w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 text-ink focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-white transition-colors"
                 >
                   {unidades.map((u) => (
                     <option key={u.value} value={u.value}>{u.label}</option>
@@ -319,7 +319,7 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
           </div>
 
           {/* Seção 2 — Características */}
-          <div className="px-6 py-5 border-b border-gray-100">
+          <div className="px-6 py-5 border-b border-line">
             <SectionTitle>Características</SectionTitle>
             <div className="grid grid-cols-3 gap-3">
               <div>
@@ -353,7 +353,7 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
           </div>
 
           {/* Seção 3 — Valores */}
-          <div className="px-6 py-5 border-b border-gray-100">
+          <div className="px-6 py-5 border-b border-line">
             <SectionTitle>Valores</SectionTitle>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -378,18 +378,18 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
           </div>
 
           {/* Seção 4 — Diferenciais */}
-          <div className="px-6 py-5 border-b border-gray-100">
+          <div className="px-6 py-5 border-b border-line">
             <SectionTitle>Diferenciais</SectionTitle>
             <ul className="flex flex-col gap-2 mb-3">
               {diferenciais.map((d, i) => (
                 <li
                   key={i}
-                  className="flex items-center justify-between gap-2 bg-gray-50 rounded-xl px-3 py-2"
+                  className="flex items-center justify-between gap-2 bg-surface-sunken rounded-xl px-3 py-2"
                 >
-                  <span className="text-sm text-gray-700 leading-snug">{d}</span>
+                  <span className="text-sm text-ink leading-snug">{d}</span>
                   <button
                     onClick={() => handleRemoveD(i)}
-                    className="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0 cursor-pointer focus-visible:outline-none"
+                    className="text-ink-subtle hover:text-red-400 transition-colors flex-shrink-0 cursor-pointer focus-visible:outline-none"
                     aria-label={`Remover diferencial ${d}`}
                   >
                     <X size={14} />
@@ -405,8 +405,8 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
                 onKeyDown={handleDKeyDown}
                 placeholder="Ex: Piscina privativa"
                 className={cn(
-                  'flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2.5 text-gray-800',
-                  'placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue',
+                  'flex-1 text-sm border border-line-strong rounded-xl px-3 py-2.5 text-ink',
+                  'placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue',
                   'transition-colors bg-white',
                 )}
               />
@@ -422,7 +422,7 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
           </div>
 
           {/* Seção 5 — Status */}
-          <div className="px-6 py-5 border-b border-gray-100">
+          <div className="px-6 py-5 border-b border-line">
             <SectionTitle>Status do Imóvel</SectionTitle>
 
             <div className="flex flex-col gap-3">
@@ -435,13 +435,13 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
                   className={cn(
                     'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
                     vendido
-                      ? 'opacity-40 cursor-not-allowed bg-gray-100 text-gray-400 border border-gray-200'
+                      ? 'opacity-40 cursor-not-allowed bg-surface-sunken text-ink-subtle border border-line-strong'
                       : disponivel
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 focus-visible:ring-emerald-400'
-                        : 'bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200 focus-visible:ring-gray-400',
+                        : 'bg-surface-sunken text-ink-muted border border-line-strong hover:bg-line focus-visible:ring-ring',
                   )}
                 >
-                  <span className={cn('w-2 h-2 rounded-full flex-shrink-0', disponivel && !vendido ? 'bg-emerald-500' : 'bg-gray-400')} />
+                  <span className={cn('w-2 h-2 rounded-full flex-shrink-0', disponivel && !vendido ? 'bg-[var(--success)]' : 'bg-ink-subtle')} />
                   {disponivel && !vendido ? 'Disponível' : 'Indisponível'}
                 </button>
               </div>
@@ -455,10 +455,10 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
                     'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
                     vendido
                       ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 focus-visible:ring-emerald-400'
-                      : 'bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200 focus-visible:ring-gray-400',
+                      : 'bg-surface-sunken text-ink-muted border border-line-strong hover:bg-line focus-visible:ring-ring',
                   )}
                 >
-                  <span className={cn('w-2 h-2 rounded-full flex-shrink-0', vendido ? 'bg-emerald-500' : 'bg-gray-400')} />
+                  <span className={cn('w-2 h-2 rounded-full flex-shrink-0', vendido ? 'bg-[var(--success)]' : 'bg-ink-subtle')} />
                   {vendido ? 'Vendido' : 'Não vendido'}
                 </button>
 
@@ -479,11 +479,11 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3 flex-shrink-0 bg-gray-50/60">
+        <div className="px-6 py-4 border-t border-line flex items-center justify-end gap-3 flex-shrink-0 bg-surface-sunken/60">
           <button
             onClick={onClose}
             disabled={saving}
-            className="px-4 py-2 text-sm font-semibold text-gray-600 rounded-xl hover:bg-gray-100 transition-colors disabled:opacity-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
+            className="px-4 py-2 text-sm font-semibold text-ink rounded-xl hover:bg-surface-sunken transition-colors disabled:opacity-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Cancelar
           </button>

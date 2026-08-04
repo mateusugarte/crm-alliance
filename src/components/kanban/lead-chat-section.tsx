@@ -35,16 +35,16 @@ export function LeadChatSection({
   }, [interactions])
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-black/[0.06]" style={{ backgroundColor: '#f2f2f4' }}>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-line" style={{ backgroundColor: 'var(--surface-sunken)' }}>
       {/* Chat body */}
       <div ref={chatBodyRef} className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-3">
         {fetchingInteractions ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 size={16} className="animate-spin text-gray-400" />
+            <Loader2 size={16} className="animate-spin text-ink-subtle" />
           </div>
         ) : interactions.length === 0 ? (
           <div className="flex items-center justify-center py-8">
-            <p className="text-xs text-gray-400">Nenhuma conversa registrada ainda.</p>
+            <p className="text-xs text-ink-subtle">Nenhuma conversa registrada ainda.</p>
           </div>
         ) : (
           interactions.map((msg) => {
@@ -53,12 +53,12 @@ export function LeadChatSection({
 
             const bubbleStyle = {
               lead:     'bg-white rounded-bl-sm',
-              bot:      'bg-[#DCF8C6] rounded-br-sm',
-              corretor: 'bg-[#D0E8FF] rounded-br-sm',
+              bot:      'bg-[var(--success-soft)] rounded-br-sm',
+              corretor: 'bg-[var(--brand-soft)] rounded-br-sm',
             }[msg.sender_type]
 
             const labelStyle = {
-              lead:     'text-gray-500',
+              lead:     'text-ink-muted',
               bot:      'text-emerald-700',
               corretor: 'text-alliance-blue',
             }[msg.sender_type]
@@ -79,12 +79,12 @@ export function LeadChatSection({
                     {msg.sender_type === 'bot' && (
                       <Bot size={10} className="flex-shrink-0" />
                     )}
-                    <p className="text-[10px] font-bold leading-none">{senderLabel}</p>
+                    <p className="text-2xs font-bold leading-none">{senderLabel}</p>
                   </div>
-                  <p className="text-sm text-gray-800 leading-snug whitespace-pre-wrap break-words pr-8">
+                  <p className="text-sm text-ink leading-snug whitespace-pre-wrap break-words pr-8">
                     {extractMessageText(msg.content)}
                   </p>
-                  <span className="absolute bottom-1.5 right-2 text-[10px] text-gray-400 leading-none">
+                  <span className="absolute bottom-1.5 right-2 text-2xs text-ink-subtle leading-none">
                     {time}
                   </span>
                 </div>
@@ -107,13 +107,13 @@ export function LeadChatSection({
           }}
           placeholder="Digite uma mensagem..."
           rows={1}
-          className="max-h-24 flex-1 resize-none overflow-y-auto rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs leading-snug focus:outline-none focus:ring-2 focus:ring-alliance-blue/20"
+          className="max-h-24 flex-1 resize-none overflow-y-auto rounded-lg border border-line-strong bg-white px-3 py-2 text-xs leading-snug focus:outline-none focus:ring-2 focus:ring-alliance-blue/20"
           style={{ lineHeight: '1.4' }}
         />
         <button
           onClick={onSend}
           disabled={!newMessage.trim() || sendingMessage}
-          className="flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg bg-gray-950 text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
+          className="flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg bg-ink text-white transition-colors hover:bg-ink/88 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Enviar mensagem"
         >
           {sendingMessage

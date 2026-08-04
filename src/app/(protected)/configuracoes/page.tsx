@@ -62,13 +62,13 @@ export default async function ConfiguracoesPage() {
     <div className="px-8 py-7">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-alliance-blue/60">
+          <p className="text-xs font-semibold   text-alliance-blue/60">
             Configurações
           </p>
           <h1 className="mt-1 text-2xl font-bold text-alliance-dark dark:text-white">
             Usuários e acessos
           </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-sm text-ink-muted dark:text-ink-subtle">
             Controle quem acessa o CRM e acompanhe a rotina de login da equipe.
           </p>
         </div>
@@ -78,37 +78,37 @@ export default async function ConfiguracoesPage() {
       </div>
 
       <div className="mb-6 grid gap-3 md:grid-cols-4">
-        <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
+        <div className="rounded-lg border border-line bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
           <Users className="mb-3 size-5 text-alliance-blue" />
           <p className="text-2xl font-bold text-alliance-dark dark:text-white">{userRows.length}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Usuários</p>
+          <p className="text-sm text-ink-muted dark:text-ink-subtle">Usuários</p>
         </div>
-        <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
+        <div className="rounded-lg border border-line bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
           <ShieldCheck className="mb-3 size-5 text-alliance-blue" />
           <p className="text-2xl font-bold text-alliance-dark dark:text-white">{totalAdm}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">ADMs</p>
+          <p className="text-sm text-ink-muted dark:text-ink-subtle">ADMs</p>
         </div>
-        <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
+        <div className="rounded-lg border border-line bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
           <UserCheck className="mb-3 size-5 text-emerald-500" />
           <p className="text-2xl font-bold text-alliance-dark dark:text-white">{activeToday}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Acessaram hoje</p>
+          <p className="text-sm text-ink-muted dark:text-ink-subtle">Acessaram hoje</p>
         </div>
-        <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
+        <div className="rounded-lg border border-line bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
           <Clock3 className="mb-3 size-5 text-amber-500" />
           <p className="text-2xl font-bold text-alliance-dark dark:text-white">{neverLogged}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Nunca acessaram</p>
+          <p className="text-sm text-ink-muted dark:text-ink-subtle">Nunca acessaram</p>
         </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="grid gap-6">
-          <section className="overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
-            <div className="border-b border-gray-100 px-5 py-4 dark:border-white/10">
+          <section className="overflow-hidden rounded-lg border border-line bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
+            <div className="border-b border-line px-5 py-4 dark:border-white/10">
               <h2 className="font-semibold text-alliance-dark dark:text-white">Usuários do sistema</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[820px] text-left text-sm">
-                <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-white/5 dark:text-gray-400">
+                <thead className="bg-surface-sunken text-xs   text-ink-muted dark:bg-white/5 dark:text-ink-subtle">
                   <tr>
                     <th className="px-5 py-3">Usuário</th>
                     <th className="px-5 py-3">Perfil</th>
@@ -118,19 +118,19 @@ export default async function ConfiguracoesPage() {
                     <th className="px-5 py-3">Dias em 30d</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-white/10">
+                <tbody className="divide-y divide-line dark:divide-white/10">
                   {userRows.map((user) => {
                     const lastLogin = user.last_login_at || user.last_sign_in_at
                     return (
-                      <tr key={user.id} className="text-gray-700 dark:text-gray-200">
+                      <tr key={user.id} className="text-ink">
                         <td className="px-5 py-4">
                           <div className="font-semibold text-alliance-dark dark:text-white">
                             {user.full_name || user.email}
                           </div>
-                          <div className="text-xs text-gray-500">{user.email}</div>
+                          <div className="text-xs text-ink-muted">{user.email}</div>
                         </td>
                         <td className="px-5 py-4">
-                          <span className="rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold uppercase text-gray-600 dark:bg-white/10 dark:text-gray-300">
+                          <span className="rounded-md bg-surface-sunken px-2 py-1 text-xs font-semibold uppercase text-ink dark:bg-white/10 dark:text-ink-subtle">
                             {user.role ?? 'sem perfil'}
                           </span>
                         </td>
@@ -146,13 +146,13 @@ export default async function ConfiguracoesPage() {
             </div>
           </section>
 
-          <section className="overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
-            <div className="border-b border-gray-100 px-5 py-4 dark:border-white/10">
+          <section className="overflow-hidden rounded-lg border border-line bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
+            <div className="border-b border-line px-5 py-4 dark:border-white/10">
               <h2 className="font-semibold text-alliance-dark dark:text-white">Últimos acessos registrados</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[680px] text-left text-sm">
-                <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-white/5 dark:text-gray-400">
+                <thead className="bg-surface-sunken text-xs   text-ink-muted dark:bg-white/5 dark:text-ink-subtle">
                   <tr>
                     <th className="px-5 py-3">Usuário</th>
                     <th className="px-5 py-3">Perfil</th>
@@ -160,14 +160,14 @@ export default async function ConfiguracoesPage() {
                     <th className="px-5 py-3">Data</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-white/10">
+                <tbody className="divide-y divide-line dark:divide-white/10">
                   {logRows.map((log) => (
-                    <tr key={log.id} className="text-gray-700 dark:text-gray-200">
+                    <tr key={log.id} className="text-ink">
                       <td className="px-5 py-4">
                         <div className="font-semibold text-alliance-dark dark:text-white">
                           {log.full_name || log.email}
                         </div>
-                        <div className="text-xs text-gray-500">{log.email}</div>
+                        <div className="text-xs text-ink-muted">{log.email}</div>
                       </td>
                       <td className="px-5 py-4">{log.role}</td>
                       <td className="px-5 py-4">{log.source}</td>

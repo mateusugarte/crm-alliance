@@ -102,11 +102,11 @@ function MetricCard({
     <div className="min-w-0 border-r border-white/10 px-4 py-2.5 last:border-r-0">
       <div className="flex items-center gap-2 text-white/45">
         {icon}
-        <p className="text-[11px] font-medium">{label}</p>
+        <p className="text-xs font-medium">{label}</p>
       </div>
       <div className="mt-1 flex min-w-0 items-baseline gap-2">
         <p className="truncate text-lg font-semibold text-white">{value}</p>
-        {detail && <p className="truncate text-[10px] text-white/35">{detail}</p>}
+        {detail && <p className="truncate text-2xs text-white/35">{detail}</p>}
       </div>
     </div>
   )
@@ -124,12 +124,12 @@ function SectionCard({
   className?: string
 }) {
   return (
-    <section className={cn('min-h-0 rounded-2xl border border-black/[0.06] bg-white/88 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] backdrop-blur-xl', className)}>
+    <section className={cn('min-h-0 rounded-[var(--radius-panel)] border border-black/[0.06] bg-white/88 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] backdrop-blur-xl', className)}>
       <div className="mb-3 flex items-center gap-2">
-        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
+        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-surface-sunken text-ink">
           {icon}
         </div>
-        <h3 className="text-xs font-semibold text-gray-800">{title}</h3>
+        <h3 className="text-xs font-semibold text-ink">{title}</h3>
       </div>
       {children}
     </section>
@@ -139,8 +139,8 @@ function SectionCard({
 function InfoPill({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 border-b border-black/[0.05] py-2 last:border-b-0">
-      <p className="text-[10px] font-medium text-gray-400">{label}</p>
-      <p className="mt-0.5 truncate text-xs font-medium text-gray-800" title={value}>{value}</p>
+      <p className="text-2xs font-medium text-ink-subtle">{label}</p>
+      <p className="mt-0.5 truncate text-xs font-medium text-ink" title={value}>{value}</p>
     </div>
   )
 }
@@ -416,34 +416,34 @@ export function LeadDetailModal({
     <TooltipProvider delay={400}>
       {open && (
         <div
-          className="fixed inset-y-0 right-0 z-50 flex bg-[#f5f5f7] shadow-[-18px_0_50px_rgba(15,23,42,0.12)]"
+          className="fixed inset-y-0 right-0 z-50 flex bg-surface-sunken shadow-[-18px_0_50px_rgba(15,23,42,0.12)]"
           style={{ left: sidebarCollapsed ? 64 : 220 }}
           role="dialog"
           aria-modal="true"
           aria-label={`Detalhes de ${displayName}`}
         >
           <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-            <header className="relative border-b border-black/[0.06] bg-white/80 px-5 py-3 text-gray-950 backdrop-blur-2xl md:px-6">
+            <header className="relative border-b border-black/[0.06] bg-white/80 px-5 py-3 text-ink backdrop-blur-2xl md:px-6">
               <div className="relative grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
                 <div className="min-w-0">
                   <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
                     <span
-                      className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-700"
+                      className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-2xs font-semibold text-blue-700"
                     >
                       <Thermometer size={11} />
                       {STAGE_LABELS[displayLead.stage]}
                     </span>
                     {insight.tags.slice(0, 4).map(tag => (
-                      <span key={tag} className="rounded-md bg-gray-100 px-2 py-1 text-[10px] font-medium text-gray-600">
+                      <span key={tag} className="rounded-md bg-surface-sunken px-2 py-1 text-2xs font-medium text-ink">
                         {tag}
                       </span>
                     ))}
                   </div>
 
-                  <h2 className="max-w-5xl truncate text-[26px] font-semibold leading-tight text-gray-950">
+                  <h2 className="max-w-5xl truncate text-[26px] font-semibold leading-tight text-ink">
                     {displayName}
                   </h2>
-                  <div className="mt-1.5 flex flex-wrap gap-3 text-xs text-gray-500">
+                  <div className="mt-1.5 flex flex-wrap gap-3 text-xs text-ink-muted">
                     <span className="inline-flex items-center gap-1.5">
                       <Phone size={12} />
                       {formatPhone(displayLead.phone)}
@@ -465,13 +465,13 @@ export function LeadDetailModal({
 
                 <div className="flex items-center justify-end gap-2">
                   <div className="mr-1 text-right">
-                    <p className="text-[10px] font-medium text-gray-400">Score comercial</p>
-                    <p className="text-2xl font-semibold leading-none text-gray-950">{insight.scoreLabel}</p>
+                    <p className="text-2xs font-medium text-ink-subtle">Score comercial</p>
+                    <p className="text-2xl font-semibold leading-none text-ink">{insight.scoreLabel}</p>
                   </div>
                   <button
                     onClick={handleCallLead}
                     disabled={assumeLoading || !displayLead.phone}
-                    className="inline-flex h-9 items-center gap-2 rounded-xl bg-gray-950 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-40"
+                    className="inline-flex h-9 items-center gap-2 rounded-xl bg-ink px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-ink/88 disabled:opacity-40"
                   >
                     {assumeLoading ? <Loader2 size={14} className="animate-spin" /> : <PhoneCall size={14} />}
                     Ligar para o lead
@@ -481,7 +481,7 @@ export function LeadDetailModal({
                         <TooltipTrigger render={
                           <button
                             onClick={() => setEditMode(true)}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-black/[0.08] bg-white text-gray-600 transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-black/[0.08] bg-white text-ink transition hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
                             aria-label="Editar lead"
                           >
                             <Edit3 size={15} />
@@ -494,7 +494,7 @@ export function LeadDetailModal({
                       <TooltipTrigger render={
                           <button
                             onClick={onClose}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-ink-subtle transition hover:bg-surface-sunken hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
                             aria-label="Fechar painel"
                         >
                           <X size={18} />
@@ -514,7 +514,7 @@ export function LeadDetailModal({
               <div className="min-h-0 flex-1 overflow-y-auto p-3 xl:overflow-hidden">
                 <div className="grid min-w-0 gap-3 xl:h-full xl:grid-cols-[minmax(300px,1.05fr)_minmax(330px,0.95fr)_minmax(260px,0.8fr)] xl:grid-rows-[auto_minmax(0,1fr)_auto]">
                   <main className="flex min-w-0 flex-col gap-3 xl:contents">
-                    <div className="grid overflow-hidden rounded-2xl border border-black bg-gray-950 shadow-sm md:grid-cols-2 xl:col-span-3 xl:row-start-1 xl:grid-cols-4">
+                    <div className="grid overflow-hidden rounded-[var(--radius-panel)] border border-black bg-ink shadow-sm md:grid-cols-2 xl:col-span-3 xl:row-start-1 xl:grid-cols-4">
                       <MetricCard icon={<MessageCircle size={13} />} label="Interações" value={interactions.length || displayLead.interaction_count || 0} detail={`${insight.inbound.length} respostas`} />
                       <MetricCard icon={<Send size={13} />} label="Disparos" value={`${displayLead.reactivation_count ?? 0}x`} detail={displayLead.last_reactivated_at ? `último há ${distance(displayLead.last_reactivated_at)}` : 'nenhum'} />
                       <MetricCard icon={<Clock3 size={13} />} label="Tempo no estágio" value={insight.stageTime.replace('aproximadamente ', '')} detail={formatDate(displayLead.updated_at)} />
@@ -528,11 +528,11 @@ export function LeadDetailModal({
                           onChange={e => setEditSummary(e.target.value)}
                           rows={5}
                           placeholder="Resumo padronizado do lead..."
-                          className="min-h-0 flex-1 resize-none rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs leading-relaxed text-gray-700 focus:outline-none focus:ring-2 focus:ring-alliance-blue/20"
+                          className="min-h-0 flex-1 resize-none rounded-xl border border-line-strong bg-white px-3 py-2 text-xs leading-relaxed text-ink focus:outline-none focus:ring-2 focus:ring-alliance-blue/20"
                         />
                       ) : (
                         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                          <p className="whitespace-pre-wrap text-xs leading-relaxed text-gray-700">
+                          <p className="whitespace-pre-wrap text-xs leading-relaxed text-ink">
                             {summaryWithoutStaleScore(displayLead.summary) || 'Nenhum resumo disponível ainda. Quando houver conversa suficiente, o ideal é registrar objetivo, produto de interesse, objeções e próximo passo.'}
                           </p>
                         </div>
@@ -541,7 +541,7 @@ export function LeadDetailModal({
                       {insight.reasons.length > 0 && (
                         <div className="mt-3 grid gap-1.5 border-t border-black/[0.05] pt-3">
                           {insight.reasons.map(reason => (
-                            <div key={reason} className="flex items-start gap-2 text-[11px] leading-snug text-gray-600">
+                            <div key={reason} className="flex items-start gap-2 text-xs leading-snug text-ink">
                               <CheckCircle2 size={12} className="mt-0.5 flex-shrink-0 text-emerald-500" />
                               <span>{reason}</span>
                             </div>
@@ -554,40 +554,40 @@ export function LeadDetailModal({
                       {editMode ? (
                         <div className="grid gap-2 md:grid-cols-2">
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-[10px] font-medium text-gray-500">Nome</label>
+                            <label className="text-2xs font-medium text-ink-muted">Nome</label>
                             <input value={editName} onChange={e => setEditName(e.target.value)}
-                              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20" />
+                              className="rounded-lg border border-line-strong bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20" />
                           </div>
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-[10px] font-medium text-gray-500">Telefone</label>
+                            <label className="text-2xs font-medium text-ink-muted">Telefone</label>
                             <input value={editPhone} onChange={e => setEditPhone(e.target.value)}
-                              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20" />
+                              className="rounded-lg border border-line-strong bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20" />
                           </div>
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-[10px] font-medium text-gray-500">Cidade</label>
+                            <label className="text-2xs font-medium text-ink-muted">Cidade</label>
                             <input value={editCity} onChange={e => setEditCity(e.target.value)}
-                              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20" />
+                              className="rounded-lg border border-line-strong bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20" />
                           </div>
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-[10px] font-medium text-gray-500">Estágio</label>
+                            <label className="text-2xs font-medium text-ink-muted">Estágio</label>
                             <select value={editStage} onChange={e => setEditStage(e.target.value as Lead['stage'])}
-                              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20">
+                              className="rounded-lg border border-line-strong bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20">
                               {STAGE_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                             </select>
                           </div>
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-[10px] font-medium text-gray-500">Intenção</label>
+                            <label className="text-2xs font-medium text-ink-muted">Intenção</label>
                             <select value={editIntention ?? ''} onChange={e => setEditIntention((e.target.value || null) as Lead['intention'])}
-                              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20">
+                              className="rounded-lg border border-line-strong bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20">
                               <option value="">Sem qualificação</option>
                               <option value="morar">Morar</option>
                               <option value="investir">Investir</option>
                             </select>
                           </div>
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-[10px] font-medium text-gray-500">Imóvel de interesse</label>
+                            <label className="text-2xs font-medium text-ink-muted">Imóvel de interesse</label>
                             <input value={editImovel} onChange={e => setEditImovel(e.target.value)}
-                              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20" />
+                              className="rounded-lg border border-line-strong bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20" />
                           </div>
                         </div>
                       ) : (
@@ -616,7 +616,7 @@ export function LeadDetailModal({
                   </main>
 
                   <aside className="flex min-h-0 min-w-0 flex-col gap-2 xl:col-start-3 xl:row-start-2 xl:row-span-2">
-                    <SectionCard title="Próximo passo" icon={<PhoneCall size={13} />} className="flex-shrink-0 bg-gray-950 p-3 text-white [&>div:first-child]:mb-2 [&>div>div]:bg-white/10 [&>div>div]:text-white/70 [&_h3]:text-white/65">
+                    <SectionCard title="Próximo passo" icon={<PhoneCall size={13} />} className="flex-shrink-0 bg-ink p-3 text-white [&>div:first-child]:mb-2 [&>div>div]:bg-white/10 [&>div>div]:text-white/70 [&_h3]:text-white/65">
                       <p className="text-base font-semibold leading-tight text-white">
                         {displayLead.aceitou_consultor || displayLead.stage === 'lead_quente'
                           ? 'Ligar para o lead'
@@ -624,7 +624,7 @@ export function LeadDetailModal({
                             ? 'Aguardar resposta'
                             : 'Avançar a conversa'}
                       </p>
-                      <p className="mt-1.5 text-[11px] leading-relaxed text-white/55">
+                      <p className="mt-1.5 text-xs leading-relaxed text-white/55">
                         {displayLead.aceitou_consultor
                           ? 'O lead aceitou contato. Priorize uma ligação breve e objetiva.'
                           : insight.inbound.length === 0
@@ -636,8 +636,8 @@ export function LeadDetailModal({
                     <SectionCard title="Automação" icon={<Bot size={13} />} className="flex-shrink-0 p-3 [&>div:first-child]:mb-2">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="text-xs font-semibold text-gray-800">{displayLead.automation_paused ? 'Alice pausada' : 'Alice ativa'}</p>
-                          <p className="mt-0.5 text-[10px] text-gray-400">
+                          <p className="text-xs font-semibold text-ink">{displayLead.automation_paused ? 'Alice pausada' : 'Alice ativa'}</p>
+                          <p className="mt-0.5 text-2xs text-ink-subtle">
                             {displayLead.automation_paused ? 'Mensagens automáticas suspensas.' : 'Alice pode responder este lead.'}
                           </p>
                         </div>
@@ -645,10 +645,10 @@ export function LeadDetailModal({
                           onClick={handleTogglePause}
                           disabled={pauseLoading}
                           className={cn(
-                            'inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-[11px] font-medium transition disabled:opacity-60',
+                            'inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition disabled:opacity-60',
                             displayLead.automation_paused
                               ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                              : 'bg-gray-900 text-white hover:bg-gray-800'
+                              : 'bg-ink text-white hover:bg-ink/88'
                           )}
                         >
                           {pauseLoading ? <Loader2 size={13} className="animate-spin" /> : displayLead.automation_paused ? <Play size={13} /> : <Pause size={13} />}
@@ -681,36 +681,36 @@ export function LeadDetailModal({
                         ].map(item => (
                           <div key={item.label} className="min-w-0 border-l border-black/[0.06] pl-2">
                             <div>
-                              <p className="truncate text-[10px] font-medium text-gray-500">{item.label}</p>
-                              <p className="truncate text-[10px] text-gray-400">{item.value}</p>
+                              <p className="truncate text-2xs font-medium text-ink-muted">{item.label}</p>
+                              <p className="truncate text-2xs text-ink-subtle">{item.value}</p>
                             </div>
                           </div>
                         ))}
                       </div>
                     </SectionCard>
 
-                    <div className="flex-shrink-0 rounded-2xl border border-black/[0.06] bg-white/88 p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+                    <div className="flex-shrink-0 rounded-[var(--radius-panel)] border border-black/[0.06] bg-white/88 p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
                       {editMode ? (
                         <div className="flex gap-2">
                           <button onClick={handleSave} disabled={saveLoading}
-                            className="flex h-8 flex-1 items-center justify-center gap-2 rounded-lg bg-gray-950 px-3 text-xs font-semibold text-white transition hover:bg-gray-800 disabled:opacity-60">
+                            className="flex h-8 flex-1 items-center justify-center gap-2 rounded-lg bg-ink px-3 text-xs font-semibold text-white transition hover:bg-ink/88 disabled:opacity-60">
                             {saveLoading && <Loader2 size={13} className="animate-spin" />}
                             {saveLoading ? 'Salvando...' : 'Salvar alterações'}
                           </button>
                           <button onClick={() => setEditMode(false)} disabled={saveLoading}
-                            className="h-8 rounded-lg px-3 text-xs font-medium text-gray-500 transition hover:bg-gray-100 disabled:opacity-60">
+                            className="h-8 rounded-lg px-3 text-xs font-medium text-ink-muted transition hover:bg-surface-sunken disabled:opacity-60">
                             Cancelar
                           </button>
                         </div>
                       ) : (
                         <div className="flex gap-2">
                           <button onClick={handleCallLead} disabled={assumeLoading || !displayLead.phone}
-                            className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg bg-gray-950 px-3 text-[11px] font-semibold text-white transition hover:bg-gray-800 disabled:opacity-60">
+                            className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg bg-ink px-3 text-xs font-semibold text-white transition hover:bg-ink/88 disabled:opacity-60">
                             {assumeLoading ? <Loader2 size={13} className="animate-spin" /> : <PhoneCall size={13} />}
                             {assumeLoading ? 'Preparando...' : 'Ligar para o lead'}
                           </button>
                           <button onClick={() => setDeleteDialogOpen(true)}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-500" aria-label="Excluir lead">
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-subtle transition hover:bg-red-50 hover:text-red-500" aria-label="Excluir lead">
                             <Trash2 size={13} />
                           </button>
                         </div>
@@ -732,14 +732,14 @@ export function LeadDetailModal({
               Excluir lead
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-ink">
             Tem certeza que deseja excluir{' '}
-            <span className="font-semibold text-gray-800">{displayName}</span>?
+            <span className="font-semibold text-ink">{displayName}</span>?
             Esta ação não pode ser desfeita.
           </p>
           <DialogFooter className="mt-2 flex-row justify-end gap-2 border-t-0 bg-transparent p-0">
             <button onClick={() => setDeleteDialogOpen(false)} disabled={deleteLoading}
-              className="rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-200 disabled:opacity-50">
+              className="rounded-xl bg-surface-sunken px-4 py-2 text-sm font-medium text-ink transition hover:bg-line disabled:opacity-50">
               Cancelar
             </button>
             <button onClick={handleDelete} disabled={deleteLoading}

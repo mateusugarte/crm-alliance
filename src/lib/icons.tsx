@@ -143,9 +143,10 @@ export type IconComponent = (props: IconProps) => React.ReactElement
  * `strokeWidth`, para que os call sites herdados continuem compilando.
  */
 function icon(Component: PhosphorComponent, defaultWeight: IconWeight = 'regular'): IconComponent {
-  const Wrapped = ({ size = ICON.md, weight = defaultWeight, strokeWidth: _sw, ...rest }: IconProps) => (
-    <Component size={size} weight={weight} {...rest} />
-  )
+  const Wrapped = ({ size = ICON.md, weight = defaultWeight, strokeWidth, ...rest }: IconProps) => {
+    void strokeWidth // descartado: o peso do traço é decisão do sistema
+    return <Component size={size} weight={weight} {...rest} />
+  }
   Wrapped.displayName = `Icon(${Component.displayName ?? 'Phosphor'})`
   return Wrapped
 }

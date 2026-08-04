@@ -141,7 +141,7 @@ export function LabelsSection({ labels, leadId, onLabelsChange }: LabelsSectionP
         </button>
 
         {popoverOpen && (
-          <div className="absolute left-0 top-8 z-50 w-56 bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
+          <div className="absolute left-0 top-8 z-50 w-56 bg-white border border-line-strong rounded-[var(--radius-panel)] shadow-lg overflow-hidden">
             {loadingLabels ? (
               <div className="flex items-center justify-center py-6">
                 <Loader2 size={16} className="animate-spin text-alliance-blue" />
@@ -155,13 +155,13 @@ export function LabelsSection({ labels, leadId, onLabelsChange }: LabelsSectionP
                         key={label.id}
                         onClick={() => handleAddLabel(label)}
                         disabled={actionLoading === label.id}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 transition-colors text-left cursor-pointer"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-surface-sunken transition-colors text-left cursor-pointer"
                       >
                         <span
                           className="w-3 h-3 rounded-full flex-shrink-0"
                           style={{ backgroundColor: label.color }}
                         />
-                        <span className="text-xs text-gray-700">{label.name}</span>
+                        <span className="text-xs text-ink">{label.name}</span>
                         {actionLoading === label.id && (
                           <Loader2 size={11} className="animate-spin ml-auto text-alliance-blue" />
                         )}
@@ -171,7 +171,7 @@ export function LabelsSection({ labels, leadId, onLabelsChange }: LabelsSectionP
                 )}
 
                 {unattachedLabels.length > 0 && (
-                  <div className="border-t border-gray-100" />
+                  <div className="border-t border-line" />
                 )}
 
                 {!creatingNew ? (
@@ -190,7 +190,7 @@ export function LabelsSection({ labels, leadId, onLabelsChange }: LabelsSectionP
                       onChange={e => setNewLabelName(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') handleCreateLabel() }}
                       placeholder="Nome da etiqueta"
-                      className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue"
+                      className="w-full text-xs border border-line-strong rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue"
                     />
                     <div className="flex gap-1.5 flex-wrap">
                       {LABEL_PALETTE.map(color => (
@@ -199,7 +199,7 @@ export function LabelsSection({ labels, leadId, onLabelsChange }: LabelsSectionP
                           onClick={() => setNewLabelColor(color)}
                           className={cn(
                             'w-5 h-5 rounded-full cursor-pointer transition-transform hover:scale-110',
-                            newLabelColor === color && 'ring-2 ring-offset-1 ring-gray-400'
+                            newLabelColor === color && 'ring-2 ring-offset-1 ring-line-strong'
                           )}
                           style={{ backgroundColor: color }}
                         />
@@ -215,7 +215,7 @@ export function LabelsSection({ labels, leadId, onLabelsChange }: LabelsSectionP
                       </button>
                       <button
                         onClick={() => { setCreatingNew(false); setNewLabelName('') }}
-                        className="flex-1 text-xs bg-gray-100 text-gray-600 py-1.5 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+                        className="flex-1 text-xs bg-surface-sunken text-ink py-1.5 rounded-lg hover:bg-line transition-colors cursor-pointer"
                       >
                         Cancelar
                       </button>

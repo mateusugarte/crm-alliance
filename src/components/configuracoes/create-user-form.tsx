@@ -30,28 +30,28 @@ export function CreateUserForm({ action }: CreateUserFormProps) {
   const [state, formAction] = useActionState(action, {})
 
   return (
-    <form action={formAction} className="grid gap-4 rounded-lg border border-gray-100 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5">
+    <form action={formAction} className="grid gap-4 rounded-lg border border-line bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5">
       <div>
         <h2 className="text-base font-semibold text-alliance-dark dark:text-white">Criar usuário</h2>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        <p className="mt-1 text-sm text-ink-muted dark:text-ink-subtle">
           Novos usuários entram como corretor por padrão, salvo quando ADM for selecionado.
         </p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="grid gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-200">
+        <label className="grid gap-1.5 text-sm font-medium text-ink">
           Nome
           <Input name="full_name" placeholder="Nome do usuário" required />
         </label>
-        <label className="grid gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-200">
+        <label className="grid gap-1.5 text-sm font-medium text-ink">
           E-mail
           <Input name="email" type="email" placeholder="email@alliance.com.br" required />
         </label>
-        <label className="grid gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-200">
+        <label className="grid gap-1.5 text-sm font-medium text-ink">
           Senha temporária
           <Input name="password" type="password" minLength={8} placeholder="Mínimo 8 caracteres" required />
         </label>
-        <label className="grid gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-200">
+        <label className="grid gap-1.5 text-sm font-medium text-ink">
           Perfil
           <select
             name="role"

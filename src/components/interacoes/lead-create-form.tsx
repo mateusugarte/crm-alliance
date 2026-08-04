@@ -24,13 +24,13 @@ const STAGES = [
   { value: 'nao_respondeu',      label: 'Não Respondeu' },
 ]
 
-const inputCls = 'w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-white placeholder:text-gray-300 transition-colors'
-const selectCls = 'w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-white appearance-none transition-colors'
+const inputCls = 'w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-white placeholder:text-ink-subtle transition-colors'
+const selectCls = 'w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-white appearance-none transition-colors'
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold text-gray-600">
+      <label className="text-xs font-semibold text-ink">
         {label}{required && <span className="text-red-400 ml-0.5">*</span>}
       </label>
       {children}
@@ -110,38 +110,38 @@ export function LeadCreateForm({ open, onClose, onCreated }: LeadCreateFormProps
         <div className="flex flex-col gap-5 px-6 py-5 flex-1">
           {/* Identificação */}
           <section>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Identificação</p>
+            <p className="text-2xs font-bold text-ink-subtle   mb-3">Identificação</p>
             <div className="flex flex-col gap-3">
               <Field label="Nome completo" required>
                 <input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: João Silva" className={inputCls} />
               </Field>
               <Field label="Telefone" required>
                 <div className="relative">
-                  <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
+                  <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
                   <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="(27) 99999-9999" className={inputCls + ' pl-9'} />
                 </div>
               </Field>
               <Field label="Cidade">
                 <div className="relative">
-                  <MapPin size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
+                  <MapPin size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
                   <input value={city} onChange={e => setCity(e.target.value)} placeholder="Ex: Castelo" className={inputCls + ' pl-9'} />
                 </div>
               </Field>
             </div>
           </section>
 
-          <div className="border-t border-gray-100" />
+          <div className="border-t border-line" />
 
           {/* Qualificação */}
           <section>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Qualificação</p>
+            <p className="text-2xs font-bold text-ink-subtle   mb-3">Qualificação</p>
             <div className="flex flex-col gap-3">
               <Field label="Estágio no funil">
                 <div className="relative">
                   <select value={stage} onChange={e => setStage(e.target.value)} className={selectCls}>
                     {STAGES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
-                  <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-subtle pointer-events-none" />
                 </div>
               </Field>
               <Field label="Intenção de compra">
@@ -151,7 +151,7 @@ export function LeadCreateForm({ open, onClose, onCreated }: LeadCreateFormProps
                     <option value="morar">Morar</option>
                     <option value="investir">Investir</option>
                   </select>
-                  <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-subtle pointer-events-none" />
                 </div>
               </Field>
               <Field label="Imóvel de interesse">
@@ -162,8 +162,8 @@ export function LeadCreateForm({ open, onClose, onCreated }: LeadCreateFormProps
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex gap-2 flex-shrink-0">
-          <button onClick={handleClose} disabled={saving} className="flex-1 py-2.5 text-sm font-semibold text-gray-500 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer disabled:opacity-50">
+        <div className="px-6 py-4 border-t border-line flex gap-2 flex-shrink-0">
+          <button onClick={handleClose} disabled={saving} className="flex-1 py-2.5 text-sm font-semibold text-ink-muted bg-surface-sunken rounded-xl hover:bg-line transition-colors cursor-pointer disabled:opacity-50">
             Cancelar
           </button>
           <button

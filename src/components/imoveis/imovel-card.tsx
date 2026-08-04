@@ -43,16 +43,16 @@ export function ImovelCard({
 
   return (
     <div className={cn(
-      'bg-white rounded-xl border border-gray-100 flex overflow-hidden transition-shadow',
+      'bg-white rounded-xl border border-line flex overflow-hidden transition-shadow',
       isDragging ? 'shadow-xl ring-2 ring-alliance-blue/20' : 'shadow-sm hover:shadow-md'
     )}>
       {/* Drag handle */}
       {dragHandleProps && (
         <div
           {...dragHandleProps}
-          className="flex items-center justify-center w-6 bg-gray-50 border-r border-gray-100 cursor-grab active:cursor-grabbing hover:bg-gray-100 transition-colors flex-shrink-0"
+          className="flex items-center justify-center w-6 bg-surface-sunken border-r border-line cursor-grab active:cursor-grabbing hover:bg-surface-sunken transition-colors flex-shrink-0"
         >
-          <GripVertical size={13} className="text-gray-300" />
+          <GripVertical size={13} className="text-ink-subtle" />
         </div>
       )}
 
@@ -68,8 +68,8 @@ export function ImovelCard({
               <h3 className="font-bold text-alliance-dark text-sm leading-tight truncate">{imovel.nome}</h3>
             </div>
             <div className="flex items-center gap-1 mt-0.5">
-              <Layers size={9} className="text-gray-300 flex-shrink-0" />
-              <span className="text-[10px] text-gray-400">
+              <Layers size={9} className="text-ink-subtle flex-shrink-0" />
+              <span className="text-2xs text-ink-subtle">
                 {imovel.pavimento === 9 ? 'Cobertura' : `${imovel.pavimento}° Pav.`}
               </span>
             </div>
@@ -77,7 +77,7 @@ export function ImovelCard({
 
           <div className="flex items-center gap-1 flex-shrink-0">
             <span className={cn(
-              'text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap',
+              'text-2xs font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap',
               imovel.disponivel
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                 : 'bg-amber-50 text-amber-700 border border-amber-200'
@@ -91,14 +91,14 @@ export function ImovelCard({
                   onClick={() => setMenuOpen(v => !v)}
                   className={cn(
                     'p-0.5 rounded-md transition-colors cursor-pointer focus-visible:outline-none',
-                    menuOpen ? 'bg-gray-100 text-gray-700' : 'text-gray-300 hover:bg-gray-100 hover:text-gray-500'
+                    menuOpen ? 'bg-surface-sunken text-ink' : 'text-ink-subtle hover:bg-surface-sunken hover:text-ink-muted'
                   )}
                 >
                   <MoreHorizontal size={13} />
                 </button>
 
                 {menuOpen && (
-                  <div className="absolute right-0 top-full mt-1 z-50 bg-white rounded-xl shadow-lg border border-gray-100 py-1 w-44">
+                  <div className="absolute right-0 top-full mt-1 z-50 bg-white rounded-xl shadow-lg border border-line py-1 w-44">
                     {onToggle && (
                       <button
                         onClick={() => { onToggle(imovel.id); setMenuOpen(false) }}
@@ -114,7 +114,7 @@ export function ImovelCard({
                     {isAdm && onRegistrarVenda && (
                       <button
                         onClick={() => { onRegistrarVenda(imovel); setMenuOpen(false) }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-alliance-dark hover:bg-gray-50 transition-colors cursor-pointer text-left"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-alliance-dark hover:bg-surface-sunken transition-colors cursor-pointer text-left"
                       >
                         <DollarSign size={12} />
                         Registrar venda
@@ -123,7 +123,7 @@ export function ImovelCard({
                     {isAdm && onEdit && (
                       <button
                         onClick={() => { onEdit(imovel); setMenuOpen(false) }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer text-left"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-ink hover:bg-surface-sunken transition-colors cursor-pointer text-left"
                       >
                         <Pencil size={12} />
                         Editar
@@ -131,7 +131,7 @@ export function ImovelCard({
                     )}
                     {isAdm && onDelete && (
                       <>
-                        <div className="h-px bg-gray-100 my-1" />
+                        <div className="h-px bg-surface-sunken my-1" />
                         <button
                           onClick={() => { onDelete(imovel.id); setMenuOpen(false) }}
                           className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors cursor-pointer text-left"
@@ -157,21 +157,21 @@ export function ImovelCard({
         </div>
 
         {/* Quartos / suítes */}
-        <div className="flex items-center gap-2.5 text-[11px] text-gray-500">
+        <div className="flex items-center gap-2.5 text-xs text-ink-muted">
           <span className="flex items-center gap-1">
-            <BedDouble size={11} className="text-gray-400" />
+            <BedDouble size={11} className="text-ink-subtle" />
             {imovel.quartos} qts
           </span>
-          <span className="w-px h-2.5 bg-gray-200" />
+          <span className="w-px h-2.5 bg-line" />
           <span className="flex items-center gap-1">
-            <Bath size={11} className="text-gray-400" />
+            <Bath size={11} className="text-ink-subtle" />
             {imovel.suites} suítes
           </span>
         </div>
 
         {/* Valor */}
-        <div className="pt-1.5 border-t border-gray-50">
-          <span className="text-[11px] font-semibold text-gray-600">
+        <div className="pt-1.5 border-t border-line">
+          <span className="text-xs font-semibold text-ink">
             {imovel.valor_min != null && imovel.valor_max != null
               ? `${formatCurrency(imovel.valor_min)} – ${formatCurrency(imovel.valor_max)}`
               : imovel.valor_min != null

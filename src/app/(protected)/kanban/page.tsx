@@ -39,7 +39,7 @@ export default async function KanbanPage() {
       {/* Header */}
       <div className="px-8 pt-7 pb-4 flex items-center justify-between flex-shrink-0">
         <div>
-          <p className="text-xs font-semibold text-alliance-blue/60 uppercase tracking-widest mb-1">
+          <p className="text-xs font-semibold text-alliance-blue/60   mb-1">
             Pipeline
           </p>
           <h1 className="text-2xl font-bold text-alliance-dark">Leads</h1>

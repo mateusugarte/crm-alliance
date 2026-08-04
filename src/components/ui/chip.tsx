@@ -8,7 +8,7 @@
  *     usuário não consegue ler "laranja de 4px" como "lead morno". Um ponto
  *     com rótulo comunica a mesma coisa e é legível.
  *
- *  2. O eyebrow minúsculo (`text-[9px] uppercase tracking-widest` cinza claro)
+ *  2. O eyebrow minúsculo — 9px em maiúsculas, tracking largo, cinza claro —
  *     em cima de todo card. Além de ser ruído repetido, 9px cinza sobre branco
  *     não passa em contraste. Aqui o piso é 11px com cor `ink-muted`.
  */
