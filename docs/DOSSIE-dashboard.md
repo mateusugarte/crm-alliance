@@ -10,7 +10,7 @@
 
 - **~50% são úteis e bem construídos** — o funil comercial, novos leads/dia e a seção de Disparos são exatamente o que a literatura chama de *metric chain* (cadeia causa→efeito).
 - **~30% são métricas de vaidade** — os 4 cards de score médio ocupam uma faixa inteira e não passam no teste básico de acionabilidade ("se esse número mudar 10%, o que você faz?"). Resposta honesta: nada.
-- **~20% estão errados ou duplicados** — detalhado na seção 4.
+- **~20% estão duplicados ou mal rotulados** — o mesmo número aparece em dois cards com nomes diferentes, e o card mais próximo de receita tem um rótulo que esconde o que ele mede. Detalhado na seção 4.
 
 E o mais importante: **os três números que a pesquisa aponta como os que mais movem receita em imobiliário — tempo de resposta pós-handoff, conversão por estágio no tempo, e receita/VGV — não estão na tela.** Dois deles nem têm dado no banco ainda.
 
@@ -82,8 +82,8 @@ Essa filosofia se aplica 1:1 ao Alliance: são **5 usuários** vendendo **34 uni
 |---|---|---|---|---|
 | 1 | **Total de leads (806)** | Lagging/contexto | 🟡 Rebaixar | Número de vaidade clássico: só cresce, não dispara ação. Útil como contexto — já aparece na faixa hero. Não merece o card mais nobre da tela. |
 | 2 | **Leads quentes (9)** | Leading | 🟢 Manter e promover | O melhor número da tela. Deveria ser clicável → abrir o Kanban filtrado. |
-| 3 | **Reuniões (16)** | — | 🔴 Consertar | **Está errado.** Conta leads nos estágios `reuniao_agendada + follow_up + sem_interesse + visita + cliente` — ou seja, inclui quem **não teve interesse** no card "Reuniões". E ignora a tabela `meetings`, que existe e tem status real (agendada/realizada/cancelada). |
-| 4 | **Leads pós-reunião (16)** | — | 🔴 Cortar | É **literalmente o mesmo número** do card Reuniões (`disponiveis = meetingStageCount = reunioes` no código). Duplicata com outro rótulo. |
+| 3 | **Reuniões (16)** | Leading | 🟡 Renomear | **A conta está certa.** Somar `reuniao_agendada + follow_up + sem_interesse + visita + cliente` é intencional: no processo da Alliance, `sem_interesse` é quem **passou pela reunião e disse não**, e `follow_up` é quem **está pensando**. Todos são desfechos pós-reunião, então o número é o acumulado de "chegou à reunião ou além" — métrica de funil legítima e a mais próxima de receita na tela. O que atrapalha é o rótulo: "Reuniões" sugere agenda da semana, não avanço de funil. Chamar de **"Chegaram à reunião"** resolve. |
+| 4 | **Leads pós-reunião (16)** | — | 🔴 Cortar | É **literalmente o mesmo número** do card Reuniões (`disponiveis = meetingStageCount = reunioes` no código). Duplicata com outro rótulo — e a existência dela é sintoma de que o rótulo do card 3 não estava comunicando o que o número mede. |
 | 5 | **Sem resposta (568 · 70%)** | — | 🟡 Reformular | Número gigante e estático — deprime sem orientar. A versão acionável: "frios com 0 disparos" (que já existe na seção Disparos: 196) ou "sem resposta há >48h". |
 | 6 | **Pausados (12)** | Operacional | 🟢 Manter pequeno | É um proxy de "handoffs em andamento" + termômetro de confiança na IA. Melhor ainda se virar taxa de pausa manual/semana. |
 | 7–10 | **Score médio global / frio / morno / quente** | — | 🔴 Cortar os 4 | Falham no teste de acionabilidade: se o score médio dos mornos cair de 5,9 para 5,3, ninguém faz nada — nem saberia o quê. Uma faixa inteira da primeira dobra gasta em médias de um número cujo valor está no **ranking individual**. Substituir pela fila ranqueada (seção 5). |
@@ -91,7 +91,9 @@ Essa filosofia se aplica 1:1 ao Alliance: são **5 usuários** vendendo **34 uni
 | 12 | **Funil comercial** | Diagnóstico | 🟢 Manter | Pós-redesign mostra conversão entre etapas (12% frio→morno, 11% morno→quente...). É o mapa de onde o funil vaza. Falta obedecer ao filtro de período. |
 | 13 | **Seção Disparos** | Metric chain | 🟢 Manter — é a melhor seção | Impactados → responderam (18%) → avançaram → reunião → cliente é exatamente a cadeia leading→lagging que os guias recomendam. Único senão: "0 viraram cliente" merece destaque, não rodapé — é o ROI do disparo. |
 
-**Placar: 5 manter · 2 reformular · 4 cortar · 2 consertar.**
+**Placar: 5 manter · 3 reformular/renomear · 5 cortar.**
+
+> **Nota de revisão (03/08).** A primeira versão deste dossiê classificou o card "Reuniões" como *errado* por incluir `sem_interesse`. Estava incorreto: essa leitura assumia que `sem_interesse` fosse rejeição de topo de funil, quando no processo da Alliance é desfecho **pós-reunião** ("passou pela reunião e falou não"), assim como `follow_up` é "está pensando". A soma mede o acumulado de quem chegou à reunião — está certa. O que fica de crítica é só o rótulo e a duplicata do card 4.
 
 ---
 
@@ -100,10 +102,11 @@ Essa filosofia se aplica 1:1 ao Alliance: são **5 usuários** vendendo **34 uni
 ### P0 — dá para fazer HOJE, sem tocar no banco
 
 1. **Fila de trabalho ranqueada** (a ideia do Los CRM). Card "Quem atacar hoje": top-N leads por `lead_score`, excluindo quem já teve contato nas últimas 24h, com nome, score, estágio, dias sem contato e o *porquê* (`lead_score_reasons` já guarda as razões!). Clique → abre o lead. **É o maior upgrade possível de valor/hora do sistema inteiro.**
-2. **Corrigir o card Reuniões** para usar a tabela `meetings`: agendadas esta semana, realizadas, canceladas — e daí sai de graça a **taxa de no-show**, KPI padrão do setor.
-3. **Remover a duplicata** "Leads pós-reunião" e os 4 cards de score médio → a primeira dobra fica com 3–4 números fortes (dentro da regra dos 5–7).
-4. **Vendas na tela.** A tabela `vendas` e o catálogo existem e o dashboard não mostra **nenhum real**. Para uma incorporadora: unidades vendidas/reservadas/disponíveis (X/34) + VGV realizado. É o único número que o sócio realmente quer ver.
-5. **Métricas da IA:** % de leads com `aceitou_consultor` atendidos, pausas manuais na semana. Computável com o que existe.
+2. **Renomear "Reuniões" → "Chegaram à reunião"** e remover a duplicata "Leads pós-reunião". O número está correto e é o mais próximo de receita na tela; só precisa de um rótulo que diga que é acumulado de funil, não agenda. Ganha ainda mais se abrir o desfecho embaixo — *16 chegaram · 8 pensando · 7 disseram não · 1 comprou* — que é a taxa de aproveitamento da reunião, o KPI que mede a qualidade do lead que a Alice entrega.
+3. **Adicionar a agenda da semana** a partir da tabela `meetings` (que existe, com status agendada/realizada/cancelada e hoje não aparece em lugar nenhum do dashboard). Não substitui o card acima — responde outra pergunta: *o que tenho marcado nos próximos dias*. E de quebra sai a **taxa de no-show**, KPI padrão do setor.
+4. **Cortar os 4 cards de score médio** → com os itens 2 e 3, a primeira dobra fica com 3–4 números fortes (dentro da regra dos 5–7).
+5. **Vendas na tela.** A tabela `vendas` e o catálogo existem e o dashboard não mostra **nenhum real**. Para uma incorporadora: unidades vendidas/reservadas/disponíveis (X/34) + VGV realizado. É o único número que o sócio realmente quer ver.
+6. **Métricas da IA:** % de leads com `aceitou_consultor` atendidos, pausas manuais na semana. Computável com o que existe.
 
 ### P1 — exige UMA migration pequena (tabela `lead_stage_events`)
 
@@ -126,8 +129,8 @@ Trigger que grava `(lead_id, from_stage, to_stage, changed_at, changed_by)` a ca
 ```
 ┌─ HERO (contexto: foto, saudação, 806 na base, filtro de período) ─────────┐
 ├─ LINHA 1 · AÇÃO ──────────────────────────────────────────────────────────┤
-│  Quentes agora → kanban   Handoffs aguardando   Reuniões da semana        │
-│  (leading, clicável)      consultor (SLA)       + taxa de no-show         │
+│  Quentes agora → kanban   Handoffs aguardando   Chegaram à reunião        │
+│  (leading, clicável)      consultor (SLA)       + desfecho + no-show      │
 ├─ LINHA 2 · FILA ──────────────────────────────────────────────────────────┤
 │  "Quem atacar hoje" — top 10 por score, com motivo e dias sem contato     │
 ├─ LINHA 3 · FLUXO ─────────────────────────────────────────────────────────┤
