@@ -5,8 +5,6 @@
   "outputDirectory": ".next",
   "crons": [
     { "path": "/api/cron/montar-fila-diaria", "schedule": "0 11 * * 1-5" },
-    { "path": "/api/cron/entregar-mensagens", "schedule": "*/5 * * * *" },
-    { "path": "/api/cron/verificar-prazos", "schedule": "*/15 11-23 * * 1-5" },
     { "path": "/api/cron/fechar-dia", "schedule": "0 23 * * 1-5" }
   ]
 }

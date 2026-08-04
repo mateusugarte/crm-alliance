@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { endOfDay, endOfWeek, startOfDay, startOfWeek } from 'date-fns'
 import { createClient } from '@/lib/supabase/server'
+import { centralQuery } from '@/lib/central-do-dia/db'
 import { loadTaskQueue } from '@/lib/central-do-dia/tasks'
 
 export const dynamic = 'force-dynamic'
@@ -18,6 +19,11 @@ export async function GET(request: NextRequest) {
   const end = week ? endOfWeek(now, { weekStartsOn: 1 }) : endOfDay(now)
 
   try {
+    try {
+      await centralQuery('select verificar_prazos()')
+    } catch (deadlineError) {
+      console.error('[tasks] failed to refresh deadlines', deadlineError)
+    }
     const data = await loadTaskQueue(supabase, user.id, profile?.role === 'adm', start.toISOString(), end.toISOString())
     return NextResponse.json({ data })
   } catch (error) {

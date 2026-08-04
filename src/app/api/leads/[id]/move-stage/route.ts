@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { deliverPendingGroupMessages } from '@/lib/central-do-dia/whatsapp'
 
 const VALID_STAGES = ['nao_respondeu', 'lead_frio', 'lead_morno', 'lead_quente', 'follow_up', 'sem_interesse', 'reuniao_agendada', 'visita_confirmada', 'cliente'] as const
 
@@ -31,6 +32,14 @@ export async function PATCH(
     } as never)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  if (body.stage === 'lead_quente') {
+    try {
+      await deliverPendingGroupMessages(5)
+    } catch (deliveryError) {
+      console.error('[move-stage] failed to deliver qualification alert', deliveryError)
+    }
+  }
 
   return NextResponse.json({ data: { id, stage: body.stage } })
 }

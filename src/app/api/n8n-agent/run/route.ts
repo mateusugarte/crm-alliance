@@ -4,6 +4,7 @@ import { notifyInternalGroup } from '@/lib/ai/alice-tools'
 import { toWhatsAppNumber } from '@/lib/format-phone'
 import { normalizeLeadName } from '@/lib/lead-name'
 import { compactCommercialSummary } from '@/lib/lead-summary'
+import { deliverPendingGroupMessages } from '@/lib/central-do-dia/whatsapp'
 import { createServiceClient } from '@/lib/supabase/service'
 import { extractMessageText } from '@/lib/whatsapp/extract-message-text'
 import type { Database } from '@/lib/supabase/types'
@@ -321,6 +322,15 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       console.error('[n8n-agent/run] failed to persist lead updates, reply still goes out', updateError)
+    }
+
+    const becameHot = !updateError && lead.stage !== 'lead_quente' && updates.stage === 'lead_quente'
+    if (becameHot) {
+      try {
+        await deliverPendingGroupMessages(5)
+      } catch (deliveryError) {
+        console.error('[n8n-agent/run] failed to deliver qualification alert', deliveryError)
+      }
     }
 
     if (output.reply) {
