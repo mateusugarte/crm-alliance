@@ -98,7 +98,7 @@ function NewLeadModal({
     <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose() }}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle className="text-alliance-dark">Novo Lead</DialogTitle>
+          <DialogTitle className="text-ink">Novo Lead</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-3 py-1">
@@ -138,7 +138,7 @@ function NewLeadModal({
             <select
               value={stage}
               onChange={e => setStage(e.target.value as Lead['stage'])}
-              className="text-sm border border-line-strong rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-white"
+              className="text-sm border border-line-strong rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-surface"
             >
               {STAGE_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -234,7 +234,7 @@ function LabelsSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
         {/* Header */}
         <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-line flex-shrink-0">
           <div>
-            <h2 className="font-bold text-alliance-dark text-base">Etiquetas</h2>
+            <h2 className="font-bold text-ink text-base">Etiquetas</h2>
             <p className="text-xs text-ink-subtle mt-0.5">Gerencie as etiquetas dos leads</p>
           </div>
           <button
@@ -304,7 +304,7 @@ function LabelsSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
                   <button
                     onClick={() => handleDelete(label)}
                     disabled={deletingId === label.id}
-                    className="text-ink-subtle hover:text-red-500 transition-colors flex-shrink-0 cursor-pointer disabled:opacity-50"
+                    className="text-ink-subtle hover:text-[var(--danger-ink)] transition-colors flex-shrink-0 cursor-pointer disabled:opacity-50"
                   >
                     {deletingId === label.id
                       ? <Loader2 size={13} className="animate-spin" />
@@ -337,7 +337,7 @@ export function KanbanPageHeader() {
       <div className="flex gap-2">
         <button
           onClick={() => setLabelsSheetOpen(true)}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium border border-line-strong rounded-xl hover:border-alliance-dark hover:text-alliance-dark transition-colors bg-white cursor-pointer"
+          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium border border-line-strong rounded-xl hover:border-alliance-dark hover:text-ink transition-colors bg-surface cursor-pointer"
         >
           <Tag size={14} />
           Etiquetas

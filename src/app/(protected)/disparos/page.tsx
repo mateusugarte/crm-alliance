@@ -46,7 +46,7 @@ const STATUS_STYLES: Record<string, string> = {
   running:   'bg-blue-500/15 text-blue-500',
   paused:    'bg-amber-500/15 text-amber-500',
   completed: 'bg-green-500/15 text-green-600',
-  cancelled: 'bg-red-500/15 text-red-500',
+  cancelled: 'bg-red-500/15 text-[var(--danger-ink)]',
 }
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Rascunho', running: 'Executando', paused: 'Pausado',
@@ -113,7 +113,7 @@ export default function DisparosPage() {
         <p className="text-xs font-semibold text-alliance-blue/60   mb-1">
           Sistema de Disparos
         </p>
-        <h1 className="text-2xl font-bold text-alliance-dark dark:text-white">Disparos</h1>
+        <h1 className="text-2xl font-bold text-ink dark:text-white">Disparos</h1>
       </div>
 
       {/* Tab bar */}
@@ -465,7 +465,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                   <td className="px-5 py-3.5"><StatusBadge status={c.status} /></td>
                   <td className="px-5 py-3.5 text-right text-ink-muted">{c.total_leads}</td>
                   <td className="px-5 py-3.5 text-right text-green-600">{c.sent_count}</td>
-                  <td className="px-5 py-3.5 text-right text-red-500">{c.failed_count}</td>
+                  <td className="px-5 py-3.5 text-right text-[var(--danger-ink)]">{c.failed_count}</td>
                   <td className="px-5 py-3.5 text-ink-muted">{format(new Date(c.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</td>
                 </tr>
               ))}
@@ -485,7 +485,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
               initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }}
               className={cn(
-                'bg-card border border-border rounded-[var(--radius-panel)] shadow-2xl w-full max-h-[90vh] flex flex-col overflow-hidden transition-all duration-200',
+                'bg-card border border-border rounded-[var(--radius-panel)] elev-lg w-full max-h-[90vh] flex flex-col overflow-hidden transition-all duration-200',
                 step === 1 ? 'max-w-5xl' : 'max-w-2xl',
               )}
               onClick={e => e.stopPropagation()}
@@ -524,7 +524,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                   <div className="flex flex-col gap-4">
                     <div className="flex items-start gap-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                       <AlertTriangle size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-600 dark:text-amber-400">Recomendamos no máximo 10 contatos a cada 4 horas para evitar bloqueios.</p>
+                      <p className="text-xs text-[var(--warning-ink)] dark:text-amber-400">Recomendamos no máximo 10 contatos a cada 4 horas para evitar bloqueios.</p>
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-ink-muted">Clique em um estágio para selecionar todos, ou escolha leads individualmente</p>
@@ -535,8 +535,8 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                     </div>
                     {selectedLeadIds.size > 10 && (
                       <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
-                        <AlertTriangle size={13} className="text-red-500" />
-                        <p className="text-xs text-red-500">Mais de 10 contatos. Risco elevado de bloqueio.</p>
+                        <AlertTriangle size={13} className="text-[var(--danger-ink)]" />
+                        <p className="text-xs text-[var(--danger-ink)]">Mais de 10 contatos. Risco elevado de bloqueio.</p>
                       </div>
                     )}
                     {leadsLoading ? (
@@ -631,7 +631,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                                         {sel && <Check size={8} className="text-white" />}
                                       </div>
                                       <p className="text-xs text-foreground truncate flex-1">{lead.name}</p>
-                                      <span className="inline-flex items-center gap-0.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20 text-2xs font-bold px-1 py-0.5 rounded-full flex-shrink-0">
+                                      <span className="inline-flex items-center gap-0.5 bg-[var(--warning-soft)] dark:bg-orange-500/10 text-[var(--warning-ink)] dark:text-orange-400 border border-orange-200 dark:border-orange-500/20 text-2xs font-bold px-1 py-0.5 rounded-full flex-shrink-0">
                                         {lead.reactivation_count ?? 0}×
                                       </span>
                                     </button>
@@ -697,7 +697,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                                     selectedTemplate?.id === t.id ? 'bg-alliance-blue/5' : 'hover:bg-muted/50')}>
                                   <div className={cn('w-4 h-4 rounded-full border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors',
                                     selectedTemplate?.id === t.id ? 'bg-alliance-blue border-alliance-blue' : 'border-border')}>
-                                    {selectedTemplate?.id === t.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                    {selectedTemplate?.id === t.id && <div className="w-1.5 h-1.5 rounded-full bg-surface" />}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-foreground">{t.name}</p>
@@ -717,8 +717,8 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                             </button>
                             {mixError && (
                               <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                                <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
-                                <p className="text-xs text-red-500">{mixError}</p>
+                                <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0" />
+                                <p className="text-xs text-[var(--danger-ink)]">{mixError}</p>
                               </div>
                             )}
                             {Object.keys(mixedMessages).length > 0 && (
@@ -758,8 +758,8 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                         </button>
                         {contextError && (
                           <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                            <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
-                            <p className="text-xs text-red-500">{contextError}</p>
+                            <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0" />
+                            <p className="text-xs text-[var(--danger-ink)]">{contextError}</p>
                           </div>
                         )}
                         {Object.keys(generatedMessages).length > 0 && (
@@ -803,8 +803,8 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                       <label className="text-xs font-semibold text-ink-muted  ">Instância WhatsApp</label>
                       {instances.length === 0 ? (
                         <div className="flex items-start gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                          <AlertTriangle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
-                          <p className="text-sm text-red-500">Nenhuma instância conectada. Vá à aba Instâncias.</p>
+                          <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-[var(--danger-ink)]">Nenhuma instância conectada. Vá à aba Instâncias.</p>
                         </div>
                       ) : (
                         <div className="flex flex-col gap-2">
@@ -830,8 +830,8 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
               <div className="flex flex-col gap-3 px-6 py-4 border-t border-border flex-shrink-0">
                 {createError && (
                   <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                    <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
-                    <p className="text-xs text-red-500">{createError}</p>
+                    <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0" />
+                    <p className="text-xs text-[var(--danger-ink)]">{createError}</p>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
@@ -1113,14 +1113,14 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                   <td className="px-5 py-3.5"><StatusBadge status={c.status} /></td>
                   <td className="px-5 py-3.5 text-right text-ink-muted">{c.total_leads}</td>
                   <td className="px-5 py-3.5 text-right text-green-600">{c.sent_count}</td>
-                  <td className="px-5 py-3.5 text-right text-red-500">{c.failed_count}</td>
+                  <td className="px-5 py-3.5 text-right text-[var(--danger-ink)]">{c.failed_count}</td>
                   <td className="px-5 py-3.5 text-ink-muted">{format(new Date(c.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</td>
                   <td className="px-3 py-3.5" onClick={e => e.stopPropagation()}>
                     <button
                       onClick={e => handleDeleteCampaign(c.id, e)}
                       disabled={c.status === 'running' || deletingCampaignId === c.id}
                       title={c.status === 'running' ? 'Pare a campanha antes de excluir' : 'Excluir campanha'}
-                      className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer text-ink-muted hover:text-red-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer text-ink-muted hover:text-[var(--danger-ink)] disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       {deletingCampaignId === c.id
                         ? <RefreshCw size={13} className="animate-spin" />
@@ -1145,7 +1145,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }}
               className={cn(
-                'bg-card border border-border rounded-[var(--radius-panel)] shadow-2xl w-full max-h-[90vh] flex flex-col overflow-hidden transition-all duration-200',
+                'bg-card border border-border rounded-[var(--radius-panel)] elev-lg w-full max-h-[90vh] flex flex-col overflow-hidden transition-all duration-200',
                 step === 1 ? 'max-w-5xl' : 'max-w-2xl',
               )}
               onClick={e => e.stopPropagation()}
@@ -1186,7 +1186,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                   <div className="flex flex-col gap-4">
                     <div className="flex items-start gap-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                       <AlertTriangle size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-600 dark:text-amber-400">Recomendamos no máximo 50 contatos por campanha para evitar bloqueios.</p>
+                      <p className="text-xs text-[var(--warning-ink)] dark:text-amber-400">Recomendamos no máximo 50 contatos por campanha para evitar bloqueios.</p>
                     </div>
 
                     <div className="flex items-center justify-between">
@@ -1279,7 +1279,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                                         {sel && <Check size={8} className="text-white" />}
                                       </div>
                                       <p className="text-xs text-foreground truncate flex-1">{lead.name}</p>
-                                      <span className="inline-flex items-center gap-0.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20 text-2xs font-bold px-1 py-0.5 rounded-full flex-shrink-0">
+                                      <span className="inline-flex items-center gap-0.5 bg-[var(--warning-soft)] dark:bg-orange-500/10 text-[var(--warning-ink)] dark:text-orange-400 border border-orange-200 dark:border-orange-500/20 text-2xs font-bold px-1 py-0.5 rounded-full flex-shrink-0">
                                         {lead.reactivation_count ?? 0}×
                                       </span>
                                     </button>
@@ -1294,8 +1294,8 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
 
                     {selectedLeadIds.size > 50 && (
                       <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
-                        <AlertTriangle size={13} className="text-red-500" />
-                        <p className="text-xs text-red-500">Mais de 50 contatos selecionados. Risco elevado de bloqueio.</p>
+                        <AlertTriangle size={13} className="text-[var(--danger-ink)]" />
+                        <p className="text-xs text-[var(--danger-ink)]">Mais de 50 contatos selecionados. Risco elevado de bloqueio.</p>
                       </div>
                     )}
                   </div>
@@ -1331,7 +1331,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                               'w-4 h-4 rounded-full border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors',
                               selectedTemplate?.id === t.id ? 'bg-alliance-blue border-alliance-blue' : 'border-border',
                             )}>
-                              {selectedTemplate?.id === t.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                              {selectedTemplate?.id === t.id && <div className="w-1.5 h-1.5 rounded-full bg-surface" />}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-foreground truncate">{t.name}</p>
@@ -1369,8 +1369,8 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
 
                     {mixError && (
                       <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                        <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
-                        <p className="text-xs text-red-500">{mixError}</p>
+                        <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0" />
+                        <p className="text-xs text-[var(--danger-ink)]">{mixError}</p>
                       </div>
                     )}
 
@@ -1417,7 +1417,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                   <div className="flex flex-col gap-5">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-semibold text-ink-muted  ">
-                        Nome da campanha <span className="text-red-500">*</span>
+                        Nome da campanha <span className="text-[var(--danger-ink)]">*</span>
                       </label>
                       <input
                         type="text"
@@ -1477,8 +1477,8 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                       <label className="text-xs font-semibold text-ink-muted  ">Instância WhatsApp</label>
                       {instances.length === 0 ? (
                         <div className="flex items-start gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                          <AlertTriangle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
-                          <p className="text-sm text-red-500">Nenhuma instância conectada. Vá à aba Instâncias.</p>
+                          <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-[var(--danger-ink)]">Nenhuma instância conectada. Vá à aba Instâncias.</p>
                         </div>
                       ) : (
                         <div className="flex flex-col gap-2">
@@ -1511,8 +1511,8 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
               <div className="flex flex-col gap-3 px-6 py-4 border-t border-border flex-shrink-0">
                 {createError && (
                   <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                    <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
-                    <p className="text-xs text-red-500">{createError}</p>
+                    <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0" />
+                    <p className="text-xs text-[var(--danger-ink)]">{createError}</p>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
@@ -1670,7 +1670,7 @@ function TabInstancias() {
                     <QrCode size={12} /> QR Code
                   </button>
                 )}
-                <button onClick={() => setDeleteConfirm(inst.instance_id)} className="flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-medium text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer">
+                <button onClick={() => setDeleteConfirm(inst.instance_id)} className="flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--danger-ink)] hover:bg-red-500/10 transition-colors cursor-pointer">
                   <Trash2 size={12} />
                 </button>
               </div>
@@ -1678,7 +1678,7 @@ function TabInstancias() {
                 {deleteConfirm === inst.instance_id && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                     <div className="flex flex-col gap-2 pt-2 border-t border-border">
-                      <p className="text-xs text-red-500 font-medium">Confirmar exclusão?</p>
+                      <p className="text-xs text-[var(--danger-ink)] font-medium">Confirmar exclusão?</p>
                       <div className="flex gap-2">
                         <button onClick={() => handleDelete(inst.instance_id)} className="flex-1 py-1.5 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-colors cursor-pointer">Excluir</button>
                         <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-1.5 rounded-lg bg-muted text-ink-muted text-xs font-semibold cursor-pointer">Cancelar</button>
@@ -1696,7 +1696,7 @@ function TabInstancias() {
       <AnimatePresence>
         {connectOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={e => { if (e.target === e.currentTarget) setConnectOpen(false) }}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }} className="bg-card border border-border rounded-[var(--radius-panel)] shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }} className="bg-card border border-border rounded-[var(--radius-panel)] elev-lg w-full max-w-md" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-6 py-4 border-b border-border">
                 <h2 className="text-base font-bold text-foreground">Conectar Instância</h2>
                 <button onClick={() => setConnectOpen(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"><X size={16} className="text-ink-muted" /></button>
@@ -1728,7 +1728,7 @@ function TabInstancias() {
       <AnimatePresence>
         {qrOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={e => { if (e.target === e.currentTarget) setQrOpen(false) }}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }} className="bg-card border border-border rounded-[var(--radius-panel)] shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }} className="bg-card border border-border rounded-[var(--radius-panel)] elev-lg w-full max-w-sm" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-6 py-4 border-b border-border">
                 <div><h2 className="text-base font-bold text-foreground">QR Code</h2>{qrData && <p className="text-xs text-ink-muted mt-0.5">{qrData.name}</p>}</div>
                 <button onClick={() => setQrOpen(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"><X size={16} className="text-ink-muted" /></button>
@@ -1738,7 +1738,7 @@ function TabInstancias() {
                   <div className="w-56 h-56 flex items-center justify-center"><RefreshCw size={28} className="animate-spin text-ink-muted" /></div>
                 ) : qrData?.qr ? (
                   <>
-                    <div className="bg-white p-3 rounded-xl">
+                    <div className="bg-surface p-3 rounded-xl">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={qrData.qr.startsWith('data:') ? qrData.qr : `data:image/png;base64,${qrData.qr}`} alt="QR Code" width={220} height={220} className="block" />
                     </div>
@@ -1854,7 +1854,7 @@ function TabTemplates() {
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-1 justify-end">
                       <button onClick={() => openEdit(t)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer" title="Editar"><Pencil size={13} className="text-ink-muted" /></button>
-                      <button onClick={() => setDeleteConfirm(t.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer" title="Excluir"><Trash2 size={13} className="text-red-500" /></button>
+                      <button onClick={() => setDeleteConfirm(t.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer" title="Excluir"><Trash2 size={13} className="text-[var(--danger-ink)]" /></button>
                     </div>
                   </td>
                 </tr>
@@ -1868,18 +1868,18 @@ function TabTemplates() {
       <AnimatePresence>
         {modalOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={e => { if (e.target === e.currentTarget) setModalOpen(false) }}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }} className="bg-card border border-border rounded-[var(--radius-panel)] shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }} className="bg-card border border-border rounded-[var(--radius-panel)] elev-lg w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
                 <h2 className="text-base font-bold text-foreground">{editing ? 'Editar Template' : 'Novo Template'}</h2>
                 <button onClick={() => setModalOpen(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"><X size={16} className="text-ink-muted" /></button>
               </div>
               <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-ink-muted  ">Nome <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-semibold text-ink-muted  ">Nome <span className="text-[var(--danger-ink)]">*</span></label>
                   <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Nome do template" className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-ink-muted/50" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-ink-muted  ">Conteúdo <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-semibold text-ink-muted  ">Conteúdo <span className="text-[var(--danger-ink)]">*</span></label>
                   <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="Texto da mensagem..." rows={5} className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-ink-muted/50" />
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -1914,7 +1914,7 @@ function TabTemplates() {
       <AnimatePresence>
         {deleteConfirm && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={e => { if (e.target === e.currentTarget) setDeleteConfirm(null) }}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }} className="bg-card border border-border rounded-[var(--radius-panel)] shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }} className="bg-card border border-border rounded-[var(--radius-panel)] elev-lg w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
               <h2 className="text-base font-bold text-foreground mb-2">Excluir template?</h2>
               <p className="text-sm text-ink-muted mb-5">Esta ação não pode ser desfeita.</p>
               <div className="flex gap-3">

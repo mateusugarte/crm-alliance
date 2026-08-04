@@ -86,7 +86,7 @@ function TextInput({
       className={cn(
         'w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 text-ink',
         'placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue',
-        'transition-colors bg-white',
+        'transition-colors bg-surface',
         className,
       )}
     />
@@ -255,7 +255,7 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
           </div>
           <button
             onClick={onClose}
-            className="text-white/70 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10 flex-shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            className="text-white/70 hover:text-white transition-colors p-1 rounded-lg hover:bg-surface/10 flex-shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             aria-label="Fechar painel"
           >
             <X size={18} />
@@ -276,7 +276,7 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
                 <select
                   value={pavimento}
                   onChange={(e) => handlePavimentoChange(Number(e.target.value))}
-                  className="w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 text-ink focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-white transition-colors"
+                  className="w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 text-ink focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-surface transition-colors"
                 >
                   {PAVIMENTOS.map((p) => (
                     <option key={p} value={p}>
@@ -292,7 +292,7 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
                 <select
                   value={numeroUnidade}
                   onChange={(e) => setNumeroUnidade(Number(e.target.value))}
-                  className="w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 text-ink focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-white transition-colors"
+                  className="w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 text-ink focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue bg-surface transition-colors"
                 >
                   {unidades.map((u) => (
                     <option key={u.value} value={u.value}>{u.label}</option>
@@ -305,13 +305,13 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
             <div className={cn(
               'flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold',
               cobertura
-                ? 'bg-amber-50 border-amber-200 text-amber-800'
-                : 'bg-alliance-blue/5 border-alliance-blue/20 text-alliance-dark'
+                ? 'bg-[var(--warning-soft)] border-[var(--warning)]/25 text-[var(--warning-ink)]'
+                : 'bg-alliance-blue/5 border-alliance-blue/20 text-ink'
             )}>
               <Layers size={14} className="flex-shrink-0" />
               <span>{nomePreview}</span>
               {cobertura && (
-                <span className="ml-auto text-xs font-bold bg-amber-200/60 text-amber-800 px-2 py-0.5 rounded-lg">
+                <span className="ml-auto text-xs font-bold bg-amber-200/60 text-[var(--warning-ink)] px-2 py-0.5 rounded-lg">
                   Cobertura
                 </span>
               )}
@@ -407,7 +407,7 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
                 className={cn(
                   'flex-1 text-sm border border-line-strong rounded-xl px-3 py-2.5 text-ink',
                   'placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 focus:border-alliance-blue',
-                  'transition-colors bg-white',
+                  'transition-colors bg-surface',
                 )}
               />
               <button
@@ -437,7 +437,7 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
                     vendido
                       ? 'opacity-40 cursor-not-allowed bg-surface-sunken text-ink-subtle border border-line-strong'
                       : disponivel
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 focus-visible:ring-emerald-400'
+                        ? 'bg-[var(--success-soft)] text-[var(--success-ink)] border border-[var(--success)]/25 hover:bg-emerald-100 focus-visible:ring-emerald-400'
                         : 'bg-surface-sunken text-ink-muted border border-line-strong hover:bg-line focus-visible:ring-ring',
                   )}
                 >
@@ -454,7 +454,7 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
                   className={cn(
                     'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
                     vendido
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 focus-visible:ring-emerald-400'
+                      ? 'bg-[var(--success-soft)] text-[var(--success-ink)] border border-[var(--success)]/25 hover:bg-emerald-100 focus-visible:ring-emerald-400'
                       : 'bg-surface-sunken text-ink-muted border border-line-strong hover:bg-line focus-visible:ring-ring',
                   )}
                 >
@@ -463,7 +463,7 @@ export function ImovelFormPanel({ open, onClose, imovel, isAdm, onSaved }: Imove
                 </button>
 
                 {vendido && isEdit && (
-                  <div className="mt-2 flex items-start gap-1.5 text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                  <div className="mt-2 flex items-start gap-1.5 text-[var(--warning-ink)] bg-[var(--warning-soft)] border border-[var(--warning)]/25 rounded-xl px-3 py-2">
                     <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
                     <p className="text-xs leading-snug">
                       Desmarcar como vendido irá retornar o imóvel ao board e marcá-lo como indisponível.

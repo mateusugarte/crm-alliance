@@ -124,7 +124,7 @@ function SectionCard({
   className?: string
 }) {
   return (
-    <section className={cn('min-h-0 rounded-[var(--radius-panel)] border border-black/[0.06] bg-white/88 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] backdrop-blur-xl', className)}>
+    <section className={cn('min-h-0 rounded-[var(--radius-panel)] border border-black/[0.06] bg-surface/88 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] backdrop-blur-xl', className)}>
       <div className="mb-3 flex items-center gap-2">
         <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-surface-sunken text-ink">
           {icon}
@@ -423,7 +423,7 @@ export function LeadDetailModal({
           aria-label={`Detalhes de ${displayName}`}
         >
           <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-            <header className="relative border-b border-black/[0.06] bg-white/80 px-5 py-3 text-ink backdrop-blur-2xl md:px-6">
+            <header className="relative border-b border-black/[0.06] bg-surface/80 px-5 py-3 text-ink backdrop-blur-2xl md:px-6">
               <div className="relative grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
                 <div className="min-w-0">
                   <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
@@ -471,7 +471,7 @@ export function LeadDetailModal({
                   <button
                     onClick={handleCallLead}
                     disabled={assumeLoading || !displayLead.phone}
-                    className="inline-flex h-9 items-center gap-2 rounded-xl bg-ink px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-ink/88 disabled:opacity-40"
+                    className="inline-flex h-9 items-center gap-2 rounded-xl bg-ink px-4 text-xs font-semibold text-white elev-sm transition hover:bg-ink/88 disabled:opacity-40"
                   >
                     {assumeLoading ? <Loader2 size={14} className="animate-spin" /> : <PhoneCall size={14} />}
                     Ligar para o lead
@@ -481,7 +481,7 @@ export function LeadDetailModal({
                         <TooltipTrigger render={
                           <button
                             onClick={() => setEditMode(true)}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-black/[0.08] bg-white text-ink transition hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-black/[0.08] bg-surface text-ink transition hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
                             aria-label="Editar lead"
                           >
                             <Edit3 size={15} />
@@ -514,7 +514,7 @@ export function LeadDetailModal({
               <div className="min-h-0 flex-1 overflow-y-auto p-3 xl:overflow-hidden">
                 <div className="grid min-w-0 gap-3 xl:h-full xl:grid-cols-[minmax(300px,1.05fr)_minmax(330px,0.95fr)_minmax(260px,0.8fr)] xl:grid-rows-[auto_minmax(0,1fr)_auto]">
                   <main className="flex min-w-0 flex-col gap-3 xl:contents">
-                    <div className="grid overflow-hidden rounded-[var(--radius-panel)] border border-black bg-ink shadow-sm md:grid-cols-2 xl:col-span-3 xl:row-start-1 xl:grid-cols-4">
+                    <div className="grid overflow-hidden rounded-[var(--radius-panel)] border border-black bg-ink elev-sm md:grid-cols-2 xl:col-span-3 xl:row-start-1 xl:grid-cols-4">
                       <MetricCard icon={<MessageCircle size={13} />} label="Interações" value={interactions.length || displayLead.interaction_count || 0} detail={`${insight.inbound.length} respostas`} />
                       <MetricCard icon={<Send size={13} />} label="Disparos" value={`${displayLead.reactivation_count ?? 0}x`} detail={displayLead.last_reactivated_at ? `último há ${distance(displayLead.last_reactivated_at)}` : 'nenhum'} />
                       <MetricCard icon={<Clock3 size={13} />} label="Tempo no estágio" value={insight.stageTime.replace('aproximadamente ', '')} detail={formatDate(displayLead.updated_at)} />
@@ -528,7 +528,7 @@ export function LeadDetailModal({
                           onChange={e => setEditSummary(e.target.value)}
                           rows={5}
                           placeholder="Resumo padronizado do lead..."
-                          className="min-h-0 flex-1 resize-none rounded-xl border border-line-strong bg-white px-3 py-2 text-xs leading-relaxed text-ink focus:outline-none focus:ring-2 focus:ring-alliance-blue/20"
+                          className="min-h-0 flex-1 resize-none rounded-xl border border-line-strong bg-surface px-3 py-2 text-xs leading-relaxed text-ink focus:outline-none focus:ring-2 focus:ring-alliance-blue/20"
                         />
                       ) : (
                         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
@@ -556,29 +556,29 @@ export function LeadDetailModal({
                           <div className="flex flex-col gap-1.5">
                             <label className="text-2xs font-medium text-ink-muted">Nome</label>
                             <input value={editName} onChange={e => setEditName(e.target.value)}
-                              className="rounded-lg border border-line-strong bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20" />
+                              className="rounded-lg border border-line-strong bg-surface px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20" />
                           </div>
                           <div className="flex flex-col gap-1.5">
                             <label className="text-2xs font-medium text-ink-muted">Telefone</label>
                             <input value={editPhone} onChange={e => setEditPhone(e.target.value)}
-                              className="rounded-lg border border-line-strong bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20" />
+                              className="rounded-lg border border-line-strong bg-surface px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20" />
                           </div>
                           <div className="flex flex-col gap-1.5">
                             <label className="text-2xs font-medium text-ink-muted">Cidade</label>
                             <input value={editCity} onChange={e => setEditCity(e.target.value)}
-                              className="rounded-lg border border-line-strong bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20" />
+                              className="rounded-lg border border-line-strong bg-surface px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20" />
                           </div>
                           <div className="flex flex-col gap-1.5">
                             <label className="text-2xs font-medium text-ink-muted">Estágio</label>
                             <select value={editStage} onChange={e => setEditStage(e.target.value as Lead['stage'])}
-                              className="rounded-lg border border-line-strong bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20">
+                              className="rounded-lg border border-line-strong bg-surface px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20">
                               {STAGE_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                             </select>
                           </div>
                           <div className="flex flex-col gap-1.5">
                             <label className="text-2xs font-medium text-ink-muted">Intenção</label>
                             <select value={editIntention ?? ''} onChange={e => setEditIntention((e.target.value || null) as Lead['intention'])}
-                              className="rounded-lg border border-line-strong bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20">
+                              className="rounded-lg border border-line-strong bg-surface px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20">
                               <option value="">Sem qualificação</option>
                               <option value="morar">Morar</option>
                               <option value="investir">Investir</option>
@@ -587,7 +587,7 @@ export function LeadDetailModal({
                           <div className="flex flex-col gap-1.5">
                             <label className="text-2xs font-medium text-ink-muted">Imóvel de interesse</label>
                             <input value={editImovel} onChange={e => setEditImovel(e.target.value)}
-                              className="rounded-lg border border-line-strong bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20" />
+                              className="rounded-lg border border-line-strong bg-surface px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20" />
                           </div>
                         </div>
                       ) : (
@@ -616,7 +616,7 @@ export function LeadDetailModal({
                   </main>
 
                   <aside className="flex min-h-0 min-w-0 flex-col gap-2 xl:col-start-3 xl:row-start-2 xl:row-span-2">
-                    <SectionCard title="Próximo passo" icon={<PhoneCall size={13} />} className="flex-shrink-0 bg-ink p-3 text-white [&>div:first-child]:mb-2 [&>div>div]:bg-white/10 [&>div>div]:text-white/70 [&_h3]:text-white/65">
+                    <SectionCard title="Próximo passo" icon={<PhoneCall size={13} />} className="flex-shrink-0 bg-ink p-3 text-white [&>div:first-child]:mb-2 [&>div>div]:bg-surface/10 [&>div>div]:text-white/70 [&_h3]:text-white/65">
                       <p className="text-base font-semibold leading-tight text-white">
                         {displayLead.aceitou_consultor || displayLead.stage === 'lead_quente'
                           ? 'Ligar para o lead'
@@ -647,7 +647,7 @@ export function LeadDetailModal({
                           className={cn(
                             'inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition disabled:opacity-60',
                             displayLead.automation_paused
-                              ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                              ? 'bg-orange-100 text-[var(--warning-ink)] hover:bg-orange-200'
                               : 'bg-ink text-white hover:bg-ink/88'
                           )}
                         >
@@ -689,7 +689,7 @@ export function LeadDetailModal({
                       </div>
                     </SectionCard>
 
-                    <div className="flex-shrink-0 rounded-[var(--radius-panel)] border border-black/[0.06] bg-white/88 p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+                    <div className="flex-shrink-0 rounded-[var(--radius-panel)] border border-black/[0.06] bg-surface/88 p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
                       {editMode ? (
                         <div className="flex gap-2">
                           <button onClick={handleSave} disabled={saveLoading}
@@ -710,7 +710,7 @@ export function LeadDetailModal({
                             {assumeLoading ? 'Preparando...' : 'Ligar para o lead'}
                           </button>
                           <button onClick={() => setDeleteDialogOpen(true)}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-subtle transition hover:bg-red-50 hover:text-red-500" aria-label="Excluir lead">
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-subtle transition hover:bg-[var(--danger-soft)] hover:text-[var(--danger-ink)]" aria-label="Excluir lead">
                             <Trash2 size={13} />
                           </button>
                         </div>
@@ -727,7 +727,7 @@ export function LeadDetailModal({
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent showCloseButton={false} className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
+            <DialogTitle className="flex items-center gap-2 text-[var(--danger-ink)]">
               <Trash2 size={18} />
               Excluir lead
             </DialogTitle>

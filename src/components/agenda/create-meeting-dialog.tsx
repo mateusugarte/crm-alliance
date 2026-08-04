@@ -71,7 +71,7 @@ export function CreateMeetingDialog({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-alliance-dark">
+          <DialogTitle className="flex items-center gap-2 text-ink">
             <CalendarDays size={18} />
             Nova Reunião
           </DialogTitle>
@@ -120,7 +120,7 @@ export function CreateMeetingDialog({
           </div>
 
           {error && (
-            <p className="text-sm text-red-500">{error}</p>
+            <p className="text-sm text-[var(--danger-ink)]">{error}</p>
           )}
 
           <div className="flex gap-2 justify-end">

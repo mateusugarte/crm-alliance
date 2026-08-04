@@ -30,9 +30,9 @@ export function CreateUserForm({ action }: CreateUserFormProps) {
   const [state, formAction] = useActionState(action, {})
 
   return (
-    <form action={formAction} className="grid gap-4 rounded-lg border border-line bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5">
+    <form action={formAction} className="grid gap-4 rounded-lg border border-line bg-surface p-5 elev-sm dark:border-white/10 dark:bg-surface/5">
       <div>
-        <h2 className="text-base font-semibold text-alliance-dark dark:text-white">Criar usuário</h2>
+        <h2 className="text-base font-semibold text-ink dark:text-white">Criar usuário</h2>
         <p className="mt-1 text-sm text-ink-muted dark:text-ink-subtle">
           Novos usuários entram como corretor por padrão, salvo quando ADM for selecionado.
         </p>
@@ -65,7 +65,7 @@ export function CreateUserForm({ action }: CreateUserFormProps) {
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <p className={state.ok ? 'text-sm text-emerald-600' : 'text-sm text-red-500'}>
+        <p className={state.ok ? 'text-sm text-[var(--success-ink)]' : 'text-sm text-[var(--danger-ink)]'}>
           {state.message}
         </p>
         <SubmitButton />

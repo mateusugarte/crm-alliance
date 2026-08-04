@@ -20,11 +20,13 @@ export function MessageBubble({ message, isIA, consultantName }: MessageBubblePr
   if (isInbound) {
     return (
       <div className="flex justify-start items-end gap-2">
-        <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center bg-surface-sunken mb-5">
+        <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center bg-surface border border-line mb-5">
           <User size={13} className="text-ink-subtle" />
         </div>
         <div className="max-w-[70%] flex flex-col gap-0.5">
-          <div className="px-4 py-2.5 rounded-[var(--radius-panel)] rounded-bl-sm text-sm leading-relaxed bg-surface-sunken text-ink">
+          {/* Superfície elevada, não afundada: o fundo da conversa já é
+              `surface-sunken` e a bolha some se usar o mesmo valor. */}
+          <div className="px-4 py-2.5 rounded-[var(--radius-panel)] rounded-bl-sm text-sm leading-relaxed bg-surface text-ink elev-xs">
             {text}
           </div>
           <span className="text-2xs text-ink-subtle pl-1">{time}</span>
@@ -44,7 +46,7 @@ export function MessageBubble({ message, isIA, consultantName }: MessageBubblePr
             {text}
           </div>
         ) : (
-          <div className="px-4 py-2.5 rounded-[var(--radius-panel)] rounded-br-sm text-sm leading-relaxed bg-surface shadow-sm dark:shadow-none text-ink border border-line">
+          <div className="px-4 py-2.5 rounded-[var(--radius-panel)] rounded-br-sm text-sm leading-relaxed bg-surface elev-sm dark:shadow-none text-ink border border-line">
             {text}
           </div>
         )}

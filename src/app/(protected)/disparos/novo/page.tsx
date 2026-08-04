@@ -423,7 +423,7 @@ export default function NovoDisparoPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-alliance-blue/60   mb-1">Novo Disparo</p>
-            <h1 className="text-2xl font-bold text-alliance-dark dark:text-white">Configurar Campanha</h1>
+            <h1 className="text-2xl font-bold text-ink dark:text-white">Configurar Campanha</h1>
           </div>
           {/* Step indicators */}
           <div className="flex items-center gap-2">
@@ -461,7 +461,7 @@ export default function NovoDisparoPage() {
           <div className="flex flex-col gap-6">
             <div className="flex items-center gap-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
               <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />
-              <p className="text-xs text-amber-600 dark:text-amber-400">Recomendamos no máximo 10 contatos a cada 4 horas para evitar bloqueios.</p>
+              <p className="text-xs text-[var(--warning-ink)] dark:text-amber-400">Recomendamos no máximo 10 contatos a cada 4 horas para evitar bloqueios.</p>
             </div>
 
             {/* Manual phone input */}
@@ -480,7 +480,7 @@ export default function NovoDisparoPage() {
                     placeholder="5511999999999"
                     className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-ink-muted/40"
                   />
-                  {phoneError && <p className="text-xs text-red-500">{phoneError}</p>}
+                  {phoneError && <p className="text-xs text-[var(--danger-ink)]">{phoneError}</p>}
                 </div>
                 <button
                   onClick={addManualPhone}
@@ -663,7 +663,7 @@ export default function NovoDisparoPage() {
                             'w-4 h-4 rounded-full border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors',
                             selectedTemplate?.id === t.id ? 'bg-alliance-blue border-alliance-blue' : 'border-border',
                           )}>
-                            {selectedTemplate?.id === t.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                            {selectedTemplate?.id === t.id && <div className="w-1.5 h-1.5 rounded-full bg-surface" />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground">{t.name}</p>
@@ -692,8 +692,8 @@ export default function NovoDisparoPage() {
 
                     {mixError && (
                       <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                        <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
-                        <p className="text-xs text-red-500">{mixError}</p>
+                        <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0" />
+                        <p className="text-xs text-[var(--danger-ink)]">{mixError}</p>
                       </div>
                     )}
 
@@ -732,7 +732,7 @@ export default function NovoDisparoPage() {
                 {allContacts.some(c => c.id === null) && (
                   <div className="flex items-start gap-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                     <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                    <p className="text-xs text-[var(--warning-ink)] dark:text-amber-400">
                       {allContacts.filter(c => c.id === null).length} número{allContacts.filter(c => c.id === null).length !== 1 ? 's' : ''} manual não possui histórico no CRM e não será incluído neste modo.
                     </p>
                   </div>
@@ -837,8 +837,8 @@ export default function NovoDisparoPage() {
 
                 {contextError && (
                   <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                    <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
-                    <p className="text-xs text-red-500">{contextError}</p>
+                    <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0" />
+                    <p className="text-xs text-[var(--danger-ink)]">{contextError}</p>
                   </div>
                 )}
 
@@ -862,7 +862,7 @@ export default function NovoDisparoPage() {
             {/* Campaign name */}
             <div className="flex flex-col gap-2">
               <label className="text-xs font-semibold text-ink-muted  ">
-                Nome da campanha <span className="text-red-500">*</span>
+                Nome da campanha <span className="text-[var(--danger-ink)]">*</span>
               </label>
               <input
                 type="text"
@@ -921,13 +921,13 @@ export default function NovoDisparoPage() {
               <div className="flex items-center gap-2">
                 <MessageSquare size={15} className="text-ink-muted" />
                 <label className="text-xs font-semibold text-ink-muted  ">
-                  Instância WhatsApp <span className="text-red-500">*</span>
+                  Instância WhatsApp <span className="text-[var(--danger-ink)]">*</span>
                 </label>
               </div>
               {instances.length === 0 ? (
                 <div className="flex items-start gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                  <AlertTriangle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-500">Nenhuma instância conectada. Vá à aba Instâncias.</p>
+                  <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-[var(--danger-ink)]">Nenhuma instância conectada. Vá à aba Instâncias.</p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
@@ -983,8 +983,8 @@ export default function NovoDisparoPage() {
 
             {saveError && (
               <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
-                <p className="text-xs text-red-500">{saveError}</p>
+                <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0" />
+                <p className="text-xs text-[var(--danger-ink)]">{saveError}</p>
               </div>
             )}
 

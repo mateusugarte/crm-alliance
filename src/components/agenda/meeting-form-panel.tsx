@@ -87,15 +87,15 @@ function MiniCalendar({ selectedDate, onSelectDate }: MiniCalendarProps) {
           onClick={() => setViewDate(d => subMonths(d, 1))}
           className="p-1 rounded-lg hover:bg-line transition-colors cursor-pointer"
         >
-          <ChevronLeft size={16} className="text-alliance-dark" />
+          <ChevronLeft size={16} className="text-ink" />
         </button>
-        <span className="text-sm font-bold text-alliance-dark">{monthLabel}</span>
+        <span className="text-sm font-bold text-ink">{monthLabel}</span>
         <button
           type="button"
           onClick={() => setViewDate(d => addMonths(d, 1))}
           className="p-1 rounded-lg hover:bg-line transition-colors cursor-pointer"
         >
-          <ChevronRight size={16} className="text-alliance-dark" />
+          <ChevronRight size={16} className="text-ink" />
         </button>
       </div>
 
@@ -198,14 +198,14 @@ function LeadSearch({ leads, selectedLeadId, onSelect, onClear, disabled }: Lead
     if (disabled) {
       return (
         <div className="flex items-center gap-2 bg-alliance-blue/5 border border-alliance-blue/20 rounded-xl px-3 py-2.5">
-          <span className="text-sm font-medium text-alliance-dark truncate">{selectedLead.name}</span>
+          <span className="text-sm font-medium text-ink truncate">{selectedLead.name}</span>
           <span className="text-xs text-ink-subtle truncate">{selectedLead.phone}</span>
         </div>
       )
     }
     return (
       <div className="flex items-center gap-2 bg-alliance-blue/5 border border-alliance-blue/20 rounded-xl px-3 py-2.5">
-        <span className="text-sm font-medium text-alliance-dark flex-1 truncate">{selectedLead.name}</span>
+        <span className="text-sm font-medium text-ink flex-1 truncate">{selectedLead.name}</span>
         <span className="text-xs text-ink-subtle truncate">{selectedLead.phone}</span>
         <button
           type="button"
@@ -231,7 +231,7 @@ function LeadSearch({ leads, selectedLeadId, onSelect, onClear, disabled }: Lead
         className="w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue placeholder:text-ink-subtle"
       />
       {open && filtered.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-line-strong shadow-lg z-10 max-h-48 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-surface rounded-xl border border-line-strong elev-md z-10 max-h-48 overflow-y-auto">
           {filtered.map(lead => (
             <button
               key={lead.id}
@@ -246,7 +246,7 @@ function LeadSearch({ leads, selectedLeadId, onSelect, onClear, disabled }: Lead
         </div>
       )}
       {open && query.trim() && filtered.length === 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-line-strong shadow-lg z-10 px-3 py-2.5">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-surface rounded-xl border border-line-strong elev-md z-10 px-3 py-2.5">
           <span className="text-sm text-ink-subtle">Nenhum lead encontrado.</span>
         </div>
       )}
@@ -441,7 +441,7 @@ export function MeetingFormPanel({
             <div className="px-6 py-5 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <p className="text-2xs font-bold text-ink-subtle  ">Data e Hora</p>
-                <span className="text-xs font-medium text-alliance-dark">
+                <span className="text-xs font-medium text-ink">
                   {selectedDateLabel} — {selectedTime}
                 </span>
               </div>

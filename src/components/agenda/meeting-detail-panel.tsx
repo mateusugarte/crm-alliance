@@ -31,9 +31,9 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 const STATUS_CONFIG = {
-  scheduled: { label: 'Agendada', className: 'bg-emerald-50 text-emerald-700' },
+  scheduled: { label: 'Agendada', className: 'bg-[var(--success-soft)] text-[var(--success-ink)]' },
   completed: { label: 'Concluída', className: 'bg-surface-sunken text-ink' },
-  cancelled: { label: 'Cancelada', className: 'bg-red-50 text-red-600' },
+  cancelled: { label: 'Cancelada', className: 'bg-[var(--danger-soft)] text-[var(--danger-ink)]' },
 } satisfies Record<MeetingWithLead['status'], { label: string; className: string }>
 
 function getInitials(name: string): string {
@@ -125,7 +125,7 @@ export function MeetingDetailPanel({
               <SectionTitle>Data e Hora</SectionTitle>
               <div className="flex items-start gap-3 bg-surface-sunken rounded-xl px-3 py-3">
                 <CalendarDays size={16} className="text-alliance-blue mt-0.5 flex-shrink-0" />
-                <span className="text-sm text-ink leading-relaxed capitalize">
+                <span className="text-sm text-ink leading-relaxed first-letter:uppercase">
                   {datetimeFormatted}
                 </span>
               </div>
@@ -180,7 +180,7 @@ export function MeetingDetailPanel({
             <button
               type="button"
               onClick={() => { setDeleteDialogOpen(true) }}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-colors cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[var(--danger-ink)] bg-[var(--danger-soft)] rounded-xl hover:bg-red-100 transition-colors cursor-pointer"
             >
               <Trash2 size={14} />
               Excluir
@@ -202,7 +202,7 @@ export function MeetingDetailPanel({
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-alliance-dark">Excluir Reunião</DialogTitle>
+            <DialogTitle className="text-ink">Excluir Reunião</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-ink mt-1">
             Tem certeza que deseja excluir a reunião com{' '}

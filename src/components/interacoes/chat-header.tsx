@@ -31,7 +31,7 @@ function getAvatarColor(name: string) {
 export function ChatHeader({ lead, onInfoClick }: ChatHeaderProps) {
   return (
     <TooltipProvider delay={400}>
-      <div className="bg-white px-5 py-3.5 flex items-center justify-between border-b border-line flex-shrink-0 shadow-sm">
+      <div className="bg-surface px-5 py-3.5 flex items-center justify-between border-b border-line flex-shrink-0 elev-sm">
         {/* Avatar + info — clicável */}
         <button
           onClick={onInfoClick}
@@ -60,7 +60,7 @@ export function ChatHeader({ lead, onInfoClick }: ChatHeaderProps) {
           {lead.automation_paused ? (
             <Tooltip>
               <TooltipTrigger render={
-                <span className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-400/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-400/20 text-xs font-medium px-3 py-1.5 rounded-full cursor-default select-none">
+                <span className="flex items-center gap-1.5 bg-[var(--warning-soft)] dark:bg-amber-400/10 text-[var(--warning-ink)] dark:text-amber-400 border border-[var(--warning)]/25 dark:border-amber-400/20 text-xs font-medium px-3 py-1.5 rounded-full cursor-default select-none">
                   <PauseCircle size={11} /> Pausado
                 </span>
               } />

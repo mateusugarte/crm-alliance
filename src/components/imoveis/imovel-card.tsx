@@ -43,8 +43,8 @@ export function ImovelCard({
 
   return (
     <div className={cn(
-      'bg-white rounded-xl border border-line flex overflow-hidden transition-shadow',
-      isDragging ? 'shadow-xl ring-2 ring-alliance-blue/20' : 'shadow-sm hover:shadow-md'
+      'flex overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface transition-ui',
+      isDragging ? 'elev-lg ring-2 ring-ring/30' : 'elev-xs hover:border-line-strong hover:elev-md',
     )}>
       {/* Drag handle */}
       {dragHandleProps && (
@@ -56,35 +56,18 @@ export function ImovelCard({
         </div>
       )}
 
-      {/* Status bar — left side */}
-      <div className={cn('w-1 flex-shrink-0', imovel.disponivel ? 'bg-emerald-400' : 'bg-amber-400')} />
-
       {/* Content */}
       <div className="flex-1 p-3 flex flex-col gap-2 min-w-0">
-        {/* Header: nome + badge + menu */}
+        {/* Cabeçalho.
+            A faixa vertical de 4px à esquerda saiu: duplicava o badge
+            "Disponível"/"Reservado" que já estava ao lado. O nome ganhou a
+            linha inteira — antes o badge o espremia até virar "Apt…". */}
         <div className="flex items-start justify-between gap-1.5">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <h3 className="font-bold text-alliance-dark text-sm leading-tight truncate">{imovel.nome}</h3>
-            </div>
-            <div className="flex items-center gap-1 mt-0.5">
-              <Layers size={9} className="text-ink-subtle flex-shrink-0" />
-              <span className="text-2xs text-ink-subtle">
-                {imovel.pavimento === 9 ? 'Cobertura' : `${imovel.pavimento}° Pav.`}
-              </span>
-            </div>
-          </div>
+          <h3 className="min-w-0 flex-1 truncate text-base font-semibold leading-tight text-ink">
+            {imovel.nome}
+          </h3>
 
           <div className="flex items-center gap-1 flex-shrink-0">
-            <span className={cn(
-              'text-2xs font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap',
-              imovel.disponivel
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                : 'bg-amber-50 text-amber-700 border border-amber-200'
-            )}>
-              {imovel.disponivel ? 'Disponível' : 'Reservado'}
-            </span>
-
             {(isAdm || onToggle) && (
               <div ref={menuRef} className="relative">
                 <button
@@ -98,13 +81,13 @@ export function ImovelCard({
                 </button>
 
                 {menuOpen && (
-                  <div className="absolute right-0 top-full mt-1 z-50 bg-white rounded-xl shadow-lg border border-line py-1 w-44">
+                  <div className="absolute right-0 top-full mt-1 z-50 bg-surface rounded-xl elev-md border border-line py-1 w-44">
                     {onToggle && (
                       <button
                         onClick={() => { onToggle(imovel.id); setMenuOpen(false) }}
                         className={cn(
                           'w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors cursor-pointer text-left',
-                          imovel.disponivel ? 'text-amber-700 hover:bg-amber-50' : 'text-emerald-700 hover:bg-emerald-50'
+                          imovel.disponivel ? 'text-[var(--warning-ink)] hover:bg-[var(--warning-soft)]' : 'text-[var(--success-ink)] hover:bg-[var(--success-soft)]'
                         )}
                       >
                         <ArrowLeftRight size={12} />
@@ -114,7 +97,7 @@ export function ImovelCard({
                     {isAdm && onRegistrarVenda && (
                       <button
                         onClick={() => { onRegistrarVenda(imovel); setMenuOpen(false) }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-alliance-dark hover:bg-surface-sunken transition-colors cursor-pointer text-left"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-ink hover:bg-surface-sunken transition-colors cursor-pointer text-left"
                       >
                         <DollarSign size={12} />
                         Registrar venda
@@ -134,7 +117,7 @@ export function ImovelCard({
                         <div className="h-px bg-surface-sunken my-1" />
                         <button
                           onClick={() => { onDelete(imovel.id); setMenuOpen(false) }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors cursor-pointer text-left"
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-[var(--danger-ink)] hover:bg-[var(--danger-soft)] transition-colors cursor-pointer text-left"
                         >
                           <Trash2 size={12} />
                           Excluir
@@ -148,23 +131,41 @@ export function ImovelCard({
           </div>
         </div>
 
-        {/* Metragem */}
-        <div className="flex items-center gap-1">
-          <Maximize size={11} className="text-alliance-blue flex-shrink-0" />
-          <span className="text-sm font-bold text-alliance-blue">
-            {imovel.metragem.toLocaleString('pt-BR')} m²
+        {/* Status e pavimento — o badge desceu para cá, onde tem espaço */}
+        <div className="-mt-1 flex flex-wrap items-center gap-1.5">
+          <span
+            className={cn(
+              'inline-flex h-5 items-center gap-1.5 whitespace-nowrap rounded-md px-1.5 text-2xs font-medium leading-none',
+              imovel.disponivel
+                ? 'bg-[var(--success-soft)] text-[var(--success-ink)]'
+                : 'bg-[var(--warning-soft)] text-[var(--warning-ink)]',
+            )}
+          >
+            <span
+              aria-hidden
+              className="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full"
+              style={{ backgroundColor: imovel.disponivel ? 'var(--success)' : 'var(--warning)' }}
+            />
+            {imovel.disponivel ? 'Disponível' : 'Reservado'}
+          </span>
+          <span className="inline-flex items-center gap-1 text-2xs text-ink-subtle">
+            <Layers size={11} className="flex-shrink-0" />
+            {imovel.pavimento === 9 ? 'Cobertura' : `${imovel.pavimento}º pav.`}
           </span>
         </div>
 
-        {/* Quartos / suítes */}
-        <div className="flex items-center gap-2.5 text-xs text-ink-muted">
+        {/* Metragem, quartos e suítes */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-muted">
+          <span className="flex items-center gap-1 text-sm font-semibold text-ink">
+            <Maximize size={12} className="flex-shrink-0 text-ink-subtle" />
+            {imovel.metragem.toLocaleString('pt-BR')} m²
+          </span>
           <span className="flex items-center gap-1">
-            <BedDouble size={11} className="text-ink-subtle" />
+            <BedDouble size={12} className="text-ink-subtle" />
             {imovel.quartos} qts
           </span>
-          <span className="w-px h-2.5 bg-line" />
           <span className="flex items-center gap-1">
-            <Bath size={11} className="text-ink-subtle" />
+            <Bath size={12} className="text-ink-subtle" />
             {imovel.suites} suítes
           </span>
         </div>

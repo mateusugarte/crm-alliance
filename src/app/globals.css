@@ -47,6 +47,12 @@
   --color-ink-muted: var(--ink-muted);
   --color-ink-subtle: var(--ink-subtle);
 
+  /* Par fixo, que NÃO inverte com o tema. Para superfícies que são escuras
+     nos dois temas — a faixa do Dashboard sobre a foto, a tela de login.
+     Sem isto, `text-ink` sobre uma pílula branca vira branco no branco. */
+  --color-ink-fixed: var(--ink-fixed);
+  --color-surface-fixed: var(--surface-fixed);
+
   /* ---- Aliases legados (mantidos para não quebrar componentes) ----------- */
   --color-alliance-blue: var(--brand-accent);
   --color-alliance-dark: var(--brand);
@@ -207,7 +213,14 @@
   /* Texto */
   --ink: oklch(0.235 0.018 262);
   --ink-muted: oklch(0.505 0.014 262);
-  --ink-subtle: oklch(0.625 0.011 262);
+  /* L 0.535, não 0.625: a 0.625 o texto terciário batia 3.15:1 contra
+     `surface-sunken`, abaixo do mínimo de 4.5:1 para corpo. */
+  --ink-subtle: oklch(0.535 0.013 262);
+
+  /* Definidos só aqui, de propósito: o bloco `.dark` não os sobrescreve,
+     então continuam valendo nos dois temas. */
+  --ink-fixed: oklch(0.225 0.018 262);
+  --surface-fixed: oklch(1 0 0);
 
   /* Marca */
   --brand: oklch(0.415 0.185 264);
@@ -328,7 +341,7 @@
 
   --ink: oklch(0.965 0.005 262);
   --ink-muted: oklch(0.735 0.014 262);
-  --ink-subtle: oklch(0.605 0.014 262);
+  --ink-subtle: oklch(0.672 0.014 262);
 
   --brand: oklch(0.615 0.185 262);
   --brand-hover: oklch(0.675 0.175 262);

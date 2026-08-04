@@ -1,8 +1,8 @@
 /**
  * Superfície — o container padrão do sistema.
  *
- * Substitui as ~12 combinações de `rounded-xl border border-gray-100 bg-white
- * shadow-sm dark:…` copiadas manualmente pelo projeto, cada uma com um raio e
+ * Substitui as ~12 combinações de `rounded-xl border border-gray-100 bg-surface
+ * elev-sm dark:…` copiadas manualmente pelo projeto, cada uma com um raio e
  * uma sombra ligeiramente diferentes.
  *
  * Três variantes, correspondendo aos três planos de profundidade:

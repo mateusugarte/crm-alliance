@@ -60,7 +60,7 @@ export function DateFilter({ onDark = false }: DateFilterProps) {
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
                 onDark
                   ? active
-                    ? 'bg-white text-ink focus-visible:ring-white'
+                    ? 'bg-surface-fixed text-ink-fixed focus-visible:ring-white'
                     : 'text-white/65 hover:bg-white/10 hover:text-white focus-visible:ring-white/60'
                   : active
                     ? 'bg-surface text-ink elev-xs focus-visible:ring-ring'
@@ -109,7 +109,7 @@ export function DateFilter({ onDark = false }: DateFilterProps) {
             disabled={!fromDate || !toDate}
             className={cn(
               'cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-ui disabled:cursor-not-allowed disabled:opacity-40',
-              onDark ? 'bg-white text-ink hover:bg-white/90' : 'bg-brand text-white hover:bg-brand-hover',
+              onDark ? 'bg-surface-fixed text-ink-fixed hover:bg-white/90' : 'bg-brand text-white hover:bg-brand-hover',
             )}
           >
             Aplicar

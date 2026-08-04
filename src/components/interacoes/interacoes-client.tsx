@@ -220,7 +220,7 @@ export function InteracoesClient({ conversations: initialConversations, contacts
           transition={{ duration: 0.3, ease: 'easeOut' }}
           className="flex-1 flex flex-col items-center justify-center gap-4 bg-surface-sunken"
         >
-          <div className="w-20 h-20 rounded-3xl flex items-center justify-center bg-white border border-line shadow-sm">
+          <div className="w-20 h-20 rounded-3xl flex items-center justify-center bg-surface border border-line elev-sm">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
             </svg>

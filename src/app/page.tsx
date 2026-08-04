@@ -15,10 +15,10 @@ export default function SplashPage() {
   }, [router])
 
   return (
-    <div className="relative flex flex-col items-center justify-center h-screen w-full overflow-hidden bg-white">
+    <div className="relative flex flex-col items-center justify-center h-screen w-full overflow-hidden bg-surface">
       {/* Logo */}
       <div className="absolute top-6 left-6">
-        <span className="text-alliance-dark font-bold text-2xl tracking-tight">Alliance</span>
+        <span className="text-ink font-bold text-2xl tracking-tight">Alliance</span>
       </div>
 
       {/* Título principal */}

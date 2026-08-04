@@ -31,8 +31,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-const inputCls = 'w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue bg-white placeholder:text-ink-subtle'
-const selectCls = 'w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue bg-white appearance-none'
+const inputCls = 'w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue bg-surface placeholder:text-ink-subtle'
+const selectCls = 'w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue bg-surface appearance-none'
 
 export function ImovelVendaForm({ imovel, imoveis, onClose, onSaved }: ImovelVendaFormProps) {
   const open = imovel !== null
@@ -244,7 +244,7 @@ export function ImovelVendaForm({ imovel, imoveis, onClose, onSaved }: ImovelVen
                     onClick={() => setTemEntrada(v => !v)}
                     className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer ${temEntrada ? 'bg-alliance-dark' : 'bg-line'}`}
                   >
-                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${temEntrada ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    <div className={`absolute top-0.5 w-4 h-4 bg-surface rounded-full elev-sm transition-transform ${temEntrada ? 'translate-x-5' : 'translate-x-0.5'}`} />
                   </div>
                   <span className="text-sm font-medium text-ink">Houve entrada?</span>
                 </label>
@@ -269,7 +269,7 @@ export function ImovelVendaForm({ imovel, imoveis, onClose, onSaved }: ImovelVen
                     onClick={() => setTemFinanciamento(v => !v)}
                     className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer ${temFinanciamento ? 'bg-alliance-dark' : 'bg-line'}`}
                   >
-                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${temFinanciamento ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    <div className={`absolute top-0.5 w-4 h-4 bg-surface rounded-full elev-sm transition-transform ${temFinanciamento ? 'translate-x-5' : 'translate-x-0.5'}`} />
                   </div>
                   <span className="text-sm font-medium text-ink">Houve financiamento bancário?</span>
                 </label>
@@ -306,7 +306,7 @@ export function ImovelVendaForm({ imovel, imoveis, onClose, onSaved }: ImovelVen
                     onClick={() => setTemParcelamentoDireto(v => !v)}
                     className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer ${temParcelamentoDireto ? 'bg-alliance-dark' : 'bg-line'}`}
                   >
-                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${temParcelamentoDireto ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    <div className={`absolute top-0.5 w-4 h-4 bg-surface rounded-full elev-sm transition-transform ${temParcelamentoDireto ? 'translate-x-5' : 'translate-x-0.5'}`} />
                   </div>
                   <span className="text-sm font-medium text-ink">Parcelado com La Reserva?</span>
                 </label>

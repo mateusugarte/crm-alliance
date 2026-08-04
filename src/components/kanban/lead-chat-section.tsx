@@ -52,14 +52,14 @@ export function LeadChatSection({
             const time = format(new Date(msg.created_at), 'HH:mm', { locale: ptBR })
 
             const bubbleStyle = {
-              lead:     'bg-white rounded-bl-sm',
+              lead:     'bg-surface rounded-bl-sm',
               bot:      'bg-[var(--success-soft)] rounded-br-sm',
               corretor: 'bg-[var(--brand-soft)] rounded-br-sm',
             }[msg.sender_type]
 
             const labelStyle = {
               lead:     'text-ink-muted',
-              bot:      'text-emerald-700',
+              bot:      'text-[var(--success-ink)]',
               corretor: 'text-alliance-blue',
             }[msg.sender_type]
 
@@ -74,7 +74,7 @@ export function LeadChatSection({
                 key={msg.id}
                 className={`flex ${isLeft ? 'justify-start' : 'justify-end'}`}
               >
-                <div className={`relative max-w-[82%] rounded-xl px-3 py-2 shadow-sm ${bubbleStyle}`}>
+                <div className={`relative max-w-[82%] rounded-xl px-3 py-2 elev-sm ${bubbleStyle}`}>
                   <div className={`flex items-center gap-1 mb-0.5 ${labelStyle}`}>
                     {msg.sender_type === 'bot' && (
                       <Bot size={10} className="flex-shrink-0" />
@@ -95,7 +95,7 @@ export function LeadChatSection({
       </div>
 
       {/* Input */}
-      <div className="flex items-end gap-2 border-t border-black/[0.06] bg-white/75 px-3 py-2.5 backdrop-blur-xl">
+      <div className="flex items-end gap-2 border-t border-black/[0.06] bg-surface/75 px-3 py-2.5 backdrop-blur-xl">
         <textarea
           value={newMessage}
           onChange={e => onNewMessageChange(e.target.value)}
@@ -107,7 +107,7 @@ export function LeadChatSection({
           }}
           placeholder="Digite uma mensagem..."
           rows={1}
-          className="max-h-24 flex-1 resize-none overflow-y-auto rounded-lg border border-line-strong bg-white px-3 py-2 text-xs leading-snug focus:outline-none focus:ring-2 focus:ring-alliance-blue/20"
+          className="max-h-24 flex-1 resize-none overflow-y-auto rounded-lg border border-line-strong bg-surface px-3 py-2 text-xs leading-snug focus:outline-none focus:ring-2 focus:ring-alliance-blue/20"
           style={{ lineHeight: '1.4' }}
         />
         <button

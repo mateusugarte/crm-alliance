@@ -19,7 +19,7 @@ const STATUS_STYLES: Record<string, string> = {
   running:   'bg-blue-500/15 text-blue-500',
   paused:    'bg-amber-500/15 text-amber-500',
   completed: 'bg-green-500/15 text-green-600',
-  cancelled: 'bg-red-500/15 text-red-500',
+  cancelled: 'bg-red-500/15 text-[var(--danger-ink)]',
 }
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Rascunho', running: 'Executando', paused: 'Pausado',
@@ -28,7 +28,7 @@ const STATUS_LABELS: Record<string, string> = {
 const DISPATCH_STATUS_STYLES: Record<string, string> = {
   pending:   'bg-muted text-ink-muted',
   sent:      'bg-green-500/15 text-green-600',
-  failed:    'bg-red-500/15 text-red-500',
+  failed:    'bg-red-500/15 text-[var(--danger-ink)]',
   cancelled: 'bg-muted text-ink-muted',
 }
 const DISPATCH_STATUS_LABELS: Record<string, string> = {
@@ -455,7 +455,7 @@ export default function DisparoDetailPage() {
             {/* Delete */}
             {!isRunning && (
               <button onClick={() => setShowDeleteConfirm(true)}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 text-red-500 text-sm hover:bg-red-500/20 transition-colors cursor-pointer">
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 text-[var(--danger-ink)] text-sm hover:bg-red-500/20 transition-colors cursor-pointer">
                 <Trash2 size={13} /> Excluir
               </button>
             )}
@@ -477,18 +477,18 @@ export default function DisparoDetailPage() {
             {isRunning && (
               <>
                 <button onClick={() => handleAction('pause')} disabled={actionLoading}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/15 text-amber-600 text-sm font-semibold hover:bg-amber-500/25 transition-colors cursor-pointer disabled:opacity-50">
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/15 text-[var(--warning-ink)] text-sm font-semibold hover:bg-amber-500/25 transition-colors cursor-pointer disabled:opacity-50">
                   <Pause size={14} /> Pausar
                 </button>
                 <button onClick={() => handleAction('stop')} disabled={actionLoading}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/15 text-red-500 text-sm font-semibold hover:bg-red-500/25 transition-colors cursor-pointer disabled:opacity-50">
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/15 text-[var(--danger-ink)] text-sm font-semibold hover:bg-red-500/25 transition-colors cursor-pointer disabled:opacity-50">
                   <Square size={14} /> Encerrar
                 </button>
               </>
             )}
             {campaign.status === 'paused' && (
               <button onClick={() => handleAction('stop')} disabled={actionLoading}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/15 text-red-500 text-sm font-semibold hover:bg-red-500/25 transition-colors cursor-pointer disabled:opacity-50">
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/15 text-[var(--danger-ink)] text-sm font-semibold hover:bg-red-500/25 transition-colors cursor-pointer disabled:opacity-50">
                 <Square size={14} /> Encerrar
               </button>
             )}
@@ -496,13 +496,13 @@ export default function DisparoDetailPage() {
         </div>
         {/* Action error */}
         {actionError && (
-          <div className="mt-3 flex items-center gap-2 px-4 py-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-500">
+          <div className="mt-3 flex items-center gap-2 px-4 py-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-[var(--danger-ink)]">
             <AlertTriangle size={14} /> {actionError}
           </div>
         )}
         {/* Outside hours warning when editable */}
         {outsideHours && isEditable && (
-          <div className="mt-3 flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-sm text-amber-600 dark:text-amber-400">
+          <div className="mt-3 flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-sm text-[var(--warning-ink)] dark:text-amber-400">
             <Clock size={14} />
             Esta campanha só pode ser iniciada entre {allowedStart}h e {allowedEnd}h. Agora são {currentHour}h.
           </div>
@@ -514,7 +514,7 @@ export default function DisparoDetailPage() {
         {[
           { label: 'Total',     value: campaign.total_leads,  color: 'text-foreground' },
           { label: 'Enviados',  value: campaign.sent_count,   color: 'text-green-600' },
-          { label: 'Falhas',    value: campaign.failed_count, color: 'text-red-500' },
+          { label: 'Falhas',    value: campaign.failed_count, color: 'text-[var(--danger-ink)]' },
           { label: 'Pendentes', value: pending,               color: 'text-ink-muted' },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-card border border-border rounded-[var(--radius-panel)] p-5">
@@ -692,7 +692,7 @@ export default function DisparoDetailPage() {
                             <button
                               onClick={() => deleteDispatch(d.id)}
                               disabled={isDeleting}
-                              className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer text-ink-muted hover:text-red-500 disabled:opacity-50"
+                              className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer text-ink-muted hover:text-[var(--danger-ink)] disabled:opacity-50"
                               title="Remover contato"
                             >
                               {isDeleting ? <RefreshCw size={12} className="animate-spin" /> : <Trash2 size={12} />}
@@ -719,7 +719,7 @@ export default function DisparoDetailPage() {
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }}
-              className="bg-card border border-border rounded-[var(--radius-panel)] shadow-2xl w-full max-w-md flex flex-col gap-5 p-6"
+              className="bg-card border border-border rounded-[var(--radius-panel)] elev-lg w-full max-w-md flex flex-col gap-5 p-6"
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between">
@@ -776,7 +776,7 @@ export default function DisparoDetailPage() {
                 <p className="text-2xs text-ink-muted">Formato: DDI + DDD + número (ex: 5511999999999)</p>
               </div>
               {addContactsError && (
-                <p className="text-sm text-red-500 flex items-center gap-2"><AlertTriangle size={13} /> {addContactsError}</p>
+                <p className="text-sm text-[var(--danger-ink)] flex items-center gap-2"><AlertTriangle size={13} /> {addContactsError}</p>
               )}
               <div className="flex justify-end gap-2">
                 <button onClick={() => { setShowAddContacts(false); setPhonesInput(''); setQuickSelectInfo(null); setAddContactsError(null) }} className="px-4 py-2 rounded-xl border border-border text-sm text-ink-muted hover:bg-muted transition-colors cursor-pointer">
@@ -803,7 +803,7 @@ export default function DisparoDetailPage() {
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }}
-              className="bg-card border border-border rounded-[var(--radius-panel)] shadow-2xl w-full max-w-md flex flex-col gap-5 p-6"
+              className="bg-card border border-border rounded-[var(--radius-panel)] elev-lg w-full max-w-md flex flex-col gap-5 p-6"
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between">
@@ -888,7 +888,7 @@ export default function DisparoDetailPage() {
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }}
-              className="bg-card border border-border rounded-[var(--radius-panel)] shadow-2xl w-full max-w-sm flex flex-col gap-5 p-6"
+              className="bg-card border border-border rounded-[var(--radius-panel)] elev-lg w-full max-w-sm flex flex-col gap-5 p-6"
               onClick={e => e.stopPropagation()}
             >
               <div className="flex flex-col gap-2">

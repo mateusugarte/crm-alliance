@@ -16,17 +16,17 @@ function VendaCard({ imovel, venda, isAdm, onEdit }: { imovel: Imovel; venda: Ve
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div className="bg-white rounded-[var(--radius-panel)] border border-line shadow-sm overflow-hidden">
+    <div className="bg-surface rounded-[var(--radius-panel)] border border-line elev-sm overflow-hidden">
       {/* Header */}
       <div className="flex items-start justify-between gap-3 px-5 py-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-0.5">
-            <span className="inline-flex items-center gap-1 text-2xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-1 text-2xs font-bold bg-[var(--success-soft)] text-[var(--success-ink)] border border-[var(--success)]/25 px-2 py-0.5 rounded-full">
               <CheckCircle2 size={9} />
               VENDIDO
             </span>
           </div>
-          <h3 className="font-bold text-alliance-dark text-sm">{imovel.nome}</h3>
+          <h3 className="font-bold text-ink text-sm">{imovel.nome}</h3>
           {venda && (
             <p className="text-xs text-ink-muted mt-0.5">Comprador: <span className="font-semibold text-ink">{venda.comprador_nome}</span></p>
           )}
@@ -90,7 +90,7 @@ function VendaCard({ imovel, venda, isAdm, onEdit }: { imovel: Imovel; venda: Ve
               {venda.tem_entrada && venda.valor_entrada && (
                 <div className="flex items-center justify-between text-xs py-2 px-3 bg-surface-sunken rounded-xl">
                   <span className="flex items-center gap-1.5 text-ink">
-                    <DollarSign size={11} className="text-emerald-600" />
+                    <DollarSign size={11} className="text-[var(--success-ink)]" />
                     Entrada
                   </span>
                   <span className="font-semibold text-ink">{formatCurrency(venda.valor_entrada)}</span>
@@ -113,7 +113,7 @@ function VendaCard({ imovel, venda, isAdm, onEdit }: { imovel: Imovel; venda: Ve
               {venda.tem_parcelamento_direto && (
                 <div className="flex items-center justify-between text-xs py-2 px-3 bg-surface-sunken rounded-xl">
                   <span className="flex items-center gap-1.5 text-ink">
-                    <DollarSign size={11} className="text-amber-600" />
+                    <DollarSign size={11} className="text-[var(--warning-ink)]" />
                     Parcelamento La Reserva
                     {venda.parcelas_direto && (
                       <span className="text-ink-subtle">({venda.parcelas_direto}x)</span>
@@ -146,8 +146,8 @@ export function ImovelVendidosSection({ imoveis, vendas, isAdm, onEdit }: Imovel
     <div className="mt-8">
       <div className="flex items-center gap-3 mb-4">
         <div className="flex items-center gap-2">
-          <CheckCircle2 size={16} className="text-emerald-600" />
-          <h2 className="text-base font-bold text-alliance-dark">Imóveis Vendidos</h2>
+          <CheckCircle2 size={16} className="text-[var(--success-ink)]" />
+          <h2 className="text-base font-bold text-ink">Imóveis Vendidos</h2>
           <span className="text-xs font-semibold text-ink-subtle bg-surface-sunken px-2 py-0.5 rounded-full">
             {imoveis.length}
           </span>

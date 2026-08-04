@@ -90,7 +90,7 @@ export default async function AgendaPage() {
         <p className="text-xs font-semibold text-alliance-blue/60 dark:text-alliance-blue/50   mb-1">
           Reuniões
         </p>
-        <h1 className="text-2xl font-bold text-alliance-dark dark:text-white">Agenda</h1>
+        <h1 className="text-2xl font-bold text-ink dark:text-white">Agenda</h1>
       </div>
       <AgendaClient meetings={meetings} leads={leads} />
     </div>

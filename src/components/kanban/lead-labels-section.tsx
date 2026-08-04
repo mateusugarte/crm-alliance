@@ -141,7 +141,7 @@ export function LabelsSection({ labels, leadId, onLabelsChange }: LabelsSectionP
         </button>
 
         {popoverOpen && (
-          <div className="absolute left-0 top-8 z-50 w-56 bg-white border border-line-strong rounded-[var(--radius-panel)] shadow-lg overflow-hidden">
+          <div className="absolute left-0 top-8 z-50 w-56 bg-surface border border-line-strong rounded-[var(--radius-panel)] elev-md overflow-hidden">
             {loadingLabels ? (
               <div className="flex items-center justify-center py-6">
                 <Loader2 size={16} className="animate-spin text-alliance-blue" />

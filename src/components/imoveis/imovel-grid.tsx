@@ -154,17 +154,17 @@ function DroppableColumn({
       <div className={`
         flex items-center gap-2 px-3 py-2.5 rounded-xl mb-3 transition-colors
         ${col.cobertura
-          ? 'bg-amber-50 border border-amber-200/60'
+          ? 'bg-[var(--warning-soft)] border border-[var(--warning)]/25/60'
           : 'bg-alliance-dark/[0.04] border border-alliance-dark/[0.08]'
         }
       `}>
-        <Icon size={13} className={col.cobertura ? 'text-amber-600' : 'text-alliance-dark/60'} />
-        <span className={`text-xs font-bold flex-1 ${col.cobertura ? 'text-amber-700' : 'text-alliance-dark'}`}>
+        <Icon size={13} className={col.cobertura ? 'text-[var(--warning-ink)]' : 'text-ink/60'} />
+        <span className={`text-xs font-bold flex-1 ${col.cobertura ? 'text-[var(--warning-ink)]' : 'text-ink'}`}>
           {col.label}
         </span>
         <span className={`
           text-2xs font-bold px-1.5 py-0.5 rounded-md
-          ${col.cobertura ? 'bg-amber-100 text-amber-600' : 'bg-white text-ink-subtle border border-line'}
+          ${col.cobertura ? 'bg-amber-100 text-[var(--warning-ink)]' : 'bg-surface text-ink-subtle border border-line'}
         `}>
           {ids.length}
         </span>
@@ -415,7 +415,7 @@ export function ImovelGrid({ imoveis: initialImoveis, vendas: initialVendas, isA
         <div className="flex items-center gap-2">
           <Link
             href="/imoveis/reservados"
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors focus-visible:outline-none"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[var(--warning-ink)] bg-[var(--warning-soft)] border border-[var(--warning)]/25 rounded-xl hover:bg-amber-100 transition-colors focus-visible:outline-none"
           >
             <Clock size={13} />
             Reservados

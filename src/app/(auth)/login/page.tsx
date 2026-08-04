@@ -123,13 +123,13 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-1 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-white py-2.5 text-base font-semibold text-ink transition-ui hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-1 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-surface-fixed py-2.5 text-base font-semibold text-ink-fixed transition-ui hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? (
               <>
                 <span
                   aria-hidden
-                  className="h-4 w-4 animate-spin rounded-full border-2 border-ink/25 border-t-ink"
+                  className="h-4 w-4 animate-spin rounded-full border-2 border-ink-fixed/25 border-t-ink-fixed"
                 />
                 Entrando…
               </>

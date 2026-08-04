@@ -58,7 +58,7 @@ export default async function ImoveisPage() {
         <p className="text-xs font-semibold text-alliance-blue/60   mb-1">
           Catálogo
         </p>
-        <h1 className="text-2xl font-bold text-alliance-dark">Imóveis La Reserva</h1>
+        <h1 className="text-2xl font-bold text-ink">Imóveis La Reserva</h1>
         <p className="text-ink-subtle text-sm mt-1">Castelo, ES — 34 unidades exclusivas de alto padrão</p>
       </div>
       <ImovelGrid imoveis={imoveis} vendas={vendas} isAdm={role === 'adm'} />

@@ -105,9 +105,9 @@ export function LeadCommentsSection({ leadId, currentUserId }: LeadCommentsSecti
         ) : (
           comments.map(c => (
             <div key={c.id} className="flex items-start gap-1.5 group">
-              <div className="flex-1 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+              <div className="flex-1 bg-[var(--warning-soft)] border border-[var(--warning)]/25 rounded-xl px-3 py-2">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-2xs font-bold text-amber-700  ">
+                  <span className="text-2xs font-bold text-[var(--warning-ink)]  ">
                     {c.user_name}
                   </span>
                   <span className="text-2xs text-ink-subtle">
@@ -122,7 +122,7 @@ export function LeadCommentsSection({ leadId, currentUserId }: LeadCommentsSecti
                 <button
                   onClick={() => handleDelete(c.id)}
                   disabled={deletingId === c.id}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity mt-1.5 p-1 text-ink-subtle hover:text-red-400 disabled:opacity-40 cursor-pointer rounded-lg hover:bg-red-50"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity mt-1.5 p-1 text-ink-subtle hover:text-red-400 disabled:opacity-40 cursor-pointer rounded-lg hover:bg-[var(--danger-soft)]"
                   aria-label="Excluir comentário"
                 >
                   {deletingId === c.id

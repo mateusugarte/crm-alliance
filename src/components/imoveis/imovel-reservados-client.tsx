@@ -28,10 +28,10 @@ export function ImovelReservadosClient({ imoveis: initial, vendas: initialVendas
   if (imoveis.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="w-14 h-14 rounded-[var(--radius-panel)] bg-amber-50 border border-amber-200 flex items-center justify-center mb-4">
+        <div className="w-14 h-14 rounded-[var(--radius-panel)] bg-[var(--warning-soft)] border border-[var(--warning)]/25 flex items-center justify-center mb-4">
           <Clock size={22} className="text-amber-500" />
         </div>
-        <p className="font-semibold text-alliance-dark text-sm">Nenhum imóvel reservado</p>
+        <p className="font-semibold text-ink text-sm">Nenhum imóvel reservado</p>
         <p className="text-xs text-ink-subtle mt-1 max-w-xs">
           Unidades marcadas como indisponíveis sem venda formalizada aparecem aqui.
         </p>
@@ -72,7 +72,7 @@ function ReservadoCard({
   onRegistrarVenda?: (imovel: Imovel) => void
 }) {
   return (
-    <div className="bg-white rounded-[var(--radius-panel)] border border-amber-200/70 shadow-sm overflow-hidden">
+    <div className="bg-surface rounded-[var(--radius-panel)] border border-[var(--warning)]/25/70 elev-sm overflow-hidden">
       {/* Barra âmbar */}
       <div className="h-1 w-full bg-amber-400" />
 
@@ -80,17 +80,17 @@ function ReservadoCard({
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <span className="inline-flex items-center gap-1 text-2xs font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full mb-1">
+            <span className="inline-flex items-center gap-1 text-2xs font-bold bg-[var(--warning-soft)] text-[var(--warning-ink)] border border-[var(--warning)]/25 px-2 py-0.5 rounded-full mb-1">
               <Clock size={9} />
               RESERVADO
             </span>
-            <h3 className="font-bold text-alliance-dark text-sm leading-tight">{imovel.nome}</h3>
+            <h3 className="font-bold text-ink text-sm leading-tight">{imovel.nome}</h3>
             <p className="text-xs text-ink-subtle mt-0.5">
               {imovel.pavimento === 9 ? 'Cobertura' : `${imovel.pavimento}° Pavimento`}
             </p>
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="text-xs font-bold text-alliance-dark">
+            <p className="text-xs font-bold text-ink">
               {imovel.valor_min != null
                 ? `${formatCurrency(imovel.valor_min)}`
                 : '—'}
@@ -109,12 +109,12 @@ function ReservadoCard({
           </span>
           <span className="w-px h-3 bg-line" />
           <span className="flex items-center gap-1">
-            <BedDouble size={11} className="text-alliance-dark" />
+            <BedDouble size={11} className="text-ink" />
             {imovel.quartos} qts
           </span>
           <span className="w-px h-3 bg-line" />
           <span className="flex items-center gap-1">
-            <Bath size={11} className="text-alliance-dark" />
+            <Bath size={11} className="text-ink" />
             {imovel.suites} suítes
           </span>
         </div>

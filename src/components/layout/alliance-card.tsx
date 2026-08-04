@@ -14,7 +14,7 @@ export default function AllianceCard({ children, variant = 'default', className 
     <motion.div
       {...cardHover}
       className={cn(
-        'rounded-[var(--radius-panel)] p-6 shadow-sm',
+        'rounded-[var(--radius-panel)] p-6 elev-sm',
         variant === 'featured'
           ? 'bg-alliance-dark text-white'
           : 'bg-alliance-card text-ink',

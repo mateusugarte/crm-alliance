@@ -25,7 +25,7 @@ const STATUS_STYLES: Record<string, string> = {
   running:   'bg-blue-500/15 text-blue-500',
   paused:    'bg-amber-500/15 text-amber-500',
   completed: 'bg-green-500/15 text-green-600',
-  cancelled: 'bg-red-500/15 text-red-500',
+  cancelled: 'bg-red-500/15 text-[var(--danger-ink)]',
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -39,7 +39,7 @@ const STATUS_LABELS: Record<string, string> = {
 const DISPATCH_STATUS_STYLES: Record<string, string> = {
   pending:   'bg-muted text-ink-muted',
   sent:      'bg-green-500/15 text-green-600',
-  failed:    'bg-red-500/15 text-red-500',
+  failed:    'bg-red-500/15 text-[var(--danger-ink)]',
   cancelled: 'bg-muted text-ink-muted',
 }
 
@@ -342,14 +342,14 @@ export default function ReativarDetailPage() {
                 <button
                   onClick={() => handleAction('pause')}
                   disabled={actionLoading}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/15 text-amber-600 text-sm font-semibold hover:bg-amber-500/25 transition-colors cursor-pointer disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/15 text-[var(--warning-ink)] text-sm font-semibold hover:bg-amber-500/25 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   <Pause size={14} /> Pausar
                 </button>
                 <button
                   onClick={() => handleAction('stop')}
                   disabled={actionLoading}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/15 text-red-500 text-sm font-semibold hover:bg-red-500/25 transition-colors cursor-pointer disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/15 text-[var(--danger-ink)] text-sm font-semibold hover:bg-red-500/25 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   <Square size={14} /> Encerrar
                 </button>
@@ -359,7 +359,7 @@ export default function ReativarDetailPage() {
               <button
                 onClick={() => handleAction('stop')}
                 disabled={actionLoading}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/15 text-red-500 text-sm font-semibold hover:bg-red-500/25 transition-colors cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/15 text-[var(--danger-ink)] text-sm font-semibold hover:bg-red-500/25 transition-colors cursor-pointer disabled:opacity-50"
               >
                 <Square size={14} /> Encerrar
               </button>
@@ -368,7 +368,7 @@ export default function ReativarDetailPage() {
         </div>
         {/* Action error */}
         {actionError && (
-          <div className="mt-3 flex items-center gap-2 px-4 py-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-500">
+          <div className="mt-3 flex items-center gap-2 px-4 py-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-[var(--danger-ink)]">
             <AlertTriangle size={14} /> {actionError}
           </div>
         )}
@@ -379,7 +379,7 @@ export default function ReativarDetailPage() {
         {[
           { label: 'Total',     value: campaign.total_leads,  color: 'text-foreground' },
           { label: 'Enviados',  value: campaign.sent_count,   color: 'text-green-600' },
-          { label: 'Falhas',    value: campaign.failed_count, color: 'text-red-500' },
+          { label: 'Falhas',    value: campaign.failed_count, color: 'text-[var(--danger-ink)]' },
           { label: 'Pendentes', value: pending,               color: 'text-ink-muted' },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-card border border-border rounded-[var(--radius-panel)] p-5">
@@ -512,7 +512,7 @@ export default function ReativarDetailPage() {
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }}
-              className="bg-card border border-border rounded-[var(--radius-panel)] shadow-2xl w-full max-w-md flex flex-col gap-5 p-6"
+              className="bg-card border border-border rounded-[var(--radius-panel)] elev-lg w-full max-w-md flex flex-col gap-5 p-6"
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between">

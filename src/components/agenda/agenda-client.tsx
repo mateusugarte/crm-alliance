@@ -38,9 +38,9 @@ interface AgendaClientProps {
 }
 
 const STATUS_CONFIG = {
-  scheduled: { label: 'Agendada', bg: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' },
+  scheduled: { label: 'Agendada', bg: 'bg-[var(--success-soft)] dark:bg-emerald-500/10 text-[var(--success-ink)] dark:text-emerald-400' },
   completed: { label: 'Concluída', bg: 'bg-surface-sunken text-ink' },
-  cancelled: { label: 'Cancelada', bg: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400' },
+  cancelled: { label: 'Cancelada', bg: 'bg-[var(--danger-soft)] dark:bg-red-500/10 text-[var(--danger-ink)] dark:text-red-400' },
 } satisfies Record<MeetingWithLead['status'], { label: string; bg: string }>
 
 function getInitials(name: string) {
@@ -85,7 +85,7 @@ function MeetingCard({
           <p className="font-semibold text-sm text-ink truncate">{meeting.lead_name}</p>
           <p className="text-xs text-ink-subtle mt-0.5">{meeting.lead_phone}</p>
         </div>
-        <span className="text-base font-bold tabular-nums text-alliance-dark dark:text-alliance-blue flex-shrink-0">
+        <span className="text-base font-bold tabular-nums text-ink dark:text-alliance-blue flex-shrink-0">
           {format(new Date(meeting.datetime), 'HH:mm', { locale: ptBR })}
         </span>
       </div>
@@ -114,7 +114,7 @@ function MeetingCard({
       <div className="flex items-center gap-2 pt-0.5">
         <button
           onClick={() => onEdit(meeting)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-ink border border-line rounded-lg hover:bg-surface-sunken dark:hover:bg-white/5 transition-colors cursor-pointer"
+          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-ink border border-line rounded-lg hover:bg-surface-sunken dark:hover:bg-surface/5 transition-colors cursor-pointer"
         >
           <Pencil size={11} />
           Editar
@@ -122,7 +122,7 @@ function MeetingCard({
         <button
           onClick={handleDelete}
           disabled={deleting}
-          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-red-500 bg-red-50 dark:bg-red-500/10 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors cursor-pointer disabled:opacity-50"
+          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-[var(--danger-ink)] bg-[var(--danger-soft)] dark:bg-red-500/10 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors cursor-pointer disabled:opacity-50"
         >
           {deleting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
           Excluir
@@ -200,27 +200,27 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
         {/* Toolbar */}
         <div className="flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 bg-surface rounded-xl border border-line shadow-sm p-1">
+            <div className="flex items-center gap-1 bg-surface rounded-xl border border-line elev-sm p-1">
               <button
                 onClick={() => setCurrentDate(d => subMonths(d, 1))}
-                className="p-1.5 rounded-lg hover:bg-surface-sunken dark:hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg hover:bg-surface-sunken dark:hover:bg-surface/10 transition-colors cursor-pointer"
               >
-                <ChevronLeft size={16} className="text-alliance-dark dark:text-white/70" />
+                <ChevronLeft size={16} className="text-ink dark:text-white/70" />
               </button>
-              <span className="font-bold text-alliance-dark dark:text-white/90 px-3 min-w-36 text-center text-sm">
+              <span className="font-bold text-ink dark:text-white/90 px-3 min-w-36 text-center text-sm">
                 {monthLabel}
               </span>
               <button
                 onClick={() => setCurrentDate(d => addMonths(d, 1))}
-                className="p-1.5 rounded-lg hover:bg-surface-sunken dark:hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg hover:bg-surface-sunken dark:hover:bg-surface/10 transition-colors cursor-pointer"
               >
-                <ChevronRight size={16} className="text-alliance-dark dark:text-white/70" />
+                <ChevronRight size={16} className="text-ink dark:text-white/70" />
               </button>
             </div>
 
             <button
               onClick={goToday}
-              className="px-3 py-2 text-xs font-semibold text-alliance-dark dark:text-white/70 bg-surface border border-line rounded-xl hover:bg-surface-sunken dark:hover:bg-white/12 transition-colors cursor-pointer"
+              className="px-3 py-2 text-xs font-semibold text-ink dark:text-white/70 bg-surface border border-line rounded-xl hover:bg-surface-sunken dark:hover:bg-surface/12 transition-colors cursor-pointer"
             >
               Hoje
             </button>
@@ -235,7 +235,7 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
 
           <button
             onClick={handleOpenNew}
-            className="flex items-center gap-2 px-4 py-2 bg-alliance-dark text-white text-sm font-semibold rounded-xl hover:bg-alliance-dark/90 transition-colors shadow-sm cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 bg-alliance-dark text-white text-sm font-semibold rounded-xl hover:bg-alliance-dark/90 transition-colors elev-sm cursor-pointer"
           >
             <Plus size={14} />
             Nova Reunião
@@ -267,10 +267,10 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
                   onClick={() => setSelectedDay(isSelected ? null : day)}
                   className={cn(
                     'min-h-[110px] p-2 border-b border-r border-line transition-colors cursor-pointer',
-                    !inMonth && 'bg-surface-sunken/60 dark:bg-white/1',
+                    !inMonth && 'bg-surface-sunken/60 dark:bg-surface/1',
                     today && !isSelected && 'bg-alliance-blue/3 dark:bg-alliance-blue/5',
                     isSelected && 'bg-alliance-blue/8 dark:bg-alliance-blue/10',
-                    inMonth && !today && !isSelected && 'hover:bg-surface-sunken dark:hover:bg-white/3',
+                    inMonth && !today && !isSelected && 'hover:bg-surface-sunken dark:hover:bg-surface/3',
                   )}
                 >
                   <div className="flex items-center justify-end mb-1.5">
@@ -278,11 +278,11 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
                       className={cn(
                         'text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full transition-colors',
                         today
-                          ? 'bg-alliance-blue text-white shadow-sm'
+                          ? 'bg-alliance-blue text-white elev-sm'
                           : isSelected
                           ? 'bg-alliance-dark dark:bg-alliance-blue text-white'
                           : inMonth
-                          ? 'text-alliance-dark dark:text-white/80 hover:bg-surface-sunken dark:hover:bg-white/10'
+                          ? 'text-ink dark:text-white/80 hover:bg-surface-sunken dark:hover:bg-surface/10'
                           : 'text-ink-subtle',
                       )}
                     >
@@ -318,7 +318,7 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
             <p className="text-xs font-semibold text-ink-subtle  ">
               {selectedDay ? format(selectedDay, 'MMMM', { locale: ptBR }).replace(/^\w/, c => c.toUpperCase()) : 'Agenda'}
             </p>
-            <h2 className="font-bold text-ink text-sm leading-tight mt-0.5 capitalize">
+            <h2 className="font-bold text-ink text-sm leading-tight mt-0.5 first-letter:uppercase">
               {panelTitle}
             </h2>
           </div>

@@ -129,7 +129,7 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="absolute right-0 top-0 bottom-0 w-80 z-30 flex flex-col bg-surface border-l border-line shadow-2xl overflow-hidden"
+            className="absolute right-0 top-0 bottom-0 w-80 z-30 flex flex-col bg-surface border-l border-line elev-lg overflow-hidden"
           >
             {/* Header */}
             <div className="px-5 pt-5 pb-4 flex items-start justify-between flex-shrink-0 border-b border-line">
@@ -150,7 +150,7 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
                         onKeyDown={e => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false) }}
                         className="font-bold text-sm text-ink bg-surface-sunken border border-line rounded-lg px-2 py-1 outline-none w-36"
                       />
-                      <button onClick={handleSaveName} className="text-emerald-500 hover:text-emerald-600">
+                      <button onClick={handleSaveName} className="text-emerald-500 hover:text-[var(--success-ink)]">
                         <Check size={14} />
                       </button>
                     </div>
@@ -172,7 +172,7 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
               </div>
               <button
                 onClick={onClose}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-ink-subtle hover:text-ink dark:hover:text-white hover:bg-surface-sunken dark:hover:bg-white/8 transition-all"
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-ink-subtle hover:text-ink dark:hover:text-white hover:bg-surface-sunken dark:hover:bg-surface/8 transition-all"
               >
                 <X size={15} />
               </button>
@@ -196,7 +196,7 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-ink-subtle  ">Automação</span>
                 {lead.automation_paused ? (
-                  <span className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-400/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-400/20">
+                  <span className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-[var(--warning-soft)] dark:bg-amber-400/10 text-[var(--warning-ink)] dark:text-amber-400 border border-[var(--warning)]/25 dark:border-amber-400/20">
                     <PauseCircle size={11} /> Pausada
                   </span>
                 ) : (
@@ -239,7 +239,7 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
                 {lead.intention && (
                   <div className="flex items-center gap-2.5">
                     <User size={13} className="text-ink-subtle flex-shrink-0" />
-                    <span className="text-sm text-ink capitalize">{lead.intention}</span>
+                    <span className="text-sm text-ink first-letter:uppercase">{lead.intention}</span>
                   </div>
                 )}
                 {lead.imovel_interesse && (
@@ -274,9 +274,9 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
             {/* Footer — Assumir */}
             <div className="px-5 py-4 flex-shrink-0 border-t border-line">
               {isAssumed ? (
-                <div className="w-full rounded-xl py-3 flex items-center justify-center gap-2 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
-                  <UserCheck size={15} className="text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Conversa assumida</span>
+                <div className="w-full rounded-xl py-3 flex items-center justify-center gap-2 bg-[var(--success-soft)] dark:bg-emerald-500/10 border border-[var(--success)]/25 dark:border-emerald-500/20">
+                  <UserCheck size={15} className="text-[var(--success-ink)] dark:text-emerald-400" />
+                  <span className="text-sm font-semibold text-[var(--success-ink)] dark:text-emerald-400">Conversa assumida</span>
                 </div>
               ) : (
                 <button

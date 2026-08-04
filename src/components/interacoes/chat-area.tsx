@@ -123,7 +123,7 @@ export function ChatArea({ messages, lead, onSend, onMessageAdded }: ChatAreaPro
             animate={{ opacity: 1, y: 0 }}
             className="flex flex-col items-center justify-center py-20 gap-3"
           >
-            <div className="w-16 h-16 rounded-[var(--radius-panel)] flex items-center justify-center bg-surface border border-line shadow-sm dark:shadow-none">
+            <div className="w-16 h-16 rounded-[var(--radius-panel)] flex items-center justify-center bg-surface border border-line elev-sm dark:shadow-none">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-ink-subtle" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
               </svg>
@@ -170,7 +170,7 @@ export function ChatArea({ messages, lead, onSend, onMessageAdded }: ChatAreaPro
               Adicionar mensagem histórica
             </button>
           ) : (
-            <div className="bg-white/4 border border-white/8 rounded-xl p-3 flex flex-col gap-2.5">
+            <div className="bg-surface/4 border border-white/8 rounded-xl p-3 flex flex-col gap-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-white/50">Mensagem histórica</span>
                 <button onClick={() => setHistoryOpen(false)} className="text-white/30 hover:text-white/60 cursor-pointer">
@@ -186,8 +186,8 @@ export function ChatArea({ messages, lead, onSend, onMessageAdded }: ChatAreaPro
                     onClick={() => setHistSender(s)}
                     className={`flex-1 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
                       histSender === s
-                        ? 'bg-white/15 text-white'
-                        : 'text-white/30 hover:bg-white/5'
+                        ? 'bg-surface/15 text-white'
+                        : 'text-white/30 hover:bg-surface/5'
                     }`}
                   >
                     {s === 'lead' ? 'Lead' : 'Corretor'}
@@ -200,7 +200,7 @@ export function ChatArea({ messages, lead, onSend, onMessageAdded }: ChatAreaPro
                 onChange={e => setHistContent(e.target.value)}
                 placeholder="Conteúdo da mensagem..."
                 rows={2}
-                className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-xs text-white placeholder:text-white/20 outline-none resize-none"
+                className="w-full bg-surface/5 border border-white/8 rounded-lg px-3 py-2 text-xs text-white placeholder:text-white/20 outline-none resize-none"
               />
 
               <div className="relative">
@@ -208,7 +208,7 @@ export function ChatArea({ messages, lead, onSend, onMessageAdded }: ChatAreaPro
                   type="datetime-local"
                   value={histDate}
                   onChange={e => setHistDate(e.target.value)}
-                  className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-xs text-white/60 outline-none [color-scheme:dark]"
+                  className="w-full bg-surface/5 border border-white/8 rounded-lg px-3 py-2 text-xs text-white/60 outline-none [color-scheme:dark]"
                   placeholder="Data e hora (opcional)"
                 />
               </div>
@@ -247,7 +247,7 @@ export function ChatArea({ messages, lead, onSend, onMessageAdded }: ChatAreaPro
       </AnimatePresence>
 
       {/* Input */}
-      <div className="px-4 py-3 flex-shrink-0 bg-white border-t border-line">
+      <div className="px-4 py-3 flex-shrink-0 bg-surface border-t border-line">
         <div className="flex items-end gap-3 rounded-[var(--radius-panel)] px-4 py-2.5 bg-surface-sunken border border-line">
           {!lead.automation_paused ? (
             <div className="flex-1 flex items-center gap-2 py-0.5">
