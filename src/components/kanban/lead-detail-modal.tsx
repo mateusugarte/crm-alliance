@@ -19,6 +19,7 @@ import type { Lead } from '@/lib/supabase/types'
 import type { Interaction, LeadFull } from './types'
 import { LabelsSection } from './lead-labels-section'
 import { LeadChatSection } from './lead-chat-section'
+import { LeadCallsSection } from './lead-calls-section'
 import { LeadCommentsSection } from '@/components/shared/lead-comments-section'
 
 const STAGE_LABELS: Record<Lead['stage'], string> = {
@@ -168,6 +169,7 @@ export function LeadDetailModal({
   const [newMessage, setNewMessage] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [compactViewport, setCompactViewport] = useState(false)
 
   const [editName, setEditName] = useState('')
   const [editPhone, setEditPhone] = useState('')
@@ -176,6 +178,7 @@ export function LeadDetailModal({
   const [editIntention, setEditIntention] = useState<Lead['intention']>(null)
   const [editImovel, setEditImovel] = useState('')
   const [editSummary, setEditSummary] = useState('')
+  const [editLossReason, setEditLossReason] = useState('')
 
   useEffect(() => {
     if (!open || !lead) return
@@ -237,6 +240,7 @@ export function LeadDetailModal({
     setEditIntention(fullLead.intention)
     setEditImovel(fullLead.imovel_interesse ?? '')
     setEditSummary(fullLead.summary ?? '')
+    setEditLossReason(fullLead.motivo_perda ?? '')
   }, [editMode, fullLead])
 
   useEffect(() => {
@@ -261,8 +265,15 @@ export function LeadDetailModal({
       }
     }
     readSidebarState()
+    const media = window.matchMedia('(max-width: 767px)')
+    const syncViewport = () => setCompactViewport(media.matches)
+    syncViewport()
     window.addEventListener('storage', readSidebarState)
-    return () => window.removeEventListener('storage', readSidebarState)
+    media.addEventListener('change', syncViewport)
+    return () => {
+      window.removeEventListener('storage', readSidebarState)
+      media.removeEventListener('change', syncViewport)
+    }
   }, [open])
 
   const displayLead = fullLead ?? lead
@@ -320,6 +331,10 @@ export function LeadDetailModal({
 
   const handleSave = async () => {
     if (!fullLead) return
+    if (editStage === 'sem_interesse' && !editLossReason.trim()) {
+      toast.error('Informe o motivo da perda')
+      return
+    }
     setSaveLoading(true)
     try {
       const res = await fetch(`/api/leads/${fullLead.id}`, {
@@ -333,6 +348,7 @@ export function LeadDetailModal({
           intention: editIntention,
           imovel_interesse: editImovel || null,
           summary: editSummary || null,
+          motivo_perda: editStage === 'sem_interesse' ? editLossReason.trim() : null,
         }),
       })
       if (!res.ok) throw new Error()
@@ -417,7 +433,7 @@ export function LeadDetailModal({
       {open && (
         <div
           className="fixed inset-y-0 right-0 z-50 flex bg-surface-sunken shadow-[-18px_0_50px_rgba(15,23,42,0.12)]"
-          style={{ left: sidebarCollapsed ? 64 : 220 }}
+          style={{ left: compactViewport ? 68 : (sidebarCollapsed ? 64 : 220) }}
           role="dialog"
           aria-modal="true"
           aria-label={`Detalhes de ${displayName}`}
@@ -575,6 +591,13 @@ export function LeadDetailModal({
                               {STAGE_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                             </select>
                           </div>
+                          {editStage === 'sem_interesse' && (
+                            <div className="flex flex-col gap-1.5 md:col-span-2">
+                              <label className="text-2xs font-medium text-ink-muted">Motivo da perda</label>
+                              <input value={editLossReason} onChange={e => setEditLossReason(e.target.value)} placeholder="Ex.: Momento de compra: pretende retomar no próximo ano"
+                                className="rounded-lg border border-line-strong bg-surface px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-alliance-blue/20" />
+                            </div>
+                          )}
                           <div className="flex flex-col gap-1.5">
                             <label className="text-2xs font-medium text-ink-muted">Intenção</label>
                             <select value={editIntention ?? ''} onChange={e => setEditIntention((e.target.value || null) as Lead['intention'])}
@@ -631,6 +654,10 @@ export function LeadDetailModal({
                             ? 'Ainda não houve resposta do lead.'
                             : 'Use o contexto para definir o próximo compromisso.'}
                       </p>
+                    </SectionCard>
+
+                    <SectionCard title="Ligações" icon={<PhoneCall size={13} />} className="flex-shrink-0 p-3 [&>div:first-child]:mb-2">
+                      <LeadCallsSection leadId={displayLead.id} />
                     </SectionCard>
 
                     <SectionCard title="Automação" icon={<Bot size={13} />} className="flex-shrink-0 p-3 [&>div:first-child]:mb-2">
