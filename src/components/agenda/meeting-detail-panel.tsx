@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CalendarDays, User, Pencil, Trash2, X, Loader2 } from 'lucide-react'
+import { CalendarDays, User, Pencil, Trash2, X, Loader2 } from '@/lib/icons'
 import { toast } from 'sonner'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -24,16 +24,16 @@ interface MeetingDetailPanelProps {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+    <p className="text-2xs font-bold text-ink-subtle   mb-3">
       {children}
     </p>
   )
 }
 
 const STATUS_CONFIG = {
-  scheduled: { label: 'Agendada', className: 'bg-emerald-50 text-emerald-700' },
-  completed: { label: 'Concluída', className: 'bg-gray-100 text-gray-600' },
-  cancelled: { label: 'Cancelada', className: 'bg-red-50 text-red-600' },
+  scheduled: { label: 'Agendada', className: 'bg-[var(--success-soft)] text-[var(--success-ink)]' },
+  completed: { label: 'Concluída', className: 'bg-surface-sunken text-ink' },
+  cancelled: { label: 'Cancelada', className: 'bg-[var(--danger-soft)] text-[var(--danger-ink)]' },
 } satisfies Record<MeetingWithLead['status'], { label: string; className: string }>
 
 function getInitials(name: string): string {
@@ -98,7 +98,7 @@ export function MeetingDetailPanel({
           className="p-0 overflow-y-auto flex flex-col gap-0"
         >
           {/* Header */}
-          <div className="px-6 pt-6 pb-5 flex-shrink-0" style={{ backgroundColor: '#0A2EAD' }}>
+          <div className="px-6 pt-6 pb-5 flex-shrink-0" style={{ background: 'linear-gradient(135deg, var(--nav-from) 0%, var(--brand) 100%)' }}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <h2 className="text-xl font-bold text-white leading-tight truncate">
@@ -123,15 +123,15 @@ export function MeetingDetailPanel({
             {/* Seção 1 — Data e Hora */}
             <div className="px-6 py-5">
               <SectionTitle>Data e Hora</SectionTitle>
-              <div className="flex items-start gap-3 bg-gray-50 rounded-xl px-3 py-3">
+              <div className="flex items-start gap-3 bg-surface-sunken rounded-xl px-3 py-3">
                 <CalendarDays size={16} className="text-alliance-blue mt-0.5 flex-shrink-0" />
-                <span className="text-sm text-gray-700 leading-relaxed capitalize">
+                <span className="text-sm text-ink leading-relaxed first-letter:uppercase">
                   {datetimeFormatted}
                 </span>
               </div>
             </div>
 
-            <div className="border-t border-gray-100" />
+            <div className="border-t border-line" />
 
             {/* Seção 2 — Consultor */}
             <div className="px-6 py-5">
@@ -143,25 +143,25 @@ export function MeetingDetailPanel({
                 >
                   {initials || <User size={14} />}
                 </div>
-                <span className="text-sm font-medium text-gray-700">{meeting.consultant_name}</span>
+                <span className="text-sm font-medium text-ink">{meeting.consultant_name}</span>
               </div>
             </div>
 
-            <div className="border-t border-gray-100" />
+            <div className="border-t border-line" />
 
             {/* Seção 3 — Observações */}
             <div className="px-6 py-5">
               <SectionTitle>Observações</SectionTitle>
               {meeting.notes ? (
-                <div className="bg-gray-50 rounded-xl px-3 py-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                <div className="bg-surface-sunken rounded-xl px-3 py-3 text-sm text-ink leading-relaxed whitespace-pre-wrap">
                   {meeting.notes}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400">Nenhuma observação.</p>
+                <p className="text-sm text-ink-subtle">Nenhuma observação.</p>
               )}
             </div>
 
-            <div className="border-t border-gray-100" />
+            <div className="border-t border-line" />
 
             {/* Seção 4 — Status */}
             <div className="px-6 py-5">
@@ -176,11 +176,11 @@ export function MeetingDetailPanel({
           </div>
 
           {/* Footer */}
-          <div className="border-t border-gray-100 px-6 py-4 flex items-center justify-between gap-3 flex-shrink-0">
+          <div className="border-t border-line px-6 py-4 flex items-center justify-between gap-3 flex-shrink-0">
             <button
               type="button"
               onClick={() => { setDeleteDialogOpen(true) }}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-colors cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[var(--danger-ink)] bg-[var(--danger-soft)] rounded-xl hover:bg-red-100 transition-colors cursor-pointer"
             >
               <Trash2 size={14} />
               Excluir
@@ -189,7 +189,7 @@ export function MeetingDetailPanel({
             <button
               type="button"
               onClick={onEdit}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-ink border border-line-strong rounded-xl hover:bg-surface-sunken transition-colors cursor-pointer"
             >
               <Pencil size={14} />
               Editar
@@ -202,9 +202,9 @@ export function MeetingDetailPanel({
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-alliance-dark">Excluir Reunião</DialogTitle>
+            <DialogTitle className="text-ink">Excluir Reunião</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-ink mt-1">
             Tem certeza que deseja excluir a reunião com{' '}
             <strong>{meeting.lead_name}</strong>? Esta ação não pode ser desfeita.
           </p>
@@ -213,7 +213,7 @@ export function MeetingDetailPanel({
               type="button"
               onClick={() => setDeleteDialogOpen(false)}
               disabled={deleteLoading}
-              className="px-4 py-2 text-sm font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 cursor-pointer"
+              className="px-4 py-2 text-sm font-semibold text-ink border border-line-strong rounded-xl hover:bg-surface-sunken transition-colors disabled:opacity-50 cursor-pointer"
             >
               Cancelar
             </button>

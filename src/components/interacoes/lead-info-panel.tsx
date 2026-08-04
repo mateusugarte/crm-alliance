@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, MapPin, Home, Zap, PauseCircle, User, Calendar, MessageSquare, Pencil, Check, UserCheck } from 'lucide-react'
+import { X, MapPin, Home, Zap, PauseCircle, User, Calendar, MessageSquare, Pencil, Check, UserCheck } from '@/lib/icons'
 import { LeadCommentsSection } from '@/components/shared/lead-comments-section'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { formatPhone } from '@/lib/format-phone'
+import { stageTokens } from '@/lib/stages'
 import type { LeadWithLastInteraction } from './types'
 
 const STAGE_LABELS: Record<string, string> = {
@@ -21,26 +22,16 @@ const STAGE_LABELS: Record<string, string> = {
   visita_confirmada: 'Venda Confirmada',
   cliente: 'Cliente',
 }
-const STAGE_COLORS: Record<string, string> = {
-  nao_respondeu: '#6B7280',
-  lead_frio: '#1E90FF',
-  lead_morno: '#FF8C00',
-  lead_quente: '#FF4500',
-  follow_up: '#9B59B6',
-  sem_interesse: '#991B1B',
-  reuniao_agendada: '#228B22',
-  visita_confirmada: '#E67E22',
-  cliente: '#2ECC71',
-}
+// Cor do estágio vem de @/lib/stages — fonte única do sistema.
 
 function getAvatarColor(name: string) {
   const colors = [
-    'linear-gradient(135deg, #1E90FF 0%, #0A2EAD 100%)',
-    'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
-    'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-    'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-    'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-    'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)',
+    'var(--brand)',
+    'var(--stage-follow-up)',
+    'var(--stage-cliente)',
+    'var(--stage-morno)',
+    'var(--stage-quente)',
+    'var(--stage-sem-interesse)',
   ]
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
@@ -63,7 +54,8 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState(lead.name)
 
-  const stageColor = STAGE_COLORS[lead.stage] ?? '#6B7280'
+  const stage = stageTokens(lead.stage)
+  const stageColor = stage.solid
   const stageLabel = STAGE_LABELS[lead.stage] ?? lead.stage
 
   const handleAssume = async () => {
@@ -137,10 +129,10 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="absolute right-0 top-0 bottom-0 w-80 z-30 flex flex-col bg-white dark:bg-[#0F1117] border-l border-gray-100 dark:border-white/5 shadow-2xl overflow-hidden"
+            className="absolute right-0 top-0 bottom-0 w-80 z-30 flex flex-col bg-surface border-l border-line elev-lg overflow-hidden"
           >
             {/* Header */}
-            <div className="px-5 pt-5 pb-4 flex items-start justify-between flex-shrink-0 border-b border-gray-100 dark:border-white/5">
+            <div className="px-5 pt-5 pb-4 flex items-start justify-between flex-shrink-0 border-b border-line">
               <div className="flex items-center gap-3">
                 <div
                   className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base"
@@ -156,31 +148,31 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
                         value={nameValue}
                         onChange={e => setNameValue(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false) }}
-                        className="font-bold text-sm text-gray-900 dark:text-white bg-gray-100 dark:bg-white/8 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1 outline-none w-36"
+                        className="font-bold text-sm text-ink bg-surface-sunken border border-line rounded-lg px-2 py-1 outline-none w-36"
                       />
-                      <button onClick={handleSaveName} className="text-emerald-500 hover:text-emerald-600">
+                      <button onClick={handleSaveName} className="text-emerald-500 hover:text-[var(--success-ink)]">
                         <Check size={14} />
                       </button>
                     </div>
                   ) : (
                     <div className="flex items-center gap-1.5">
-                      <h3 className="font-bold text-sm text-gray-900 dark:text-white leading-tight truncate max-w-[160px]">
+                      <h3 className="font-bold text-sm text-ink leading-tight truncate max-w-[160px]">
                         {lead.name}
                       </h3>
                       <button
                         onClick={() => { setEditingName(true); setNameValue(lead.name) }}
-                        className="text-gray-300 dark:text-white/20 hover:text-gray-500 dark:hover:text-white/50 transition-colors"
+                        className="text-ink-subtle hover:text-ink-muted dark:hover:text-white/50 transition-colors"
                       >
                         <Pencil size={11} />
                       </button>
                     </div>
                   )}
-                  <p className="text-gray-400 dark:text-white/35 text-xs mt-0.5">{formatPhone(lead.phone)}</p>
+                  <p className="text-ink-subtle text-xs mt-0.5">{formatPhone(lead.phone)}</p>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 dark:text-white/30 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/8 transition-all"
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-ink-subtle hover:text-ink dark:hover:text-white hover:bg-surface-sunken dark:hover:bg-surface/8 transition-all"
               >
                 <X size={15} />
               </button>
@@ -191,7 +183,7 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
 
               {/* Stage */}
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-gray-400 dark:text-white/35 uppercase tracking-wider">Estágio</span>
+                <span className="text-xs font-semibold text-ink-subtle  ">Estágio</span>
                 <span
                   className="text-xs font-semibold px-2.5 py-1 rounded-full text-white"
                   style={{ backgroundColor: stageColor }}
@@ -202,9 +194,9 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
 
               {/* Status IA */}
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-gray-400 dark:text-white/35 uppercase tracking-wider">Automação</span>
+                <span className="text-xs font-semibold text-ink-subtle  ">Automação</span>
                 {lead.automation_paused ? (
-                  <span className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-400/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-400/20">
+                  <span className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-[var(--warning-soft)] dark:bg-amber-400/10 text-[var(--warning-ink)] dark:text-amber-400 border border-[var(--warning)]/25 dark:border-amber-400/20">
                     <PauseCircle size={11} /> Pausada
                   </span>
                 ) : (
@@ -214,23 +206,23 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
                 )}
               </div>
 
-              <div className="h-px bg-gray-100 dark:bg-white/5" />
+              <div className="h-px bg-surface-sunken" />
 
               {/* Stats */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-gray-50 dark:bg-white/4 border border-gray-100 dark:border-white/5 p-3 flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5 text-gray-400 dark:text-white/35">
+                <div className="rounded-xl bg-surface-sunken border border-line p-3 flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5 text-ink-subtle">
                     <MessageSquare size={11} />
-                    <span className="text-[10px] font-semibold uppercase tracking-wider">Mensagens</span>
+                    <span className="text-2xs font-semibold  ">Mensagens</span>
                   </div>
-                  <span className="text-xl font-bold text-gray-900 dark:text-white tabular-nums">{lead.interaction_count}</span>
+                  <span className="text-xl font-bold text-ink tabular-nums">{lead.interaction_count}</span>
                 </div>
-                <div className="rounded-xl bg-gray-50 dark:bg-white/4 border border-gray-100 dark:border-white/5 p-3 flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5 text-gray-400 dark:text-white/35">
+                <div className="rounded-xl bg-surface-sunken border border-line p-3 flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5 text-ink-subtle">
                     <Calendar size={11} />
-                    <span className="text-[10px] font-semibold uppercase tracking-wider">Entrada</span>
+                    <span className="text-2xs font-semibold  ">Entrada</span>
                   </div>
-                  <span className="text-sm font-bold text-gray-900 dark:text-white">
+                  <span className="text-sm font-bold text-ink">
                     {format(new Date(lead.created_at), 'dd/MM/yy', { locale: ptBR })}
                   </span>
                 </div>
@@ -240,14 +232,14 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
               <div className="flex flex-col gap-2.5">
                 {lead.city && (
                   <div className="flex items-center gap-2.5">
-                    <MapPin size={13} className="text-gray-300 dark:text-white/25 flex-shrink-0" />
-                    <span className="text-sm text-gray-700 dark:text-white/70">{lead.city}</span>
+                    <MapPin size={13} className="text-ink-subtle flex-shrink-0" />
+                    <span className="text-sm text-ink">{lead.city}</span>
                   </div>
                 )}
                 {lead.intention && (
                   <div className="flex items-center gap-2.5">
-                    <User size={13} className="text-gray-300 dark:text-white/25 flex-shrink-0" />
-                    <span className="text-sm text-gray-700 dark:text-white/70 capitalize">{lead.intention}</span>
+                    <User size={13} className="text-ink-subtle flex-shrink-0" />
+                    <span className="text-sm text-ink first-letter:uppercase">{lead.intention}</span>
                   </div>
                 )}
                 {lead.imovel_interesse && (
@@ -260,16 +252,16 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
 
               {/* Summary */}
               {lead.summary && (
-                <div className="rounded-xl bg-gray-50 dark:bg-white/4 border border-gray-100 dark:border-white/5 p-3">
-                  <p className="text-[10px] font-bold text-gray-400 dark:text-white/30 uppercase tracking-wider mb-1.5">Resumo IA</p>
-                  <p className="text-xs text-gray-600 dark:text-white/55 leading-relaxed">{lead.summary}</p>
+                <div className="rounded-xl bg-surface-sunken border border-line p-3">
+                  <p className="text-2xs font-bold text-ink-subtle   mb-1.5">Resumo IA</p>
+                  <p className="text-xs text-ink leading-relaxed">{lead.summary}</p>
                 </div>
               )}
 
               {/* Comentários internos */}
-              <div className="h-px bg-gray-100 dark:bg-white/5" />
+              <div className="h-px bg-surface-sunken" />
               <div>
-                <p className="text-[10px] font-bold text-gray-400 dark:text-white/30 uppercase tracking-wider mb-2">
+                <p className="text-2xs font-bold text-ink-subtle   mb-2">
                   Comentários internos
                 </p>
                 <LeadCommentsSection
@@ -280,18 +272,18 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
             </div>
 
             {/* Footer — Assumir */}
-            <div className="px-5 py-4 flex-shrink-0 border-t border-gray-100 dark:border-white/5">
+            <div className="px-5 py-4 flex-shrink-0 border-t border-line">
               {isAssumed ? (
-                <div className="w-full rounded-xl py-3 flex items-center justify-center gap-2 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
-                  <UserCheck size={15} className="text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Conversa assumida</span>
+                <div className="w-full rounded-xl py-3 flex items-center justify-center gap-2 bg-[var(--success-soft)] dark:bg-emerald-500/10 border border-[var(--success)]/25 dark:border-emerald-500/20">
+                  <UserCheck size={15} className="text-[var(--success-ink)] dark:text-emerald-400" />
+                  <span className="text-sm font-semibold text-[var(--success-ink)] dark:text-emerald-400">Conversa assumida</span>
                 </div>
               ) : (
                 <button
                   onClick={handleAssume}
                   disabled={assumindo}
                   className="w-full rounded-xl py-3 text-sm font-bold text-white transition-all duration-200 disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer"
-                  style={{ background: 'linear-gradient(135deg, #1E90FF 0%, #0A2EAD 100%)' }}
+                  style={{ background: 'var(--brand)' }}
                 >
                   {assumindo ? (
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -301,7 +293,7 @@ export function LeadInfoPanel({ lead, open, onClose, onLeadUpdated, currentUserI
                   {assumindo ? 'Assumindo...' : 'Assumir conversa'}
                 </button>
               )}
-              <p className="text-[10px] text-gray-300 dark:text-white/20 text-center mt-2">
+              <p className="text-2xs text-ink-subtle text-center mt-2">
                 Pausará a IA e atribuirá a você
               </p>
             </div>

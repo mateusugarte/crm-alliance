@@ -1,122 +1,115 @@
 'use client'
 
+import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Users, Calendar, MessageSquareOff, Flame, PauseCircle, Home, Gauge, Snowflake, ThermometerSun, Zap } from 'lucide-react'
-import { staggerContainer } from '@/lib/animations'
-import { MetricCard } from './metric-card'
+import {
+  CalendarCheck, Flame, MessageSquareOff, PauseCircle, PhoneCall, ICON,
+} from '@/lib/icons'
+import { staggerContainer, staggerItem } from '@/lib/animations'
 
 interface MetricsData {
   total_leads: number
-  reunioes: number
-  sem_resposta: number
+  chegaram_reuniao: number
+  follow_up: number
+  sem_interesse: number
+  vendas: number
+  sem_resposta_contexto: number
+  frios_sem_disparo: number
   aquecidos: number
+  aguardando_primeiro_contato: number
   pausadas: number
-  disponiveis: number
-  score_medio: number
-  score_medio_frio: number
-  score_medio_morno: number
-  score_medio_quente: number
 }
-
 interface MetricsGridProps {
   metrics: MetricsData
 }
 
+function ActionMetric({
+  label,
+  value,
+  detail,
+  icon,
+  href,
+  accent,
+}: {
+  label: string
+  value: number
+  detail: React.ReactNode
+  icon: React.ReactNode
+  href?: string
+  accent: string
+}) {
+  const content = (
+    <motion.div
+      variants={staggerItem}
+      className="group h-full rounded-[var(--radius-card)] border border-line bg-surface p-5 elev-sm transition-ui hover:border-line-strong"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium text-ink-muted">{label}</p>
+          <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums text-ink">{value.toLocaleString('pt-BR')}</p>
+        </div>
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ color: accent, backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)` }}>
+          {icon}
+        </span>
+      </div>
+      <div className="mt-4 border-t border-line pt-3 text-xs text-ink-muted">{detail}</div>
+    </motion.div>
+  )
+
+  return href ? <Link href={href} className="block h-full outline-none focus-visible:ring-2 focus-visible:ring-ring">{content}</Link> : content
+}
+
 export function MetricsGrid({ metrics }: MetricsGridProps) {
   return (
-    <motion.div
-      variants={staggerContainer}
-      initial="initial"
-      animate="animate"
-      className="flex flex-col gap-3"
-    >
-      {/* Linha 1+2: Featured (2 rows) + 4 cards */}
-      <div
-        className="grid gap-3"
-        style={{ gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: 'auto auto' }}
-      >
-        {/* Featured — span 2 rows */}
-        <div style={{ gridRow: 'span 2' }}>
-          <MetricCard
-            label="Total de Leads"
-            value={metrics.total_leads}
-            variant="featured"
-            icon={<Users size={14} />}
-            className="h-full"
-          />
-        </div>
-
-        <MetricCard
-          label="Reuniões"
-          value={metrics.reunioes}
-          icon={<Calendar size={14} />}
-          accentColor="var(--color-stage-follow-up)"
-        />
-        <MetricCard
-          label="Leads Quentes"
+    <motion.section variants={staggerContainer} initial="initial" animate="animate" className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-3">
+        <ActionMetric
+          label="Quentes agora"
           value={metrics.aquecidos}
-          icon={<Flame size={14} />}
-          accentColor="var(--color-stage-quente)"
+          detail="Abrir os leads prontos para contato"
+          icon={<Flame size={ICON.md} />}
+          href="/kanban?stage=lead_quente"
+          accent="var(--stage-quente)"
         />
-
-        <MetricCard
-          label="Sem Resposta"
-          value={metrics.sem_resposta}
-          icon={<MessageSquareOff size={14} />}
-          accentColor="var(--color-feedback-error)"
+        <ActionMetric
+          label="Aguardando 1º contato"
+          value={metrics.aguardando_primeiro_contato}
+          detail="Qualificados que ainda não têm ligação registrada"
+          icon={<PhoneCall size={ICON.md} />}
+          accent="var(--brand)"
         />
-        <MetricCard
-          label="Pausados"
-          value={metrics.pausadas}
-          icon={<PauseCircle size={14} />}
-          accentColor="var(--color-feedback-warning)"
-        />
-      </div>
-
-      {/* Linha 3: funil */}
-      <MetricCard
-        label="Leads pós-reunião"
-        value={metrics.disponiveis}
-        variant="wide"
-        icon={<Home size={14} />}
-        accentColor="var(--color-stage-reuniao)"
-      />
-
-      {/* Linha 4: score por temperatura */}
-      <div className="grid grid-cols-4 gap-3">
-        <MetricCard
-          label="Score médio global"
-          value={metrics.score_medio}
-          variant="wide"
-          icon={<Gauge size={14} />}
-          accentColor="#185FA5"
-          decimals={1}
-        />
-        <MetricCard
-          label="Score médio frio"
-          value={metrics.score_medio_frio}
-          variant="wide"
-          icon={<Snowflake size={14} />}
-          accentColor="var(--color-stage-frio)"
-          decimals={1}
-        />
-        <MetricCard
-          label="Score médio morno"
-          value={metrics.score_medio_morno}
-          variant="wide"
-          icon={<ThermometerSun size={14} />}
-          accentColor="var(--color-stage-morno)"
-          decimals={1}
-        />
-        <MetricCard
-          label="Score médio quente"
-          value={metrics.score_medio_quente}
-          variant="wide"
-          icon={<Zap size={14} />}
-          accentColor="var(--color-stage-quente)"
-          decimals={1}
+        <ActionMetric
+          label="Chegaram à reunião"
+          value={metrics.chegaram_reuniao}
+          detail={
+            <span className="flex flex-wrap gap-x-3 gap-y-1">
+              <span>{metrics.follow_up} pensando</span>
+              <span>{metrics.sem_interesse} disseram não</span>
+              <span>{metrics.vendas} compraram</span>
+            </span>
+          }
+          icon={<CalendarCheck size={ICON.md} />}
+          accent="var(--stage-reuniao)"
         />
       </div>
-    </motion.div>
+
+      <motion.div variants={staggerItem} className="grid overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface elev-sm sm:grid-cols-2">
+        <div className="flex items-center gap-3 border-b border-line px-5 py-3.5 sm:border-b-0 sm:border-r">
+          <MessageSquareOff size={ICON.md} className="text-[var(--stage-frio)]" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-ink-muted">Frios sem nenhum disparo</p>
+            <p className="text-lg font-semibold tabular-nums text-ink">{metrics.frios_sem_disparo.toLocaleString('pt-BR')}</p>
+          </div>
+          <span className="text-2xs text-ink-subtle">{metrics.sem_resposta_contexto.toLocaleString('pt-BR')} sem interação</span>
+        </div>
+        <div className="flex items-center gap-3 px-5 py-3.5">
+          <PauseCircle size={ICON.md} className="text-warning" />
+          <div>
+            <p className="text-xs text-ink-muted">Automação pausada</p>
+            <p className="text-lg font-semibold tabular-nums text-ink">{metrics.pausadas.toLocaleString('pt-BR')}</p>
+          </div>
+        </div>
+      </motion.div>
+    </motion.section>
   )
 }

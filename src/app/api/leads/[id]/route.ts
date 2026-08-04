@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/types'
 import { normalizeLeadName } from '@/lib/lead-name'
+import { compactCommercialSummary } from '@/lib/lead-summary'
 
 type LeadUpdate = Database['public']['Tables']['leads']['Update']
 
@@ -55,7 +56,15 @@ export async function PUT(
     intention: LeadUpdate['intention']
     imovel_interesse: string
     summary: string
+    motivo_perda: string | null
   }>
+
+  if (body.stage === 'sem_interesse' && !body.motivo_perda?.trim()) {
+    return NextResponse.json(
+      { error: 'Informe o motivo da perda antes de mover o lead para Sem interesse.' },
+      { status: 400 }
+    )
+  }
 
   const update: LeadUpdate = {
     ...(body.name !== undefined && { name: normalizeLeadName(body.name) }),
@@ -65,6 +74,16 @@ export async function PUT(
     ...(body.intention !== undefined && { intention: body.intention }),
     ...(body.imovel_interesse !== undefined && { imovel_interesse: body.imovel_interesse }),
     ...(body.summary !== undefined && { summary: body.summary }),
+    ...(body.summary !== undefined && {
+      summary_comercial_curto: compactCommercialSummary({
+        summary: body.summary,
+        city: body.city,
+        intention: body.intention,
+        propertyInterest: body.imovel_interesse,
+      }),
+      summary_comercial_atualizado_em: new Date().toISOString(),
+    }),
+    ...(body.motivo_perda !== undefined && { motivo_perda: body.motivo_perda?.trim() || null }),
     updated_at: new Date().toISOString(),
   }
 

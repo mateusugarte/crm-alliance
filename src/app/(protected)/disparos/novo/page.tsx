@@ -10,7 +10,7 @@ import {
   ArrowLeft, ArrowRight, Check, RefreshCw, Plus, X, Sparkles,
   FileText, Users, Clock, Shuffle, Phone, AlertTriangle,
   MessageSquare, Send, Timer, Zap,
-} from 'lucide-react'
+} from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { disparoFetch } from '@/lib/disparo-api'
 import type { Database, Template, WaInstance } from '@/lib/supabase/types'
@@ -416,14 +416,14 @@ export default function NovoDisparoPage() {
       <div>
         <button
           onClick={() => router.push('/disparos')}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer mb-3"
+          className="flex items-center gap-2 text-sm text-ink-muted hover:text-foreground transition-colors cursor-pointer mb-3"
         >
           <ArrowLeft size={14} /> Disparos
         </button>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-alliance-blue/60 uppercase tracking-widest mb-1">Novo Disparo</p>
-            <h1 className="text-2xl font-bold text-alliance-dark dark:text-white">Configurar Campanha</h1>
+            <p className="text-xs font-semibold text-alliance-blue/60   mb-1">Novo Disparo</p>
+            <h1 className="text-2xl font-bold text-ink dark:text-white">Configurar Campanha</h1>
           </div>
           {/* Step indicators */}
           <div className="flex items-center gap-2">
@@ -436,13 +436,13 @@ export default function NovoDisparoPage() {
                   <div className="flex items-center gap-1.5">
                     <div className={cn(
                       'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors',
-                      current ? 'bg-alliance-blue text-white' : done ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground',
+                      current ? 'bg-alliance-blue text-white' : done ? 'bg-green-500 text-white' : 'bg-muted text-ink-muted',
                     )}>
                       {done ? <Check size={12} /> : s}
                     </div>
                     <span className={cn(
                       'text-xs font-medium hidden md:inline',
-                      current ? 'text-alliance-blue' : done ? 'text-green-600' : 'text-muted-foreground',
+                      current ? 'text-alliance-blue' : done ? 'text-green-600' : 'text-ink-muted',
                     )}>{label}</span>
                   </div>
                   {s < STEPS.length && <div className="w-6 h-px bg-border" />}
@@ -461,11 +461,11 @@ export default function NovoDisparoPage() {
           <div className="flex flex-col gap-6">
             <div className="flex items-center gap-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
               <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />
-              <p className="text-xs text-amber-600 dark:text-amber-400">Recomendamos no máximo 10 contatos a cada 4 horas para evitar bloqueios.</p>
+              <p className="text-xs text-[var(--warning-ink)] dark:text-amber-400">Recomendamos no máximo 10 contatos a cada 4 horas para evitar bloqueios.</p>
             </div>
 
             {/* Manual phone input */}
-            <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3">
+            <div className="bg-card border border-border rounded-[var(--radius-panel)] p-5 flex flex-col gap-3">
               <div className="flex items-center gap-2 mb-1">
                 <Phone size={15} className="text-alliance-blue" />
                 <h3 className="text-sm font-semibold text-foreground">Adicionar número manual</h3>
@@ -478,9 +478,9 @@ export default function NovoDisparoPage() {
                     onChange={e => { setManualInput(e.target.value); setPhoneError(null) }}
                     onKeyDown={e => e.key === 'Enter' && addManualPhone()}
                     placeholder="5511999999999"
-                    className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-muted-foreground/40"
+                    className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-ink-muted/40"
                   />
-                  {phoneError && <p className="text-xs text-red-500">{phoneError}</p>}
+                  {phoneError && <p className="text-xs text-[var(--danger-ink)]">{phoneError}</p>}
                 </div>
                 <button
                   onClick={addManualPhone}
@@ -489,7 +489,7 @@ export default function NovoDisparoPage() {
                   <Plus size={14} /> Adicionar
                 </button>
               </div>
-              <p className="text-xs text-muted-foreground">Digite no formato <span className="font-mono font-medium">5511999999999</span> (DDI+DDD+número)</p>
+              <p className="text-xs text-ink-muted">Digite no formato <span className="font-mono font-medium">5511999999999</span> (DDI+DDD+número)</p>
 
               {manualPhones.length > 0 && (
                 <div className="flex flex-col gap-1.5 pt-1 border-t border-border">
@@ -497,7 +497,7 @@ export default function NovoDisparoPage() {
                     <div key={p} className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-lg">
                       <span className="text-xs font-mono text-foreground">{p.replace('@s.whatsapp.net', '')}</span>
                       <button onClick={() => removeManualPhone(p)} className="p-1 rounded hover:bg-muted transition-colors cursor-pointer">
-                        <X size={12} className="text-muted-foreground" />
+                        <X size={12} className="text-ink-muted" />
                       </button>
                     </div>
                   ))}
@@ -506,13 +506,13 @@ export default function NovoDisparoPage() {
             </div>
 
             {/* Leads from DB */}
-            <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <div className="bg-card border border-border rounded-[var(--radius-panel)] overflow-hidden">
               <div className="px-5 py-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Users size={15} className="text-muted-foreground" />
+                  <Users size={15} className="text-ink-muted" />
                   <h3 className="text-sm font-semibold text-foreground">Leads do CRM</h3>
                 </div>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-ink-muted">
                   {selectedLeadIds.size} selecionado{selectedLeadIds.size !== 1 ? 's' : ''}
                   {manualPhones.length > 0 && ` · ${manualPhones.length} manual`}
                 </span>
@@ -520,7 +520,7 @@ export default function NovoDisparoPage() {
 
               {leadsLoading ? (
                 <div className="flex items-center justify-center py-12">
-                  <RefreshCw size={18} className="animate-spin text-muted-foreground" />
+                  <RefreshCw size={18} className="animate-spin text-ink-muted" />
                 </div>
               ) : (
                 <div className="overflow-x-auto max-h-[380px] overflow-y-auto">
@@ -535,10 +535,10 @@ export default function NovoDisparoPage() {
                             className="cursor-pointer"
                           />
                         </th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Nome</th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Telefone</th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">Reativações</th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Última vez</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-ink-muted">Nome</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-ink-muted">Telefone</th>
+                        <th className="text-right px-4 py-3 text-xs font-semibold text-ink-muted">Reativações</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-ink-muted">Última vez</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -558,9 +558,9 @@ export default function NovoDisparoPage() {
                             />
                           </td>
                           <td className="px-4 py-2.5 font-medium text-foreground">{lead.name}</td>
-                          <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{lead.phone}</td>
-                          <td className="px-4 py-2.5 text-right text-muted-foreground">{lead.reactivation_count ?? 0}×</td>
-                          <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                          <td className="px-4 py-2.5 font-mono text-xs text-ink-muted">{lead.phone}</td>
+                          <td className="px-4 py-2.5 text-right text-ink-muted">{lead.reactivation_count ?? 0}×</td>
+                          <td className="px-4 py-2.5 text-xs text-ink-muted">
                             {lead.last_reactivated_at
                               ? format(new Date(lead.last_reactivated_at), 'dd/MM/yy HH:mm', { locale: ptBR })
                               : '—'}
@@ -569,7 +569,7 @@ export default function NovoDisparoPage() {
                       ))}
                       {leads.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="text-center py-10 text-sm text-muted-foreground">Nenhum lead encontrado</td>
+                          <td colSpan={5} className="text-center py-10 text-sm text-ink-muted">Nenhum lead encontrado</td>
                         </tr>
                       )}
                     </tbody>
@@ -589,36 +589,36 @@ export default function NovoDisparoPage() {
               <button
                 onClick={() => { setMessageMode('template'); setContextMessages({}) }}
                 className={cn(
-                  'flex flex-col items-start gap-3 p-5 rounded-2xl border-2 text-left transition-colors cursor-pointer',
+                  'flex flex-col items-start gap-3 p-5 rounded-[var(--radius-panel)] border-2 text-left transition-colors cursor-pointer',
                   messageMode === 'template'
                     ? 'border-alliance-blue bg-alliance-blue/5'
                     : 'border-border bg-card hover:bg-muted',
                 )}
               >
                 <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', messageMode === 'template' ? 'bg-alliance-blue/10' : 'bg-muted')}>
-                  <Shuffle size={18} className={messageMode === 'template' ? 'text-alliance-blue' : 'text-muted-foreground'} />
+                  <Shuffle size={18} className={messageMode === 'template' ? 'text-alliance-blue' : 'text-ink-muted'} />
                 </div>
                 <div>
                   <p className="font-semibold text-sm text-foreground">Usar Template</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Selecione um template e misture a mensagem para cada contato</p>
+                  <p className="text-xs text-ink-muted mt-0.5">Selecione um template e misture a mensagem para cada contato</p>
                 </div>
               </button>
 
               <button
                 onClick={() => { setMessageMode('context'); setMixedMessages({}); setSelectedTemplate(null) }}
                 className={cn(
-                  'flex flex-col items-start gap-3 p-5 rounded-2xl border-2 text-left transition-colors cursor-pointer',
+                  'flex flex-col items-start gap-3 p-5 rounded-[var(--radius-panel)] border-2 text-left transition-colors cursor-pointer',
                   messageMode === 'context'
                     ? 'border-alliance-blue bg-alliance-blue/5'
                     : 'border-border bg-card hover:bg-muted',
                 )}
               >
                 <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', messageMode === 'context' ? 'bg-alliance-blue/10' : 'bg-muted')}>
-                  <Sparkles size={18} className={messageMode === 'context' ? 'text-alliance-blue' : 'text-muted-foreground'} />
+                  <Sparkles size={18} className={messageMode === 'context' ? 'text-alliance-blue' : 'text-ink-muted'} />
                 </div>
                 <div>
                   <p className="font-semibold text-sm text-foreground">Criar com Contexto</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">IA analisa o histórico e cria mensagem personalizada para reengajar</p>
+                  <p className="text-xs text-ink-muted mt-0.5">IA analisa o histórico e cria mensagem personalizada para reengajar</p>
                 </div>
               </button>
             </div>
@@ -635,18 +635,18 @@ export default function NovoDisparoPage() {
                   </div>
                 )}
 
-                <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                <div className="bg-card border border-border rounded-[var(--radius-panel)] overflow-hidden">
                   <div className="px-5 py-4 border-b border-border">
                     <h3 className="text-sm font-semibold text-foreground">Selecionar template</h3>
                   </div>
                   {templatesLoading ? (
                     <div className="flex items-center justify-center py-10">
-                      <RefreshCw size={18} className="animate-spin text-muted-foreground" />
+                      <RefreshCw size={18} className="animate-spin text-ink-muted" />
                     </div>
                   ) : templates.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-10 gap-2">
-                      <FileText size={28} className="text-muted-foreground/20" />
-                      <p className="text-sm text-muted-foreground">Nenhum template. Crie um na aba Templates.</p>
+                      <FileText size={28} className="text-ink-muted/20" />
+                      <p className="text-sm text-ink-muted">Nenhum template. Crie um na aba Templates.</p>
                     </div>
                   ) : (
                     <div className="flex flex-col divide-y divide-border max-h-[260px] overflow-y-auto">
@@ -663,11 +663,11 @@ export default function NovoDisparoPage() {
                             'w-4 h-4 rounded-full border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors',
                             selectedTemplate?.id === t.id ? 'bg-alliance-blue border-alliance-blue' : 'border-border',
                           )}>
-                            {selectedTemplate?.id === t.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                            {selectedTemplate?.id === t.id && <div className="w-1.5 h-1.5 rounded-full bg-surface" />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground">{t.name}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{t.content}</p>
+                            <p className="text-xs text-ink-muted mt-0.5 line-clamp-2">{t.content}</p>
                           </div>
                         </button>
                       ))}
@@ -682,7 +682,7 @@ export default function NovoDisparoPage() {
                       disabled={mixing}
                       className={cn(
                         'flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
-                        !mixing ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-muted-foreground cursor-not-allowed',
+                        !mixing ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-ink-muted cursor-not-allowed',
                       )}
                     >
                       {mixing
@@ -692,8 +692,8 @@ export default function NovoDisparoPage() {
 
                     {mixError && (
                       <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                        <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
-                        <p className="text-xs text-red-500">{mixError}</p>
+                        <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0" />
+                        <p className="text-xs text-[var(--danger-ink)]">{mixError}</p>
                       </div>
                     )}
 
@@ -711,13 +711,13 @@ export default function NovoDisparoPage() {
                           if (!msg) return null
                           return (
                             <div key={key} className="px-4 py-3 bg-muted/50 rounded-xl border border-border">
-                              <p className="text-xs font-semibold text-muted-foreground mb-1">{c.name}</p>
+                              <p className="text-xs font-semibold text-ink-muted mb-1">{c.name}</p>
                               <p className="text-sm text-foreground whitespace-pre-wrap">{msg}</p>
                             </div>
                           )
                         })}
                         {allContacts.length > 3 && (
-                          <p className="text-xs text-muted-foreground text-center">+ {allContacts.length - 3} mais</p>
+                          <p className="text-xs text-ink-muted text-center">+ {allContacts.length - 3} mais</p>
                         )}
                       </div>
                     )}
@@ -732,7 +732,7 @@ export default function NovoDisparoPage() {
                 {allContacts.some(c => c.id === null) && (
                   <div className="flex items-start gap-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                     <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                    <p className="text-xs text-[var(--warning-ink)] dark:text-amber-400">
                       {allContacts.filter(c => c.id === null).length} número{allContacts.filter(c => c.id === null).length !== 1 ? 's' : ''} manual não possui histórico no CRM e não será incluído neste modo.
                     </p>
                   </div>
@@ -742,7 +742,7 @@ export default function NovoDisparoPage() {
                 {allContacts.filter(c => c.id !== null).length > 0 && (
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <p className="text-xs font-semibold text-ink-muted  ">
                         Contexto por lead <span className="font-normal normal-case">(opcional — enriquece a geração da IA)</span>
                       </p>
                       <button
@@ -752,7 +752,7 @@ export default function NovoDisparoPage() {
                           'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer',
                           !generatingContext
                             ? 'bg-alliance-blue text-white hover:bg-alliance-dark'
-                            : 'bg-muted text-muted-foreground cursor-not-allowed',
+                            : 'bg-muted text-ink-muted cursor-not-allowed',
                         )}
                       >
                         {generatingContextId === 'all'
@@ -769,7 +769,7 @@ export default function NovoDisparoPage() {
                         <div
                           key={leadId}
                           className={cn(
-                            'flex flex-col gap-3 p-4 rounded-2xl border transition-colors',
+                            'flex flex-col gap-3 p-4 rounded-[var(--radius-panel)] border transition-colors',
                             hasMessage ? 'border-green-500/30 bg-green-500/5' : 'border-border bg-card',
                           )}
                         >
@@ -778,12 +778,12 @@ export default function NovoDisparoPage() {
                             <div className="flex items-center gap-2">
                               <div className={cn(
                                 'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0',
-                                hasMessage ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground',
+                                hasMessage ? 'bg-green-500 text-white' : 'bg-muted text-ink-muted',
                               )}>
                                 {hasMessage ? <Check size={12} /> : c.name.charAt(0).toUpperCase()}
                               </div>
                               <p className="text-sm font-semibold text-foreground">{c.name}</p>
-                              <span className="text-xs font-mono text-muted-foreground">{c.phone.replace('@s.whatsapp.net', '')}</span>
+                              <span className="text-xs font-mono text-ink-muted">{c.phone.replace('@s.whatsapp.net', '')}</span>
                             </div>
                             <button
                               onClick={() => handleGenerateContext(leadId)}
@@ -794,7 +794,7 @@ export default function NovoDisparoPage() {
                                   ? hasMessage
                                     ? 'text-green-700 bg-green-500/10 hover:bg-green-500/20'
                                     : 'text-alliance-blue bg-alliance-blue/10 hover:bg-alliance-blue/20'
-                                  : 'text-muted-foreground bg-muted cursor-not-allowed',
+                                  : 'text-ink-muted bg-muted cursor-not-allowed',
                               )}
                             >
                               {isGenerating
@@ -807,7 +807,7 @@ export default function NovoDisparoPage() {
 
                           {/* Manual context input */}
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                            <label className="text-2xs font-semibold text-ink-muted  ">
                               Contexto manual (opcional)
                             </label>
                             <textarea
@@ -815,9 +815,9 @@ export default function NovoDisparoPage() {
                               onChange={e => setManualContexts(prev => ({ ...prev, [leadId]: e.target.value }))}
                               placeholder="Ex: estava interessada em apto de 3 quartos, mencionou que compraria em junho, preocupação com o valor de entrada..."
                               rows={2}
-                              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-xs text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-muted-foreground/40"
+                              className="w-full px-3 py-2 rounded-xl border border-border bg-background text-xs text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-ink-muted/40"
                             />
-                            <p className="text-[10px] text-muted-foreground">
+                            <p className="text-2xs text-ink-muted">
                               Adicione detalhes que a IA usará para gerar uma mensagem de reativação mais precisa e com sentido
                             </p>
                           </div>
@@ -825,7 +825,7 @@ export default function NovoDisparoPage() {
                           {/* Generated message preview */}
                           {hasMessage && (
                             <div className="px-3 py-2.5 bg-background rounded-xl border border-green-500/20">
-                              <p className="text-[10px] font-semibold text-green-700 dark:text-green-500 mb-1 uppercase tracking-wider">Mensagem gerada</p>
+                              <p className="text-2xs font-semibold text-green-700 dark:text-green-500 mb-1  ">Mensagem gerada</p>
                               <p className="text-sm text-foreground whitespace-pre-wrap">{contextMessages[leadId]}</p>
                             </div>
                           )}
@@ -837,8 +837,8 @@ export default function NovoDisparoPage() {
 
                 {contextError && (
                   <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                    <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
-                    <p className="text-xs text-red-500">{contextError}</p>
+                    <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0" />
+                    <p className="text-xs text-[var(--danger-ink)]">{contextError}</p>
                   </div>
                 )}
 
@@ -861,23 +861,23 @@ export default function NovoDisparoPage() {
 
             {/* Campaign name */}
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Nome da campanha <span className="text-red-500">*</span>
+              <label className="text-xs font-semibold text-ink-muted  ">
+                Nome da campanha <span className="text-[var(--danger-ink)]">*</span>
               </label>
               <input
                 type="text"
                 value={campaignName}
                 onChange={e => setCampaignName(e.target.value)}
                 placeholder="Ex: Reativação Maio 2026"
-                className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-muted-foreground/50"
+                className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-ink-muted/50"
               />
             </div>
 
             {/* Interval */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <Clock size={15} className="text-muted-foreground" />
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <Clock size={15} className="text-ink-muted" />
+                <label className="text-xs font-semibold text-ink-muted  ">
                   Intervalo entre envios
                 </label>
               </div>
@@ -894,15 +894,15 @@ export default function NovoDisparoPage() {
                     )}
                   >
                     <p className="font-semibold">{opt.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-xs text-ink-muted mt-0.5">
                       Cada contato recebe um intervalo aleatório nesta faixa
                     </p>
                   </button>
                 ))}
               </div>
               <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 rounded-xl">
-                <Timer size={13} className="text-muted-foreground flex-shrink-0" />
-                <p className="text-xs text-muted-foreground">
+                <Timer size={13} className="text-ink-muted flex-shrink-0" />
+                <p className="text-xs text-ink-muted">
                   O sistema gera minutos, segundos e milissegundos aleatórios para cada contato dentro da faixa selecionada
                 </p>
               </div>
@@ -910,8 +910,8 @@ export default function NovoDisparoPage() {
 
             {/* Typing delay info */}
             <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 rounded-xl">
-              <Zap size={13} className="text-muted-foreground flex-shrink-0" />
-              <p className="text-xs text-muted-foreground">
+              <Zap size={13} className="text-ink-muted flex-shrink-0" />
+              <p className="text-xs text-ink-muted">
                 <span className="font-medium text-foreground">Delay de digitação:</span> entre 2 e 5 segundos aleatórios por contato — simula digitação humana
               </p>
             </div>
@@ -919,15 +919,15 @@ export default function NovoDisparoPage() {
             {/* Instance */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <MessageSquare size={15} className="text-muted-foreground" />
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Instância WhatsApp <span className="text-red-500">*</span>
+                <MessageSquare size={15} className="text-ink-muted" />
+                <label className="text-xs font-semibold text-ink-muted  ">
+                  Instância WhatsApp <span className="text-[var(--danger-ink)]">*</span>
                 </label>
               </div>
               {instances.length === 0 ? (
                 <div className="flex items-start gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                  <AlertTriangle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-500">Nenhuma instância conectada. Vá à aba Instâncias.</p>
+                  <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-[var(--danger-ink)]">Nenhuma instância conectada. Vá à aba Instâncias.</p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
@@ -945,7 +945,7 @@ export default function NovoDisparoPage() {
                       <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
                       <div>
                         <p className="font-medium text-foreground">{inst.name}</p>
-                        {inst.phone && <p className="text-xs text-muted-foreground">{inst.phone}</p>}
+                        {inst.phone && <p className="text-xs text-ink-muted">{inst.phone}</p>}
                       </div>
                     </button>
                   ))}
@@ -961,16 +961,16 @@ export default function NovoDisparoPage() {
 
             {/* Summary cards */}
             <div className="grid grid-cols-3 gap-4">
-              <div className="bg-card border border-border rounded-2xl p-4">
-                <p className="text-xs text-muted-foreground mb-1">Total de contatos</p>
+              <div className="bg-card border border-border rounded-[var(--radius-panel)] p-4">
+                <p className="text-xs text-ink-muted mb-1">Total de contatos</p>
                 <p className="text-2xl font-bold text-foreground">{schedule.length}</p>
               </div>
-              <div className="bg-card border border-border rounded-2xl p-4">
-                <p className="text-xs text-muted-foreground mb-1">Tempo estimado</p>
+              <div className="bg-card border border-border rounded-[var(--radius-panel)] p-4">
+                <p className="text-xs text-ink-muted mb-1">Tempo estimado</p>
                 <p className="text-2xl font-bold text-foreground">{formatEstimated(estimatedMs)}</p>
               </div>
-              <div className="bg-card border border-border rounded-2xl p-4">
-                <p className="text-xs text-muted-foreground mb-1">Intervalo</p>
+              <div className="bg-card border border-border rounded-[var(--radius-panel)] p-4">
+                <p className="text-xs text-ink-muted mb-1">Intervalo</p>
                 <p className="text-2xl font-bold text-foreground">{INTERVAL_OPTIONS[intervalOption]?.label}</p>
               </div>
             </div>
@@ -983,13 +983,13 @@ export default function NovoDisparoPage() {
 
             {saveError && (
               <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
-                <p className="text-xs text-red-500">{saveError}</p>
+                <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0" />
+                <p className="text-xs text-[var(--danger-ink)]">{saveError}</p>
               </div>
             )}
 
             {/* Schedule table */}
-            <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <div className="bg-card border border-border rounded-[var(--radius-panel)] overflow-hidden">
               <div className="px-5 py-4 border-b border-border">
                 <h3 className="text-sm font-semibold text-foreground">Cronograma de envios</h3>
               </div>
@@ -997,13 +997,13 @@ export default function NovoDisparoPage() {
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-card">
                     <tr className="border-b border-border">
-                      <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">#</th>
-                      <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contato</th>
-                      <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mensagem</th>
-                      <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-ink-muted  ">#</th>
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-ink-muted  ">Contato</th>
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-ink-muted  ">Mensagem</th>
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-ink-muted  ">
                         <div className="flex items-center gap-1"><Clock size={11} /> Intervalo</div>
                       </th>
-                      <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-ink-muted  ">
                         <div className="flex items-center gap-1"><Zap size={11} /> Delay</div>
                       </th>
                     </tr>
@@ -1011,13 +1011,13 @@ export default function NovoDisparoPage() {
                   <tbody className="divide-y divide-border">
                     {schedule.map((s, i) => (
                       <tr key={s.phone + i} className="hover:bg-muted/20 transition-colors">
-                        <td className="px-5 py-3 text-xs text-muted-foreground font-mono">{i + 1}</td>
+                        <td className="px-5 py-3 text-xs text-ink-muted font-mono">{i + 1}</td>
                         <td className="px-5 py-3">
                           <p className="font-medium text-foreground text-sm">{s.name}</p>
-                          <p className="text-xs text-muted-foreground font-mono">{s.phone.replace('@s.whatsapp.net', '')}</p>
+                          <p className="text-xs text-ink-muted font-mono">{s.phone.replace('@s.whatsapp.net', '')}</p>
                         </td>
                         <td className="px-5 py-3 max-w-[240px]">
-                          <p className="text-xs text-muted-foreground line-clamp-2">
+                          <p className="text-xs text-ink-muted line-clamp-2">
                             {s.message || <span className="text-red-400 italic">sem mensagem</span>}
                           </p>
                         </td>
@@ -1027,7 +1027,7 @@ export default function NovoDisparoPage() {
                           </span>
                         </td>
                         <td className="px-5 py-3">
-                          <span className="text-xs font-mono text-muted-foreground">{s.delayMs} ms</span>
+                          <span className="text-xs font-mono text-ink-muted">{s.delayMs} ms</span>
                         </td>
                       </tr>
                     ))}
@@ -1043,7 +1043,7 @@ export default function NovoDisparoPage() {
       <div className="flex items-center justify-between pt-4 border-t border-border">
         <button
           onClick={() => step === 1 ? router.push('/disparos') : goPrev()}
-          className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
+          className="px-4 py-2 rounded-lg text-sm font-medium text-ink-muted hover:bg-muted transition-colors cursor-pointer"
         >
           {step === 1 ? 'Cancelar' : 'Voltar'}
         </button>
@@ -1056,7 +1056,7 @@ export default function NovoDisparoPage() {
               'flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
               canGoNext
                 ? 'bg-alliance-blue text-white hover:bg-alliance-dark'
-                : 'bg-muted text-muted-foreground cursor-not-allowed',
+                : 'bg-muted text-ink-muted cursor-not-allowed',
             )}
           >
             Próximo <ArrowRight size={14} />
@@ -1070,7 +1070,7 @@ export default function NovoDisparoPage() {
               'flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
               canSave && !saving
                 ? 'bg-green-600 text-white hover:bg-green-700'
-                : 'bg-muted text-muted-foreground cursor-not-allowed',
+                : 'bg-muted text-ink-muted cursor-not-allowed',
             )}
           >
             {saving

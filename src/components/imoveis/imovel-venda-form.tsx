@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, X, DollarSign, User, Phone, Mail, Home, ChevronDown } from 'lucide-react'
+import { Loader2, X, DollarSign, User, Phone, Mail, Home, ChevronDown } from '@/lib/icons'
 import { toast } from 'sonner'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { formatCurrency } from '@/lib/utils/format'
@@ -16,7 +16,7 @@ interface ImovelVendaFormProps {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+    <p className="text-xs font-bold text-ink-subtle   mb-3">
       {children}
     </p>
   )
@@ -25,14 +25,14 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold text-gray-600">{label}</label>
+      <label className="text-xs font-semibold text-ink">{label}</label>
       {children}
     </div>
   )
 }
 
-const inputCls = 'w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue bg-white placeholder:text-gray-300'
-const selectCls = 'w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue bg-white appearance-none'
+const inputCls = 'w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue bg-surface placeholder:text-ink-subtle'
+const selectCls = 'w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue bg-surface appearance-none'
 
 export function ImovelVendaForm({ imovel, imoveis, onClose, onSaved }: ImovelVendaFormProps) {
   const open = imovel !== null
@@ -172,7 +172,7 @@ export function ImovelVendaForm({ imovel, imoveis, onClose, onSaved }: ImovelVen
                     <option key={im.id} value={im.id}>{im.nome}</option>
                   ))}
                 </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-subtle pointer-events-none" />
               </div>
             </section>
           )}
@@ -183,7 +183,7 @@ export function ImovelVendaForm({ imovel, imoveis, onClose, onSaved }: ImovelVen
             <div className="flex flex-col gap-3">
               <Field label="Nome completo *">
                 <div className="relative">
-                  <User size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <User size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
                   <input
                     value={nome}
                     onChange={e => setNome(e.target.value)}
@@ -195,7 +195,7 @@ export function ImovelVendaForm({ imovel, imoveis, onClose, onSaved }: ImovelVen
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Telefone *">
                   <div className="relative">
-                    <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
                     <input
                       value={telefone}
                       onChange={e => setTelefone(e.target.value)}
@@ -206,7 +206,7 @@ export function ImovelVendaForm({ imovel, imoveis, onClose, onSaved }: ImovelVen
                 </Field>
                 <Field label="E-mail">
                   <div className="relative">
-                    <Mail size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Mail size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
                     <input
                       value={email}
                       onChange={e => setEmail(e.target.value)}
@@ -218,7 +218,7 @@ export function ImovelVendaForm({ imovel, imoveis, onClose, onSaved }: ImovelVen
               </div>
               <Field label="Unidade comprada *">
                 <div className="relative">
-                  <Home size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Home size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
                   <input
                     value={unidade}
                     onChange={e => setUnidade(e.target.value)}
@@ -230,7 +230,7 @@ export function ImovelVendaForm({ imovel, imoveis, onClose, onSaved }: ImovelVen
             </div>
           </section>
 
-          <div className="border-t border-gray-100" />
+          <div className="border-t border-line" />
 
           {/* Condições de pagamento */}
           <section>
@@ -242,11 +242,11 @@ export function ImovelVendaForm({ imovel, imoveis, onClose, onSaved }: ImovelVen
                 <label className="flex items-center gap-3 cursor-pointer group">
                   <div
                     onClick={() => setTemEntrada(v => !v)}
-                    className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer ${temEntrada ? 'bg-alliance-dark' : 'bg-gray-200'}`}
+                    className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer ${temEntrada ? 'bg-alliance-dark' : 'bg-line'}`}
                   >
-                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${temEntrada ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    <div className={`absolute top-0.5 w-4 h-4 bg-surface rounded-full elev-sm transition-transform ${temEntrada ? 'translate-x-5' : 'translate-x-0.5'}`} />
                   </div>
-                  <span className="text-sm font-medium text-gray-700">Houve entrada?</span>
+                  <span className="text-sm font-medium text-ink">Houve entrada?</span>
                 </label>
                 {temEntrada && (
                   <Field label="Valor da entrada">
@@ -267,11 +267,11 @@ export function ImovelVendaForm({ imovel, imoveis, onClose, onSaved }: ImovelVen
                 <label className="flex items-center gap-3 cursor-pointer">
                   <div
                     onClick={() => setTemFinanciamento(v => !v)}
-                    className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer ${temFinanciamento ? 'bg-alliance-dark' : 'bg-gray-200'}`}
+                    className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer ${temFinanciamento ? 'bg-alliance-dark' : 'bg-line'}`}
                   >
-                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${temFinanciamento ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    <div className={`absolute top-0.5 w-4 h-4 bg-surface rounded-full elev-sm transition-transform ${temFinanciamento ? 'translate-x-5' : 'translate-x-0.5'}`} />
                   </div>
-                  <span className="text-sm font-medium text-gray-700">Houve financiamento bancário?</span>
+                  <span className="text-sm font-medium text-ink">Houve financiamento bancário?</span>
                 </label>
                 {temFinanciamento && (
                   <div className="grid grid-cols-2 gap-3">
@@ -304,11 +304,11 @@ export function ImovelVendaForm({ imovel, imoveis, onClose, onSaved }: ImovelVen
                 <label className="flex items-center gap-3 cursor-pointer">
                   <div
                     onClick={() => setTemParcelamentoDireto(v => !v)}
-                    className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer ${temParcelamentoDireto ? 'bg-alliance-dark' : 'bg-gray-200'}`}
+                    className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer ${temParcelamentoDireto ? 'bg-alliance-dark' : 'bg-line'}`}
                   >
-                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${temParcelamentoDireto ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    <div className={`absolute top-0.5 w-4 h-4 bg-surface rounded-full elev-sm transition-transform ${temParcelamentoDireto ? 'translate-x-5' : 'translate-x-0.5'}`} />
                   </div>
-                  <span className="text-sm font-medium text-gray-700">Parcelado com La Reserva?</span>
+                  <span className="text-sm font-medium text-ink">Parcelado com La Reserva?</span>
                 </label>
                 {temParcelamentoDireto && (
                   <div className="grid grid-cols-2 gap-3">
@@ -340,11 +340,11 @@ export function ImovelVendaForm({ imovel, imoveis, onClose, onSaved }: ImovelVen
           </section>
 
           {/* Actions */}
-          <div className="flex gap-2 pt-2 border-t border-gray-100 mt-auto">
+          <div className="flex gap-2 pt-2 border-t border-line mt-auto">
             <button
               onClick={handleClose}
               disabled={saving}
-              className="flex-1 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer disabled:opacity-60"
+              className="flex-1 py-2.5 text-sm font-semibold text-ink bg-surface-sunken rounded-xl hover:bg-line transition-colors cursor-pointer disabled:opacity-60"
             >
               Cancelar
             </button>

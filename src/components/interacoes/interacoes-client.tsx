@@ -11,6 +11,7 @@ import { LeadCreateForm } from './lead-create-form'
 import { createClient } from '@/lib/supabase/client'
 import type { LeadWithLastInteraction, LeadContact, Label } from './types'
 import type { Interaction, Lead } from '@/lib/supabase/types'
+import { extractMessageText } from '@/lib/whatsapp/extract-message-text'
 
 function playNotificationBeep() {
   try {
@@ -74,7 +75,7 @@ export function InteracoesClient({ conversations: initialConversations, contacts
           setConversations(prev => {
             const idx = prev.findIndex(l => l.id === msg.lead_id)
             if (idx < 0) return prev
-            const updated = { ...prev[idx], lastMessage: msg.content, lastMessageAt: msg.created_at }
+            const updated = { ...prev[idx], lastMessage: extractMessageText(msg.content), lastMessageAt: msg.created_at }
             return [updated, ...prev.filter(l => l.id !== msg.lead_id)]
           })
 
@@ -217,16 +218,16 @@ export function InteracoesClient({ conversations: initialConversations, contacts
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="flex-1 flex flex-col items-center justify-center gap-4 bg-[#F0F2F5]"
+          className="flex-1 flex flex-col items-center justify-center gap-4 bg-surface-sunken"
         >
-          <div className="w-20 h-20 rounded-3xl flex items-center justify-center bg-white border border-gray-100 shadow-sm">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <div className="w-20 h-20 rounded-3xl flex items-center justify-center bg-surface border border-line elev-sm">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
             </svg>
           </div>
           <div className="text-center">
-            <p className="text-sm font-semibold text-gray-400">Nenhuma conversa selecionada</p>
-            <p className="text-xs text-gray-300 mt-1">Escolha um lead na lista ao lado</p>
+            <p className="text-sm font-semibold text-ink-subtle">Nenhuma conversa selecionada</p>
+            <p className="text-xs text-ink-subtle mt-1">Escolha um lead na lista ao lado</p>
           </div>
         </motion.div>
       )}

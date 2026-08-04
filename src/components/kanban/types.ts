@@ -1,34 +1,31 @@
-import type { LucideIcon } from 'lucide-react'
-import { Snowflake, Flame, Zap, CalendarCheck, RefreshCw, CheckCircle2, MessageCircleOff, Ban } from 'lucide-react'
+import type { IconComponent } from '@/lib/icons'
+import { STAGES, type StageKey, type StageTokens } from '@/lib/stages'
 import type { Lead } from '@/lib/supabase/types'
 
-export type KanbanStage =
-  | 'nao_respondeu'
-  | 'lead_frio'
-  | 'lead_morno'
-  | 'lead_quente'
-  | 'follow_up'
-  | 'sem_interesse'
-  | 'reuniao_agendada'
-  | 'visita_confirmada'
+export type KanbanStage = Exclude<StageKey, 'cliente'>
 
-export interface KanbanColumnConfig {
+export interface KanbanColumnConfig extends StageTokens {
   id: KanbanStage
   label: string
-  color: string
-  icon: LucideIcon
+  icon: IconComponent
 }
 
-export const KANBAN_COLUMNS: KanbanColumnConfig[] = [
-  { id: 'nao_respondeu',     label: 'Não Respondeu',     color: '#6B7280', icon: MessageCircleOff },
-  { id: 'lead_frio',         label: 'Lead Frio',         color: '#1E90FF', icon: Snowflake },
-  { id: 'lead_morno',        label: 'Lead Morno',        color: '#FF8C00', icon: Flame },
-  { id: 'lead_quente',       label: 'Lead Quente',       color: '#FF4500', icon: Zap },
-  { id: 'reuniao_agendada',  label: 'Reunião Agendada',  color: '#228B22', icon: CalendarCheck },
-  { id: 'follow_up',         label: 'Follow Up',         color: '#9B59B6', icon: RefreshCw },
-  { id: 'sem_interesse',     label: 'Sem interesse',     color: '#991B1B', icon: Ban },
-  { id: 'visita_confirmada', label: 'Venda Confirmada', color: '#E67E22', icon: CheckCircle2 },
+/** Ordem das colunas do quadro. Cor, rótulo e ícone vêm de `@/lib/stages`. */
+const COLUMN_ORDER: KanbanStage[] = [
+  'nao_respondeu',
+  'lead_frio',
+  'lead_morno',
+  'lead_quente',
+  'reuniao_agendada',
+  'follow_up',
+  'sem_interesse',
+  'visita_confirmada',
 ]
+
+export const KANBAN_COLUMNS: KanbanColumnConfig[] = COLUMN_ORDER.map((id) => {
+  const { label, icon, solid, soft, ink } = STAGES[id]
+  return { id, label, icon, solid, soft, ink }
+})
 
 export interface Label {
   id: string

@@ -9,11 +9,9 @@ import {
   Tooltip,
   type ChartOptions,
 } from 'chart.js'
+import { useCssVars } from '@/lib/use-css-vars'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip)
-
-const COLOR_NORMAL = '#85B7EB'
-const COLOR_PEAK   = '#D85A30'
 
 interface ActivityChartProps {
   title: string
@@ -32,13 +30,30 @@ export function ActivityChart({
   categoryLabel = 'Dia normal',
   peakLabel = 'Pico',
 }: ActivityChartProps) {
+  // O canvas não entende `var(--…)`, então as cores são resolvidas aqui.
+  // Antes eram dois hex fixos (#78A9E6 / #F26B3A) que não existiam em lugar
+  // nenhum do sistema e não mudavam com o tema.
+  const color = useCssVars({
+    normal: '--chart-1',
+    peak: '--stage-quente',
+    grid: '--line',
+    axis: '--ink-subtle',
+    tooltipBg: '--ink',
+    tooltipText: '--surface',
+    tooltipMuted: '--ink-subtle',
+  })
+
   const dataTotal = data.reduce((a, b) => a + b, 0)
   const total = totalOverride ?? dataTotal
-  const avg   = data.length > 0 ? dataTotal / data.length : 0
-  const threshold = avg * 2
+  const averagePerDay = data.length > 0 ? dataTotal / data.length : 0
+  const peakValue = data.length > 0 ? Math.max(...data) : 0
+  const peakIndex = data.indexOf(peakValue)
+  const peakDay = peakValue > 0 ? labels[peakIndex] ?? '—' : '—'
+  const activeDays = data.filter(value => value > 0).length
+  const threshold = averagePerDay * 2
 
   const backgroundColors = data.map(v =>
-    threshold > 0 && v > threshold ? COLOR_PEAK : COLOR_NORMAL
+    threshold > 0 && v > threshold ? color.peak : color.normal,
   )
 
   const chartData = {
@@ -49,6 +64,7 @@ export function ActivityChart({
         backgroundColor: backgroundColors,
         borderRadius: 4,
         borderSkipped: 'start' as const,
+        maxBarThickness: 22,
       },
     ],
   }
@@ -56,18 +72,19 @@ export function ActivityChart({
   const options: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: { duration: 400, easing: 'easeOutQuart' },
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#18181b',
-        titleColor: '#ffffff',
-        bodyColor: '#a1a1aa',
+        backgroundColor: color.tooltipBg,
+        titleColor: color.tooltipText,
+        bodyColor: color.tooltipMuted,
         padding: 10,
-        cornerRadius: 6,
+        cornerRadius: 8,
         displayColors: false,
         callbacks: {
           title: (items) => items[0]?.label ?? '',
-          label: (ctx) => `${ctx.parsed.y}  ${title}`,
+          label: (ctx) => `${ctx.parsed.y} ${title.toLowerCase()}`,
         },
       },
     },
@@ -77,19 +94,17 @@ export function ActivityChart({
         border: { display: false },
         ticks: {
           font: { size: 11, family: 'inherit' },
-          color: '#888',
+          color: color.axis,
           maxRotation: 0,
+          autoSkipPadding: 12,
         },
       },
       y: {
-        grid: {
-          color: 'rgba(128,128,128,0.08)',
-          drawTicks: false,
-        },
+        grid: { color: color.grid, drawTicks: false },
         border: { display: false },
         ticks: {
           font: { size: 11, family: 'inherit' },
-          color: '#888',
+          color: color.axis,
           padding: 6,
           callback: (v) => Number.isInteger(v) ? v : '',
         },
@@ -99,34 +114,45 @@ export function ActivityChart({
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <span style={{ fontSize: 13, color: '#888', fontWeight: 500 }}>
-          {title}
+    <div className="flex h-full flex-col">
+      <header className="mb-4 flex items-baseline justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight text-ink">{title}</h2>
+          <p className="text-xs text-ink-muted">Captação por dia no período</p>
+        </div>
+        <span className="text-xl font-semibold leading-none tabular-nums text-ink">
+          {total.toLocaleString('pt-BR')}
         </span>
-        <span
-          style={{
-            fontSize: 26,
-            fontWeight: 500,
-            color: '#185FA5',
-            lineHeight: 1,
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
-          {total}
-        </span>
-      </div>
+      </header>
 
-      {/* Canvas */}
-      <div style={{ position: 'relative', height: 220 }}>
+      <div className="relative h-[190px]">
         <Bar data={chartData} options={options} />
       </div>
 
-      {/* HTML Legend */}
-      <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
-        <LegendDot color={COLOR_NORMAL} label={categoryLabel} />
-        <LegendDot color={COLOR_PEAK}   label={peakLabel} />
+      <div className="mt-3 flex gap-4">
+        <LegendDot color={color.normal} label={categoryLabel} />
+        <LegendDot color={color.peak} label={peakLabel} />
+      </div>
+
+      <div className="mt-auto grid grid-cols-3 gap-3 border-t border-line pt-4">
+        <SummaryMetric
+          label="Média por dia"
+          value={averagePerDay.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+        />
+        <SummaryMetric label="Melhor dia" value={String(peakValue)} detail={peakDay} />
+        <SummaryMetric label="Dias com captação" value={String(activeDays)} detail={`de ${data.length}`} />
+      </div>
+    </div>
+  )
+}
+
+function SummaryMetric({ label, value, detail }: { label: string; value: string; detail?: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="truncate text-xs text-ink-muted">{label}</p>
+      <div className="mt-0.5 flex items-baseline gap-1.5">
+        <span className="text-lg font-semibold tabular-nums text-ink">{value}</span>
+        {detail && <span className="truncate text-xs text-ink-subtle">{detail}</span>}
       </div>
     </div>
   )
@@ -134,18 +160,13 @@ export function ActivityChart({
 
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+    <span className="flex items-center gap-1.5 text-xs text-ink-muted">
       <span
-        style={{
-          width: 10,
-          height: 10,
-          borderRadius: 2,
-          backgroundColor: color,
-          display: 'block',
-          flexShrink: 0,
-        }}
+        aria-hidden
+        className="block h-2.5 w-2.5 flex-shrink-0 rounded-sm"
+        style={{ backgroundColor: color }}
       />
-      <span style={{ fontSize: 12, color: '#888' }}>{label}</span>
-    </div>
+      {label}
+    </span>
   )
 }

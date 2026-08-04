@@ -4,47 +4,170 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================================
+   ALLIANCE DESIGN SYSTEM
+   Registro: product (dashboard/ferramenta — design serve a tarefa).
+   Estratégia de cor: restrained. Azul Alliance carrega ação primária e
+   seleção; âmbar quente aparece só em momentos de destaque. Superfícies
+   neutras levam croma na direção do azul da marca — nunca cinza puro.
+   ========================================================================== */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
 
-  /* Alliance color tokens */
-  --color-alliance-blue: #1E90FF;
-  --color-alliance-dark: #0A2EAD;
-  --color-alliance-mid: #1565C0;
-  --color-alliance-card: #F0F0F0;
-  --color-alliance-col: #E8E8E8;
-  --color-alliance-input: #D9D9D9;
-  --color-alliance-chat: #CCCCCC;
+  /* ---- Superfícies -------------------------------------------------------
+     Quatro planos, do mais afundado ao mais elevado. É o que dá hierarquia
+     de profundidade — a ausência disso é o que faz uma UI parecer "flat". */
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
 
-  /* Badge color tokens */
-  --color-badge-joao: #FF6B00;
-  --color-badge-mateus: #3D3D3D;
-  --color-badge-ia: #0A2EAD;
-  --color-badge-quente: #FF4500;
-  --color-badge-morno: #FF8C00;
-  --color-badge-frio: #1E90FF;
+  /* ---- Marca ------------------------------------------------------------- */
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-ink: var(--brand-ink);
+  --color-nav-from: var(--nav-from);
+  --color-nav-to: var(--nav-to);
 
-  /* Stage tokens — usados no Kanban, modal e badges */
-  --color-stage-frio: #1E90FF;
-  --color-stage-morno: #FF8C00;
-  --color-stage-quente: #FF4500;
-  --color-stage-follow-up: #9B59B6;
-  --color-stage-sem-interesse: #991B1B;
-  --color-stage-reuniao: #228B22;
-  --color-stage-visita: #E67E22;
-  --color-stage-cliente: #2ECC71;
-  --color-stage-nao-respondeu: #6B7280;
+  /* Âmbar quente — ecoa a luz das janelas do render do prédio.
+     Uso restrito: destaque pontual, nunca decoração. */
+  --color-accent-warm: var(--accent-warm);
+  --color-accent-warm-soft: var(--accent-warm-soft);
+  --color-accent-warm-ink: var(--accent-warm-ink);
 
-  /* Feedback tokens */
-  --color-feedback-success: #16A34A;
-  --color-feedback-success-bg: #F0FDF4;
-  --color-feedback-warning: #D97706;
-  --color-feedback-warning-bg: #FFFBEB;
-  --color-feedback-error: #DC2626;
-  --color-feedback-error-bg: #FEF2F2;
+  /* ---- Texto ------------------------------------------------------------- */
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+
+  /* Par fixo, que NÃO inverte com o tema. Para superfícies que são escuras
+     nos dois temas — a faixa do Dashboard sobre a foto, a tela de login.
+     Sem isto, `text-ink` sobre uma pílula branca vira branco no branco. */
+  --color-ink-fixed: var(--ink-fixed);
+  --color-surface-fixed: var(--surface-fixed);
+
+  /* ---- Aliases legados (mantidos para não quebrar componentes) ----------- */
+  --color-alliance-blue: var(--brand-accent);
+  --color-alliance-dark: var(--brand);
+  --color-alliance-mid: var(--brand-hover);
+  --color-alliance-card: var(--surface);
+  --color-alliance-col: var(--surface-sunken);
+  --color-alliance-input: var(--line);
+  --color-alliance-chat: var(--surface-sunken);
+
+  /* ---- Stages -----------------------------------------------------------
+     Nove estágios recalibrados em OKLCH com L e C coerentes entre si.
+     A identidade continua (frio = azul, quente = laranja, cliente = verde),
+     mas todos falam no mesmo volume. Cada um tem três formas:
+       solid → preenchimento, ponto, barra
+       soft  → fundo de chip
+       ink   → texto sobre o soft (≥ 4.5:1) */
+  --color-stage-nao-respondeu: var(--stage-nao-respondeu);
+  --color-stage-nao-respondeu-soft: var(--stage-nao-respondeu-soft);
+  --color-stage-nao-respondeu-ink: var(--stage-nao-respondeu-ink);
+  --color-stage-frio: var(--stage-frio);
+  --color-stage-frio-soft: var(--stage-frio-soft);
+  --color-stage-frio-ink: var(--stage-frio-ink);
+  --color-stage-morno: var(--stage-morno);
+  --color-stage-morno-soft: var(--stage-morno-soft);
+  --color-stage-morno-ink: var(--stage-morno-ink);
+  --color-stage-quente: var(--stage-quente);
+  --color-stage-quente-soft: var(--stage-quente-soft);
+  --color-stage-quente-ink: var(--stage-quente-ink);
+  --color-stage-reuniao: var(--stage-reuniao);
+  --color-stage-reuniao-soft: var(--stage-reuniao-soft);
+  --color-stage-reuniao-ink: var(--stage-reuniao-ink);
+  --color-stage-follow-up: var(--stage-follow-up);
+  --color-stage-follow-up-soft: var(--stage-follow-up-soft);
+  --color-stage-follow-up-ink: var(--stage-follow-up-ink);
+  --color-stage-sem-interesse: var(--stage-sem-interesse);
+  --color-stage-sem-interesse-soft: var(--stage-sem-interesse-soft);
+  --color-stage-sem-interesse-ink: var(--stage-sem-interesse-ink);
+  --color-stage-visita: var(--stage-visita);
+  --color-stage-visita-soft: var(--stage-visita-soft);
+  --color-stage-visita-ink: var(--stage-visita-ink);
+  --color-stage-cliente: var(--stage-cliente);
+  --color-stage-cliente-soft: var(--stage-cliente-soft);
+  --color-stage-cliente-ink: var(--stage-cliente-ink);
+
+  /* ---- Feedback ---------------------------------------------------------- */
+  --color-feedback-success: var(--success);
+  --color-feedback-success-bg: var(--success-soft);
+  --color-feedback-success-ink: var(--success-ink);
+  --color-feedback-warning: var(--warning);
+  --color-feedback-warning-bg: var(--warning-soft);
+  --color-feedback-warning-ink: var(--warning-ink);
+  --color-feedback-error: var(--danger);
+  --color-feedback-error-bg: var(--danger-soft);
+  --color-feedback-error-ink: var(--danger-ink);
+
+  /* ---- Badges (legado) --------------------------------------------------- */
+  --color-badge-joao: var(--stage-quente);
+  --color-badge-mateus: var(--ink-muted);
+  --color-badge-ia: var(--brand);
+  --color-badge-quente: var(--stage-quente);
+  --color-badge-morno: var(--stage-morno);
+  --color-badge-frio: var(--stage-frio);
+
+  /* ---- Escala tipográfica -----------------------------------------------
+     Fixa em rem (produto, não marca): usuários veem em DPI consistente.
+     Razão ~1.15–1.2. Piso de 11px — nada de 9px cinza. */
+  --text-2xs: 0.6875rem;   /* 11px — chips, contadores */
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;      /* 12px — metadado */
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.8125rem;    /* 13px — label, corpo denso */
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.875rem;   /* 14px — corpo */
+  --text-base--line-height: 1.375rem;
+  --text-md: 1rem;         /* 16px — corpo confortável */
+  --text-md--line-height: 1.5rem;
+  --text-lg: 1.125rem;     /* 18px — título de card */
+  --text-lg--line-height: 1.5rem;
+  --text-xl: 1.375rem;     /* 22px — título de seção */
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.75rem;     /* 28px — título de página */
+  --text-2xl--line-height: 2.125rem;
+  --text-3xl: 2.25rem;     /* 36px — KPI */
+  --text-3xl--line-height: 2.5rem;
+  --text-4xl: 3rem;        /* 48px — KPI hero */
+  --text-4xl--line-height: 3.125rem;
+
+  /* ---- Raio -------------------------------------------------------------- */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 0.875rem;
+  --radius-card: 1rem;
+  --radius-panel: 1.25rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.5rem;
+  --radius-4xl: 1.75rem;
+  --radius-pill: 999px;
+
+  /* ---- Elevação ----------------------------------------------------------
+     Quatro degraus semânticos. Substitui os shadows arbitrários espalhados
+     pelo projeto. Sombra tingida de azul, não preto puro. */
+  --shadow-xs: var(--elev-xs);
+  --shadow-sm: var(--elev-sm);
+  --shadow-md: var(--elev-md);
+  --shadow-lg: var(--elev-lg);
+
+  /* ---- Gráficos ---------------------------------------------------------- */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* ---- shadcn (mapeamento) ----------------------------------------------- */
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -54,11 +177,6 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -75,82 +193,278 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ============================================================================
+   TEMA CLARO
+   Cena: corretor no escritório, luz do dia, seis horas seguidas olhando o
+   funil entre uma ligação e outra. Claro é o padrão — o escuro existe para
+   o plantão noturno.
+   ========================================================================== */
+:root {
+  /* Superfícies — croma 0.004–0.008 na direção do azul da marca */
+  --surface-sunken: oklch(0.957 0.006 262);
+  --surface: oklch(1 0 0);
+  --surface-raised: oklch(1 0 0);
+  --surface-overlay: oklch(1 0 0);
+  --line: oklch(0.912 0.006 262);
+  --line-strong: oklch(0.845 0.009 262);
+
+  /* Texto */
+  --ink: oklch(0.235 0.018 262);
+  --ink-muted: oklch(0.505 0.014 262);
+  /* L 0.535, não 0.625: a 0.625 o texto terciário batia 3.15:1 contra
+     `surface-sunken`, abaixo do mínimo de 4.5:1 para corpo. */
+  --ink-subtle: oklch(0.535 0.013 262);
+
+  /* Definidos só aqui, de propósito: o bloco `.dark` não os sobrescreve,
+     então continuam valendo nos dois temas. */
+  --ink-fixed: oklch(0.225 0.018 262);
+  --surface-fixed: oklch(1 0 0);
+
+  /* Marca */
+  --brand: oklch(0.415 0.185 264);
+  --brand-hover: oklch(0.355 0.175 264);
+  --brand-soft: oklch(0.958 0.026 264);
+  --brand-ink: oklch(0.395 0.155 264);
+  --brand-accent: oklch(0.575 0.185 254);
+  --nav-from: oklch(0.255 0.095 264);
+  --nav-to: oklch(0.325 0.125 264);
+
+  /* Âmbar — a luz das janelas do prédio ao entardecer */
+  --accent-warm: oklch(0.775 0.135 72);
+  --accent-warm-soft: oklch(0.965 0.035 78);
+  --accent-warm-ink: oklch(0.505 0.105 66);
+
+  /* Stages — solid / soft / ink */
+  --stage-nao-respondeu: oklch(0.625 0.018 262);
+  --stage-nao-respondeu-soft: oklch(0.963 0.005 262);
+  --stage-nao-respondeu-ink: oklch(0.455 0.016 262);
+
+  --stage-frio: oklch(0.620 0.155 250);
+  --stage-frio-soft: oklch(0.962 0.026 250);
+  --stage-frio-ink: oklch(0.445 0.135 252);
+
+  --stage-morno: oklch(0.735 0.145 70);
+  --stage-morno-soft: oklch(0.966 0.034 74);
+  --stage-morno-ink: oklch(0.495 0.105 62);
+
+  --stage-quente: oklch(0.640 0.175 35);
+  --stage-quente-soft: oklch(0.962 0.028 35);
+  --stage-quente-ink: oklch(0.475 0.150 32);
+
+  --stage-reuniao: oklch(0.620 0.125 160);
+  --stage-reuniao-soft: oklch(0.960 0.028 160);
+  --stage-reuniao-ink: oklch(0.435 0.098 161);
+
+  --stage-follow-up: oklch(0.580 0.155 295);
+  --stage-follow-up-soft: oklch(0.960 0.026 295);
+  --stage-follow-up-ink: oklch(0.435 0.145 296);
+
+  --stage-sem-interesse: oklch(0.560 0.160 20);
+  --stage-sem-interesse-soft: oklch(0.960 0.024 20);
+  --stage-sem-interesse-ink: oklch(0.450 0.150 22);
+
+  --stage-visita: oklch(0.620 0.115 212);
+  --stage-visita-soft: oklch(0.960 0.026 212);
+  --stage-visita-ink: oklch(0.440 0.092 214);
+
+  --stage-cliente: oklch(0.655 0.145 148);
+  --stage-cliente-soft: oklch(0.958 0.032 148);
+  --stage-cliente-ink: oklch(0.445 0.110 150);
+
+  /* Feedback */
+  --success: oklch(0.615 0.135 152);
+  --success-soft: oklch(0.960 0.030 152);
+  --success-ink: oklch(0.440 0.108 152);
+  --warning: oklch(0.735 0.140 68);
+  --warning-soft: oklch(0.966 0.034 72);
+  --warning-ink: oklch(0.495 0.105 62);
+  --danger: oklch(0.575 0.185 25);
+  --danger-soft: oklch(0.960 0.026 25);
+  --danger-ink: oklch(0.470 0.165 25);
+
+  /* Elevação — tingida de azul, nunca preto puro */
+  --elev-xs: 0 1px 2px oklch(0.30 0.05 262 / 0.055);
+  --elev-sm: 0 1px 3px oklch(0.30 0.05 262 / 0.07), 0 1px 2px -1px oklch(0.30 0.05 262 / 0.06);
+  --elev-md: 0 4px 12px -2px oklch(0.30 0.05 262 / 0.09), 0 2px 5px -3px oklch(0.30 0.05 262 / 0.07);
+  --elev-lg: 0 14px 32px -8px oklch(0.30 0.05 262 / 0.15), 0 5px 10px -5px oklch(0.30 0.05 262 / 0.08);
+
+  /* Gráficos — derivados da paleta, não escala de cinza */
+  --chart-1: oklch(0.575 0.185 254);
+  --chart-2: oklch(0.735 0.145 70);
+  --chart-3: oklch(0.620 0.125 160);
+  --chart-4: oklch(0.580 0.155 295);
+  --chart-5: oklch(0.640 0.175 35);
+
+  /* shadcn */
+  --background: var(--surface-sunken);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface-overlay);
+  --popover-foreground: var(--ink);
+  --primary: var(--brand);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.963 0.005 262);
+  --secondary-foreground: var(--ink);
+  --muted: oklch(0.963 0.005 262);
+  --muted-foreground: var(--ink-muted);
+  --accent: oklch(0.955 0.010 262);
+  --accent-foreground: var(--ink);
+  --destructive: var(--danger);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--brand-accent);
+  --radius: 0.75rem;
+  --sidebar: var(--nav-from);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.985 0 0);
+  --sidebar-primary-foreground: var(--brand);
+  --sidebar-accent: oklch(1 0 0 / 12%);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(1 0 0 / 30%);
+}
+
+/* ============================================================================
+   TEMA ESCURO
+   Azul-tinta, não cinza neutro. Mesma marca, menos luz.
+   ========================================================================== */
+.dark {
+  --surface-sunken: oklch(0.155 0.014 262);
+  --surface: oklch(0.208 0.016 262);
+  --surface-raised: oklch(0.245 0.018 262);
+  --surface-overlay: oklch(0.245 0.018 262);
+  --line: oklch(0.305 0.016 262);
+  --line-strong: oklch(0.395 0.018 262);
+
+  --ink: oklch(0.965 0.005 262);
+  --ink-muted: oklch(0.735 0.014 262);
+  --ink-subtle: oklch(0.672 0.014 262);
+
+  --brand: oklch(0.615 0.185 262);
+  --brand-hover: oklch(0.675 0.175 262);
+  --brand-soft: oklch(0.295 0.070 262);
+  --brand-ink: oklch(0.815 0.095 262);
+  --brand-accent: oklch(0.695 0.155 254);
+  --nav-from: oklch(0.185 0.038 264);
+  --nav-to: oklch(0.235 0.058 264);
+
+  --accent-warm: oklch(0.805 0.130 74);
+  --accent-warm-soft: oklch(0.315 0.055 68);
+  --accent-warm-ink: oklch(0.845 0.110 76);
+
+  --stage-nao-respondeu: oklch(0.655 0.018 262);
+  --stage-nao-respondeu-soft: oklch(0.290 0.010 262);
+  --stage-nao-respondeu-ink: oklch(0.795 0.014 262);
+
+  --stage-frio: oklch(0.688 0.145 250);
+  --stage-frio-soft: oklch(0.298 0.060 250);
+  --stage-frio-ink: oklch(0.815 0.098 250);
+
+  --stage-morno: oklch(0.790 0.135 72);
+  --stage-morno-soft: oklch(0.310 0.055 68);
+  --stage-morno-ink: oklch(0.855 0.105 74);
+
+  --stage-quente: oklch(0.700 0.165 38);
+  --stage-quente-soft: oklch(0.305 0.068 34);
+  --stage-quente-ink: oklch(0.815 0.115 40);
+
+  --stage-reuniao: oklch(0.690 0.120 160);
+  --stage-reuniao-soft: oklch(0.292 0.055 160);
+  --stage-reuniao-ink: oklch(0.822 0.095 158);
+
+  --stage-follow-up: oklch(0.665 0.150 296);
+  --stage-follow-up-soft: oklch(0.298 0.062 296);
+  --stage-follow-up-ink: oklch(0.818 0.098 296);
+
+  --stage-sem-interesse: oklch(0.648 0.155 22);
+  --stage-sem-interesse-soft: oklch(0.300 0.065 22);
+  --stage-sem-interesse-ink: oklch(0.808 0.108 24);
+
+  --stage-visita: oklch(0.690 0.110 212);
+  --stage-visita-soft: oklch(0.294 0.052 212);
+  --stage-visita-ink: oklch(0.820 0.088 212);
+
+  --stage-cliente: oklch(0.718 0.140 148);
+  --stage-cliente-soft: oklch(0.296 0.060 148);
+  --stage-cliente-ink: oklch(0.832 0.105 148);
+
+  --success: oklch(0.690 0.130 152);
+  --success-soft: oklch(0.292 0.058 152);
+  --success-ink: oklch(0.825 0.100 152);
+  --warning: oklch(0.790 0.135 68);
+  --warning-soft: oklch(0.310 0.055 68);
+  --warning-ink: oklch(0.855 0.105 74);
+  --danger: oklch(0.655 0.175 26);
+  --danger-soft: oklch(0.302 0.068 26);
+  --danger-ink: oklch(0.812 0.110 28);
+
+  --elev-xs: 0 1px 2px oklch(0 0 0 / 0.30);
+  --elev-sm: 0 1px 3px oklch(0 0 0 / 0.36), 0 1px 2px -1px oklch(0 0 0 / 0.30);
+  --elev-md: 0 4px 12px -2px oklch(0 0 0 / 0.42), 0 2px 5px -3px oklch(0 0 0 / 0.32);
+  --elev-lg: 0 14px 32px -8px oklch(0 0 0 / 0.52), 0 5px 10px -5px oklch(0 0 0 / 0.36);
+
+  --chart-1: oklch(0.695 0.155 254);
+  --chart-2: oklch(0.790 0.135 72);
+  --chart-3: oklch(0.690 0.120 160);
+  --chart-4: oklch(0.665 0.150 296);
+  --chart-5: oklch(0.700 0.165 38);
+
+  --background: var(--surface-sunken);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface-overlay);
+  --popover-foreground: var(--ink);
+  --primary: var(--brand);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.278 0.016 262);
+  --secondary-foreground: var(--ink);
+  --muted: oklch(0.278 0.016 262);
+  --muted-foreground: var(--ink-muted);
+  --accent: oklch(0.295 0.020 262);
+  --accent-foreground: var(--ink);
+  --destructive: var(--danger);
+  --border: var(--line);
+  --input: oklch(0.335 0.018 262);
+  --ring: var(--brand-accent);
+  --sidebar: var(--nav-from);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.985 0 0);
+  --sidebar-primary-foreground: var(--brand);
+  --sidebar-accent: oklch(1 0 0 / 10%);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: oklch(1 0 0 / 30%);
+}
+
+/* ============================================================================
+   MOTION
+   Curvas exponenciais de saída. Sem bounce, sem elastic. 120–260ms: o
+   usuário está numa tarefa, não assistindo a uma coreografia.
+   ========================================================================== */
+@theme inline {
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.388 0.196 264.1);  /* #0A2EAD — alliance-dark */
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 260ms;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Escala z semântica — nada de 999 */
+  --z-base: 0;
+  --z-dropdown: 20;
+  --z-sticky: 30;
+  --z-drawer: 40;
+  --z-modal-backdrop: 50;
+  --z-modal: 60;
+  --z-toast: 70;
+  --z-tooltip: 80;
 }
 
 @layer base {
@@ -159,24 +473,87 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
   html {
     @apply font-sans;
   }
+  /* Números em tabelas e KPIs sempre alinhados */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
 }
 
-/* Scrollbar custom */
+@layer utilities {
+  /* Superfícies — as três variantes que substituem as ~12 combinações
+     de `rounded-xl border bg-white shadow-…` copiadas pelo projeto. */
+  .surface-flat {
+    background-color: var(--surface);
+    border: 1px solid var(--line);
+  }
+  .surface-raised {
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    box-shadow: var(--elev-sm);
+  }
+  .surface-inset {
+    background-color: var(--surface-sunken);
+    border: 1px solid transparent;
+  }
+  .elev-xs { box-shadow: var(--elev-xs); }
+  .elev-sm { box-shadow: var(--elev-sm); }
+  .elev-md { box-shadow: var(--elev-md); }
+  .elev-lg { box-shadow: var(--elev-lg); }
+
+  /* Transição padrão do sistema */
+  .transition-ui {
+    transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+    transition-duration: var(--dur-base);
+    transition-timing-function: var(--ease-out-quart);
+  }
+}
+
+/* Scrollbar — discreta, respeitando o tema */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D1D5DB;
-  border-radius: 999px;
+  background: var(--line-strong);
+  border-radius: var(--radius-pill);
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #9CA3AF;
+  background: var(--ink-subtle);
+  background-clip: content-box;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+/* ============================================================================
+   REDUCED MOTION — não é opcional
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -2,35 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-
-const STAGE_LABELS: Record<string, string> = {
-  nao_respondeu:     'Não respondeu',
-  lead_frio:         'Lead Frio',
-  lead_morno:        'Lead Morno',
-  lead_quente:       'Lead Quente',
-  follow_up:         'Follow-up',
-  sem_interesse:     'Sem interesse',
-  reuniao_agendada:  'Reunião Agendada',
-  visita_confirmada: 'Venda Confirmada',
-  cliente:           'Cliente',
-}
-
-type LeadRow = {
-  id: string
-  name: string | null
-  phone: string | null
-  stage: string | null
-  summary: string | null
-  intention: string | null
-}
-
-type InteractionRow = {
-  lead_id: string
-  direction: string | null
-  sender_type: string | null
-  content: string | null
-  created_at: string | null
-}
+import {
+  generateReactivationMessage,
+  type ReactivationGeneration,
+  type ReactivationInteraction,
+  type ReactivationLead,
+} from '@/lib/disparo/reactivation-message'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -48,13 +25,13 @@ export async function POST(req: NextRequest) {
     campaign_theme?: string
     manual_contexts?: Record<string, string>
   }
-  const { lead_ids, campaign_theme, manual_contexts = {} } = body
-  const campaignTheme = campaign_theme?.trim() ?? ''
+  const leadIds = Array.from(new Set(body.lead_ids ?? []))
+  const campaignTheme = body.campaign_theme?.trim() ?? ''
 
-  if (!Array.isArray(lead_ids) || lead_ids.length === 0) {
+  if (!leadIds.length) {
     return NextResponse.json({ error: 'lead_ids obrigatório' }, { status: 400 })
   }
-  if (lead_ids.length > 50) {
+  if (leadIds.length > 50) {
     return NextResponse.json({ error: 'Máximo 50 leads por vez' }, { status: 400 })
   }
   if (!campaignTheme) {
@@ -63,109 +40,87 @@ export async function POST(req: NextRequest) {
 
   const service = createServiceClient()
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-
-  const { data: leadsRaw } = await service
+  const { data: leadsRaw, error: leadsError } = await service
     .from('leads')
-    .select('id, name, phone, stage, summary, intention')
-    .in('id', lead_ids)
+    .select('id,name,phone,stage,summary,intention')
+    .in('id', leadIds)
 
-  const leads = (leadsRaw ?? []) as LeadRow[]
+  if (leadsError) return NextResponse.json({ error: leadsError.message }, { status: 500 })
+  const leads = (leadsRaw ?? []) as ReactivationLead[]
   if (!leads.length) {
     return NextResponse.json({ error: 'Nenhum lead encontrado' }, { status: 404 })
   }
 
-  const interactions: InteractionRow[] = []
-  for (let i = 0; i < lead_ids.length; i += 10) {
-    const batchIds = lead_ids.slice(i, i + 10)
-    const batchResults = await Promise.all(
-      batchIds.map(async (leadId) => {
-        const { data } = await service
-          .from('interactions')
-          .select('lead_id, direction, sender_type, content, created_at')
-          .eq('lead_id', leadId)
-          .order('created_at', { ascending: false })
-          .limit(20)
-
-        return (data ?? []) as InteractionRow[]
-      }),
-    )
-    interactions.push(...batchResults.flat())
+  const interactions: ReactivationInteraction[] = []
+  for (let index = 0; index < leadIds.length; index += 10) {
+    const batch = await Promise.all(leadIds.slice(index, index + 10).map(async leadId => {
+      const { data } = await service
+        .from('interactions')
+        .select('lead_id,direction,sender_type,content,created_at')
+        .eq('lead_id', leadId)
+        .order('created_at', { ascending: false })
+        .limit(30)
+      return ((data ?? []) as ReactivationInteraction[]).reverse()
+    }))
+    interactions.push(...batch.flat())
   }
 
-  const interactionsByLead: Record<string, InteractionRow[]> = {}
-  for (const row of interactions) {
-    if (!interactionsByLead[row.lead_id]) interactionsByLead[row.lead_id] = []
-    if ((interactionsByLead[row.lead_id]?.length ?? 0) < 20) {
-      interactionsByLead[row.lead_id]?.push(row)
+  const byLead = new Map<string, ReactivationInteraction[]>()
+  for (const interaction of interactions) {
+    byLead.set(interaction.lead_id, [...(byLead.get(interaction.lead_id) ?? []), interaction])
+  }
+
+  const results: ReactivationGeneration[] = []
+  for (let index = 0; index < leads.length; index += 5) {
+    const batch = leads.slice(index, index + 5)
+    const generated = await Promise.all(batch.map(lead => generateReactivationMessage({
+      openai,
+      lead,
+      interactions: byLead.get(lead.id) ?? [],
+      campaignTheme,
+      manualContext: body.manual_contexts?.[lead.id],
+    }).catch((): ReactivationGeneration => ({
+      lead_id: lead.id,
+      name: lead.name ?? '',
+      phone: lead.phone ?? '',
+      message: '',
+      eligible: true,
+      exclusion_reason: null,
+      context_mode: 'no_history',
+      context_reference: null,
+      quality_flags: ['falha_na_geracao'],
+    }))))
+    results.push(...generated)
+  }
+
+  const seenMessages = new Set<string>()
+  for (const result of results) {
+    if (!result.message) continue
+    const fingerprint = result.message.toLocaleLowerCase('pt-BR').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+    if (seenMessages.has(fingerprint)) {
+      result.message = ''
+      result.quality_flags.push('mensagem_duplicada_no_lote')
+    } else {
+      seenMessages.add(fingerprint)
     }
   }
 
-  const generateForLead = async (lead: LeadRow): Promise<{ lead_id: string; name: string; phone: string; message: string }> => {
-    const leadInteractions = (interactionsByLead[lead.id] ?? []).reverse()
-    const manualContext = manual_contexts[lead.id]?.trim() ?? ''
-
-    const conversationText = leadInteractions.length > 0
-      ? leadInteractions.map(i => {
-          const who = i.sender_type === 'lead' ? (lead.name ?? 'Lead') : (i.sender_type === 'bot' ? 'Bot IA' : 'Corretor')
-          return `${who}: ${i.content ?? ''}`
-        }).join('\n')
-      : '(sem histórico de conversa)'
-
-    const hasUsefulContext = leadInteractions.length > 0 || !!lead.summary || !!lead.intention || !!manualContext
-
-    const prompt = `Você é especialista em vendas imobiliárias de alto padrão e copywriting para WhatsApp.
-
-Contexto: Você é corretor da Alliance Investimentos Imobiliários. O lead abaixo não está mais respondendo e você precisa criar UMA mensagem de reativação personalizada para WhatsApp.
-
-Tema obrigatório da campanha:
-"""
-${campaignTheme}
-"""
-
-Lead: ${lead.name ?? 'Lead'}
-Etapa: ${STAGE_LABELS[lead.stage ?? ''] ?? lead.stage ?? 'Desconhecida'}${lead.intention ? `\nInteresse: ${lead.intention === 'morar' ? 'Morar' : 'Investir'}` : ''}${lead.summary ? `\nResumo: ${lead.summary}` : ''}${manualContext ? `\nContexto adicional informado pelo corretor: ${manualContext}` : ''}
-
-Histórico da conversa (mais recentes):
-${conversationText}
-
-${hasUsefulContext
-  ? `Use o tema obrigatório como direção central e adapte a mensagem ao contexto real do lead. Se houver histórico, faça a mensagem parecer uma continuação natural da conversa, sem inventar fatos.`
-  : `Este lead não tem contexto suficiente. Use somente o tema obrigatório como base, criando uma variação natural e específica, sem fingir que já houve uma conversa detalhada.`
-}
-
-A mensagem DEVE:
-- Ser uma mensagem de REATIVAÇÃO — o lead parou de responder e você está tentando retomar o contato
-- Manter o tema da campanha como assunto principal
-- Ser uma variação única, diferente das demais mensagens da campanha
-- Fazer sentido com a situação do lead
-- Referenciar algo específico da conversa, do interesse ou do contexto fornecido quando isso existir
-- Ser curta (1 a 3 frases), natural, como uma pessoa enviaria no WhatsApp
-- Criar curiosidade ou abertura para retomar a conversa — sem pressão excessiva
-- Estar em português brasileiro informal
-- Evitar frases genéricas como "estava pensando na nossa última conversa" quando não houver histórico real
-
-Retorne APENAS a mensagem, sem aspas, sem explicações.`
-
-    try {
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 200,
-        temperature: 0.85,
-      })
-      const message = completion.choices[0]?.message?.content?.trim() ?? ''
-      return { lead_id: lead.id, name: lead.name ?? '', phone: lead.phone ?? '', message }
-    } catch {
-      return { lead_id: lead.id, name: lead.name ?? '', phone: lead.phone ?? '', message: '' }
-    }
-  }
-
-  const results: { lead_id: string; name: string; phone: string; message: string }[] = []
-  for (let i = 0; i < leads.length; i += 5) {
-    const batch = leads.slice(i, i + 5)
-    const batchResults = await Promise.all(batch.map(generateForLead))
-    results.push(...batchResults)
-  }
-
-  return NextResponse.json({ results })
+  const excluded = results.filter(result => !result.eligible)
+  return NextResponse.json({
+    results,
+    excluded: excluded.map(result => ({
+      lead_id: result.lead_id,
+      name: result.name,
+      reason: result.exclusion_reason,
+    })),
+    audit: {
+      total: results.length,
+      generated: results.filter(result => result.message).length,
+      excluded: excluded.length,
+      with_real_context: results.filter(result => result.context_mode === 'conversation').length,
+      sparse_context: results.filter(result => result.context_mode === 'sparse').length,
+      without_history: results.filter(result => result.context_mode === 'no_history').length,
+      flagged: results.filter(result => result.quality_flags.length > 0 && result.eligible).length,
+    },
+  })
 }

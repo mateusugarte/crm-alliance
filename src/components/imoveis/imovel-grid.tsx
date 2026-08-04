@@ -20,7 +20,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { toast } from 'sonner'
-import { Plus, Building2, Crown, Clock, RotateCcw } from 'lucide-react'
+import { Plus, Building2, Crown, Clock, RotateCcw } from '@/lib/icons'
 import Link from 'next/link'
 import { ImovelCard } from './imovel-card'
 import { ImovelFormPanel } from './imovel-form-panel'
@@ -154,17 +154,17 @@ function DroppableColumn({
       <div className={`
         flex items-center gap-2 px-3 py-2.5 rounded-xl mb-3 transition-colors
         ${col.cobertura
-          ? 'bg-amber-50 border border-amber-200/60'
+          ? 'bg-[var(--warning-soft)] border border-[var(--warning)]/25/60'
           : 'bg-alliance-dark/[0.04] border border-alliance-dark/[0.08]'
         }
       `}>
-        <Icon size={13} className={col.cobertura ? 'text-amber-600' : 'text-alliance-dark/60'} />
-        <span className={`text-xs font-bold flex-1 ${col.cobertura ? 'text-amber-700' : 'text-alliance-dark'}`}>
+        <Icon size={13} className={col.cobertura ? 'text-[var(--warning-ink)]' : 'text-ink/60'} />
+        <span className={`text-xs font-bold flex-1 ${col.cobertura ? 'text-[var(--warning-ink)]' : 'text-ink'}`}>
           {col.label}
         </span>
         <span className={`
-          text-[10px] font-bold px-1.5 py-0.5 rounded-md
-          ${col.cobertura ? 'bg-amber-100 text-amber-600' : 'bg-white text-gray-400 border border-gray-100'}
+          text-2xs font-bold px-1.5 py-0.5 rounded-md
+          ${col.cobertura ? 'bg-amber-100 text-[var(--warning-ink)]' : 'bg-surface text-ink-subtle border border-line'}
         `}>
           {ids.length}
         </span>
@@ -185,9 +185,9 @@ function DroppableColumn({
           {ids.length === 0 ? (
             <div className={`
               flex-1 min-h-24 flex items-center justify-center rounded-xl border-2 border-dashed transition-colors
-              ${highlighted ? 'border-alliance-blue/30 bg-alliance-blue/3' : 'border-gray-100'}
+              ${highlighted ? 'border-alliance-blue/30 bg-alliance-blue/3' : 'border-line'}
             `}>
-              <span className="text-[10px] text-gray-300">Arraste aqui</span>
+              <span className="text-2xs text-ink-subtle">Arraste aqui</span>
             </div>
           ) : (
             ids.map(id => {
@@ -415,19 +415,19 @@ export function ImovelGrid({ imoveis: initialImoveis, vendas: initialVendas, isA
         <div className="flex items-center gap-2">
           <Link
             href="/imoveis/reservados"
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors focus-visible:outline-none"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[var(--warning-ink)] bg-[var(--warning-soft)] border border-[var(--warning)]/25 rounded-xl hover:bg-amber-100 transition-colors focus-visible:outline-none"
           >
             <Clock size={13} />
             Reservados
             {reservedCount > 0 && (
-              <span className="bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+              <span className="bg-amber-500 text-white text-2xs font-bold px-1.5 py-0.5 rounded-full leading-none">
                 {reservedCount}
               </span>
             )}
           </Link>
           <button
             onClick={handleResetLayout}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-400 border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-gray-600 transition-colors focus-visible:outline-none"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-ink-subtle border border-line-strong rounded-xl hover:bg-surface-sunken hover:text-ink transition-colors focus-visible:outline-none"
             title="Restaurar organização padrão"
           >
             <RotateCcw size={12} />
@@ -510,7 +510,7 @@ export function ImovelGrid({ imoveis: initialImoveis, vendas: initialVendas, isA
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <button onClick={() => setDeleteConfirmId(null)} className="px-4 py-2 text-sm font-semibold text-gray-600 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
+            <button onClick={() => setDeleteConfirmId(null)} className="px-4 py-2 text-sm font-semibold text-ink rounded-xl hover:bg-surface-sunken transition-colors cursor-pointer">
               Cancelar
             </button>
             <button onClick={handleDeleteConfirm} className="px-4 py-2 text-sm font-semibold bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors cursor-pointer">

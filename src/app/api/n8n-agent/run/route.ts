@@ -3,7 +3,9 @@ import { runAliceAgent } from '@/lib/ai/alice-agent'
 import { notifyInternalGroup } from '@/lib/ai/alice-tools'
 import { toWhatsAppNumber } from '@/lib/format-phone'
 import { normalizeLeadName } from '@/lib/lead-name'
+import { compactCommercialSummary } from '@/lib/lead-summary'
 import { createServiceClient } from '@/lib/supabase/service'
+import { extractMessageText } from '@/lib/whatsapp/extract-message-text'
 import type { Database } from '@/lib/supabase/types'
 
 type Lead = Database['public']['Tables']['leads']['Row']
@@ -40,40 +42,6 @@ interface N8NAgentPayload {
 
 function unauthorized() {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-}
-
-function decodePercentEncoding(text: string) {
-  if (!/%[0-9A-Fa-f]{2}/.test(text)) return text
-  try {
-    return decodeURIComponent(text)
-  } catch {
-    return text
-  }
-}
-
-/**
- * Mensagens vindas de anuncio (Click-to-WhatsApp) chegam como o payload cru da
- * UazAPI: um JSON com `text` mais um `contextInfo` que carrega ate 10 KB de
- * thumbnail em base64. Guardar e mandar isso para a Alice polui o historico,
- * queima tokens e aparece como lixo no chat do corretor — extraimos so o texto.
- */
-function extractLeadText(raw: string): string {
-  const trimmed = raw.trim()
-  if (!trimmed.startsWith('{')) return decodePercentEncoding(trimmed)
-
-  try {
-    const parsed = JSON.parse(trimmed) as Record<string, unknown>
-    for (const key of ['text', 'conversation', 'caption', 'body']) {
-      const value = parsed[key]
-      if (typeof value === 'string' && value.trim()) {
-        return decodePercentEncoding(value.trim())
-      }
-    }
-  } catch {
-    // nao era JSON valido — segue com o texto original
-  }
-
-  return decodePercentEncoding(trimmed)
 }
 
 function phoneCandidates(raw: string) {
@@ -164,7 +132,6 @@ function buildLeadUpdates(lead: Lead, output: Awaited<ReturnType<typeof runAlice
   } else if (output.actions.includes('qualificado') && output.internal_summary) {
     updates.summary = output.internal_summary
   }
-
   if (typeof leadUpdates.automation_paused === 'boolean') {
     updates.automation_paused = leadUpdates.automation_paused
   }
@@ -192,6 +159,17 @@ function buildLeadUpdates(lead: Lead, output: Awaited<ReturnType<typeof runAlice
       : lead.stage
   }
 
+  if (updates.summary !== undefined) {
+    updates.summary_comercial_curto = compactCommercialSummary({
+      summary: updates.summary,
+      city: updates.city !== undefined ? updates.city : lead.city,
+      intention: updates.intention !== undefined ? updates.intention : lead.intention,
+      propertyInterest: updates.imovel_interesse !== undefined ? updates.imovel_interesse : lead.imovel_interesse,
+      acceptedConsultant: updates.aceitou_consultor !== undefined ? updates.aceitou_consultor : lead.aceitou_consultor,
+    })
+    updates.summary_comercial_atualizado_em = new Date().toISOString()
+  }
+
   return updates
 }
 
@@ -204,7 +182,7 @@ export async function POST(request: NextRequest) {
   }
 
   const payload = await request.json() as N8NAgentPayload
-  const message = extractLeadText(payload.message ?? payload.conversation ?? '')
+  const message = extractMessageText(payload.message ?? payload.conversation ?? '')
   const reactivation = payload.reactivation === true || (payload.reactivation as unknown) === 'true'
 
   if (!message) {

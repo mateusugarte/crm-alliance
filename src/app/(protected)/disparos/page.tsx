@@ -9,7 +9,8 @@ import { ptBR } from 'date-fns/locale'
 import {
   RefreshCw, Plus, X, ChevronRight, AlertTriangle, Check,
   Send, Smartphone, FileText, QrCode, Trash2, Pencil, Sparkles, Users, Shuffle, Clock,
-} from 'lucide-react'
+  ICON,
+} from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { disparoFetch } from '@/lib/disparo-api'
 import type { Database, ReactivationCampaign, WaInstance, Campaign, Template } from '@/lib/supabase/types'
@@ -41,11 +42,11 @@ const TABS = [
 type TabId = typeof TABS[number]['id']
 
 const STATUS_STYLES: Record<string, string> = {
-  draft:     'bg-muted text-muted-foreground',
+  draft:     'bg-muted text-ink-muted',
   running:   'bg-blue-500/15 text-blue-500',
   paused:    'bg-amber-500/15 text-amber-500',
   completed: 'bg-green-500/15 text-green-600',
-  cancelled: 'bg-red-500/15 text-red-500',
+  cancelled: 'bg-red-500/15 text-[var(--danger-ink)]',
 }
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Rascunho', running: 'Executando', paused: 'Pausado',
@@ -53,7 +54,7 @@ const STATUS_LABELS: Record<string, string> = {
 }
 const INST_STATUS_STYLES: Record<string, string> = {
   connected: 'bg-green-500/15 text-green-600',
-  disconnected: 'bg-muted text-muted-foreground',
+  disconnected: 'bg-muted text-ink-muted',
   connecting: 'bg-amber-500/15 text-amber-500',
 }
 const INST_STATUS_LABELS: Record<string, string> = {
@@ -109,10 +110,10 @@ export default function DisparosPage() {
     <div className="px-8 py-7 flex flex-col gap-0 min-h-full max-w-screen-xl">
       {/* Page header */}
       <div className="mb-5">
-        <p className="text-xs font-semibold text-alliance-blue/60 uppercase tracking-widest mb-1">
+        <p className="text-xs font-semibold text-alliance-blue/60   mb-1">
           Sistema de Disparos
         </p>
-        <h1 className="text-2xl font-bold text-alliance-dark dark:text-white">Disparos</h1>
+        <h1 className="text-2xl font-bold text-ink dark:text-white">Disparos</h1>
       </div>
 
       {/* Tab bar */}
@@ -125,7 +126,7 @@ export default function DisparosPage() {
               'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors cursor-pointer',
               tab === id
                 ? 'border-alliance-blue text-alliance-blue'
-                : 'border-transparent text-muted-foreground hover:text-foreground',
+                : 'border-transparent text-ink-muted hover:text-foreground',
             )}
           >
             <Icon size={14} />
@@ -174,6 +175,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
   const [generatedMessages, setGeneratedMessages] = useState<Record<string, string>>({})
   const [generatingContext, setGeneratingContext] = useState(false)
   const [contextError, setContextError] = useState<string | null>(null)
+  const [contextWarning, setContextWarning] = useState<string | null>(null)
 
   // Step 3: Config
   const [intervalOption, setIntervalOption] = useState(1)
@@ -243,6 +245,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
     setCampaignTheme('')
     setGeneratedMessages({})
     setContextError(null)
+    setContextWarning(null)
     setCreateError(null)
     setIntervalOption(1)
     setWizardOpen(true)
@@ -310,6 +313,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
     setGeneratedMessages({})
     setMixError(null)
     setContextError(null)
+    setContextWarning(null)
     setRandomColdFeedback(
       selected.length < requested
         ? `Selecionei ${selected.length}. Só existem ${availableColdZeroImpactLeads.length} leads frios 0× disponíveis.`
@@ -346,7 +350,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
       return
     }
 
-    setGeneratingContext(true); setContextError(null)
+    setGeneratingContext(true); setContextError(null); setContextWarning(null)
     try {
       const res = await fetch('/api/leads/reactivation-context', {
         method: 'POST',
@@ -360,10 +364,29 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
         const err = await res.json() as { error?: string }
         setContextError(err.error ?? 'Erro ao gerar mensagens')
       } else {
-        const data = await res.json() as { results: { lead_id: string; message: string }[] }
+        const data = await res.json() as {
+          results: { lead_id: string; message: string; eligible: boolean; quality_flags: string[] }[]
+          excluded: { lead_id: string; name: string; reason: string | null }[]
+        }
         const map: Record<string, string> = {}
         for (const r of data.results) { if (r.message) map[r.lead_id] = r.message }
         setGeneratedMessages(map)
+        if (data.excluded.length > 0) {
+          const excludedIds = new Set(data.excluded.map(item => item.lead_id))
+          setSelectedLeadIds(previous => {
+            const next = new Set(previous)
+            for (const id of excludedIds) next.delete(id)
+            return next
+          })
+          const details = data.excluded.slice(0, 3)
+            .map(item => `${item.name || 'Lead'}: ${item.reason ?? 'incompatível com reativação'}`)
+            .join(' · ')
+          setContextWarning(`${data.excluded.length} ${data.excluded.length === 1 ? 'contato foi removido' : 'contatos foram removidos'} por risco de mensagem inadequada. ${details}`)
+        }
+        const eligibleCount = data.results.filter(item => item.eligible).length
+        if (Object.keys(map).length < eligibleCount) {
+          setContextError('Algumas mensagens não passaram pela geração. Gere novamente antes de avançar.')
+        }
       }
     } catch { setContextError('Erro de conexão') }
     setGeneratingContext(false)
@@ -423,7 +446,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
       {/* Header + action */}
       <div className="flex items-center justify-end gap-2">
         <button onClick={loadAll} className="p-2 rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer" title="Atualizar">
-          <RefreshCw size={15} className={cn('text-muted-foreground', loading && 'animate-spin')} />
+          <RefreshCw size={15} className={cn('text-ink-muted', loading && 'animate-spin')} />
         </button>
         <button onClick={openWizard} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-alliance-blue text-white text-sm font-semibold hover:bg-alliance-dark transition-colors cursor-pointer">
           <Plus size={15} /> Nova Reativação
@@ -431,24 +454,24 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
       </div>
 
       {/* Campaigns table */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+      <div className="bg-card border border-border rounded-[var(--radius-panel)] overflow-hidden">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground">Campanhas de Reativação</h2>
-          <span className="text-xs text-muted-foreground">{campaigns.length} campanha{campaigns.length !== 1 ? 's' : ''}</span>
+          <span className="text-xs text-ink-muted">{campaigns.length} campanha{campaigns.length !== 1 ? 's' : ''}</span>
         </div>
         {loading ? (
-          <div className="flex items-center justify-center py-16"><RefreshCw size={20} className="animate-spin text-muted-foreground" /></div>
+          <div className="flex items-center justify-center py-16"><RefreshCw size={20} className="animate-spin text-ink-muted" /></div>
         ) : campaigns.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-2">
-            <RefreshCw size={32} className="text-muted-foreground/20" />
-            <p className="text-sm text-muted-foreground">Nenhuma campanha criada ainda</p>
+            <RefreshCw size={32} className="text-ink-muted/20" />
+            <p className="text-sm text-ink-muted">Nenhuma campanha criada ainda</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
                 {['Nome', 'Status', 'Contatos', 'Enviados', 'Falhas', 'Data'].map((h, i) => (
-                  <th key={h} className={cn('px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider', i >= 2 && i <= 4 ? 'text-right' : 'text-left')}>{h}</th>
+                  <th key={h} className={cn('px-5 py-3 text-xs font-semibold text-ink-muted  ', i >= 2 && i <= 4 ? 'text-right' : 'text-left')}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -457,15 +480,15 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                 <tr key={c.id} onClick={() => router.push(`/disparos/reativar/${c.id}`)} className="hover:bg-muted/50 transition-colors cursor-pointer">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 leading-none flex-shrink-0">Reativação</span>
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 leading-none flex-shrink-0">Reativação</span>
                       <span className="font-medium text-foreground">{c.name}</span>
                     </div>
                   </td>
                   <td className="px-5 py-3.5"><StatusBadge status={c.status} /></td>
-                  <td className="px-5 py-3.5 text-right text-muted-foreground">{c.total_leads}</td>
+                  <td className="px-5 py-3.5 text-right text-ink-muted">{c.total_leads}</td>
                   <td className="px-5 py-3.5 text-right text-green-600">{c.sent_count}</td>
-                  <td className="px-5 py-3.5 text-right text-red-500">{c.failed_count}</td>
-                  <td className="px-5 py-3.5 text-muted-foreground">{format(new Date(c.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</td>
+                  <td className="px-5 py-3.5 text-right text-[var(--danger-ink)]">{c.failed_count}</td>
+                  <td className="px-5 py-3.5 text-ink-muted">{format(new Date(c.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</td>
                 </tr>
               ))}
             </tbody>
@@ -484,7 +507,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
               initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }}
               className={cn(
-                'bg-card border border-border rounded-2xl shadow-2xl w-full max-h-[90vh] flex flex-col overflow-hidden transition-all duration-200',
+                'bg-card border border-border rounded-[var(--radius-panel)] elev-lg w-full max-h-[90vh] flex flex-col overflow-hidden transition-all duration-200',
                 step === 1 ? 'max-w-5xl' : 'max-w-2xl',
               )}
               onClick={e => e.stopPropagation()}
@@ -493,12 +516,12 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
               <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
                 <div>
                   <h2 className="text-base font-bold text-foreground">Nova Reativação</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-ink-muted mt-0.5">
                     Passo {step} de 3 — {STEP_LABELS[step - 1]}
                   </p>
                 </div>
                 <button onClick={() => setWizardOpen(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer">
-                  <X size={16} className="text-muted-foreground" />
+                  <X size={16} className="text-ink-muted" />
                 </button>
               </div>
 
@@ -507,10 +530,10 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                 {[1, 2, 3].map(s => (
                   <div key={s} className="flex items-center gap-2">
                     <div className={cn('w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors',
-                      step === s ? 'bg-alliance-blue text-white' : step > s ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground')}>
+                      step === s ? 'bg-alliance-blue text-white' : step > s ? 'bg-green-500 text-white' : 'bg-muted text-ink-muted')}>
                       {step > s ? <Check size={12} /> : s}
                     </div>
-                    {s < 3 && <ChevronRight size={14} className="text-muted-foreground" />}
+                    {s < 3 && <ChevronRight size={14} className="text-ink-muted" />}
                   </div>
                 ))}
               </div>
@@ -523,27 +546,27 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                   <div className="flex flex-col gap-4">
                     <div className="flex items-start gap-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                       <AlertTriangle size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-600 dark:text-amber-400">Recomendamos no máximo 10 contatos a cada 4 horas para evitar bloqueios.</p>
+                      <p className="text-xs text-[var(--warning-ink)] dark:text-amber-400">Recomendamos no máximo 10 contatos a cada 4 horas para evitar bloqueios.</p>
                     </div>
                     <div className="flex items-center justify-between">
-                      <p className="text-xs text-muted-foreground">Clique em um estágio para selecionar todos, ou escolha leads individualmente</p>
+                      <p className="text-xs text-ink-muted">Clique em um estágio para selecionar todos, ou escolha leads individualmente</p>
                       <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full transition-colors',
-                        selectedLeadIds.size > 0 ? 'bg-alliance-blue/15 text-alliance-blue' : 'bg-muted text-muted-foreground')}>
+                        selectedLeadIds.size > 0 ? 'bg-alliance-blue/15 text-alliance-blue' : 'bg-muted text-ink-muted')}>
                         {selectedLeadIds.size} selecionado{selectedLeadIds.size !== 1 ? 's' : ''}
                       </span>
                     </div>
                     {selectedLeadIds.size > 10 && (
                       <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
-                        <AlertTriangle size={13} className="text-red-500" />
-                        <p className="text-xs text-red-500">Mais de 10 contatos. Risco elevado de bloqueio.</p>
+                        <AlertTriangle size={13} className="text-[var(--danger-ink)]" />
+                        <p className="text-xs text-[var(--danger-ink)]">Mais de 10 contatos. Risco elevado de bloqueio.</p>
                       </div>
                     )}
                     {leadsLoading ? (
-                      <div className="flex items-center justify-center py-12"><RefreshCw size={18} className="animate-spin text-muted-foreground" /></div>
+                      <div className="flex items-center justify-center py-12"><RefreshCw size={18} className="animate-spin text-ink-muted" /></div>
                     ) : leads.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 gap-2">
-                        <Users size={28} className="text-muted-foreground/20" />
-                        <p className="text-sm text-muted-foreground">Nenhum lead no CRM</p>
+                        <Users size={28} className="text-ink-muted/20" />
+                        <p className="text-sm text-ink-muted">Nenhum lead no CRM</p>
                       </div>
                     ) : (
                       <div className="flex gap-3 overflow-x-auto pb-2">
@@ -562,29 +585,29 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                                   allSelected ? 'border-alliance-blue bg-alliance-blue/10'
                                     : someSelected ? 'border-dashed bg-card'
                                     : 'border-border bg-card hover:bg-muted')}
-                                style={someSelected ? { borderColor: `${col.color}60` } : undefined}
+                                style={someSelected ? { borderColor: `color-mix(in oklch, ${col.solid} 45%, transparent)` } : undefined}
                               >
                                 <div className="flex items-center justify-between gap-1">
                                   <div className="flex items-center gap-1.5 min-w-0">
-                                    <Icon size={12} style={{ color: col.color }} className="flex-shrink-0" />
-                                    <span className="text-xs font-semibold truncate" style={{ color: col.color }}>{col.label}</span>
+                                    <Icon size={ICON.xs} style={{ color: col.solid }} className="flex-shrink-0" />
+                                    <span className="truncate text-xs font-semibold" style={{ color: col.ink }}>{col.label}</span>
                                   </div>
-                                  <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0',
-                                    allSelected ? 'bg-alliance-blue text-white' : someSelected ? 'bg-muted text-foreground' : 'bg-muted text-muted-foreground')}>
+                                  <span className={cn('text-2xs font-bold px-1.5 py-0.5 rounded-full flex-shrink-0',
+                                    allSelected ? 'bg-alliance-blue text-white' : someSelected ? 'bg-muted text-foreground' : 'bg-muted text-ink-muted')}>
                                     {selectedInStage}/{stageLeads.length}
                                   </span>
                                 </div>
-                                <p className="text-[10px] text-muted-foreground leading-tight">
+                                <p className="text-2xs text-ink-muted leading-tight">
                                   {allSelected ? '✓ Todos selecionados' : someSelected ? `${selectedInStage} selecionado${selectedInStage !== 1 ? 's' : ''}` : 'Selecionar todos'}
                                 </p>
                               </button>
                               {col.id === 'lead_frio' && (
                                 <div className="flex flex-col gap-1.5 rounded-xl border border-dashed border-alliance-blue/25 bg-alliance-blue/5 p-2">
                                   <div className="flex items-center justify-between gap-1">
-                                    <span className="text-[10px] font-semibold text-alliance-blue">
+                                    <span className="text-2xs font-semibold text-alliance-blue">
                                       Sortear 0×
                                     </span>
-                                    <span className="text-[9px] font-semibold text-muted-foreground">
+                                    <span className="text-2xs font-semibold text-ink-muted">
                                       {availableColdZeroImpactLeads.length} disp.
                                     </span>
                                   </div>
@@ -606,13 +629,13 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                                       onClick={handleRandomColdSelection}
                                       disabled={availableColdZeroImpactLeads.length === 0}
                                       title="Selecionar aleatoriamente leads frios sem disparo"
-                                      className="flex h-7 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-alliance-blue text-white transition-colors hover:bg-alliance-dark disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+                                      className="flex h-7 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-alliance-blue text-white transition-colors hover:bg-alliance-dark disabled:cursor-not-allowed disabled:bg-muted disabled:text-ink-muted"
                                     >
                                       <Shuffle size={12} />
                                     </button>
                                   </div>
                                   {randomColdFeedback && (
-                                    <p className="text-[9px] leading-tight text-muted-foreground">
+                                    <p className="text-2xs leading-tight text-ink-muted">
                                       {randomColdFeedback}
                                     </p>
                                   )}
@@ -630,7 +653,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                                         {sel && <Check size={8} className="text-white" />}
                                       </div>
                                       <p className="text-xs text-foreground truncate flex-1">{lead.name}</p>
-                                      <span className="inline-flex items-center gap-0.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20 text-[9px] font-bold px-1 py-0.5 rounded-full flex-shrink-0">
+                                      <span className="inline-flex items-center gap-0.5 bg-[var(--warning-soft)] dark:bg-orange-500/10 text-[var(--warning-ink)] dark:text-orange-400 border border-orange-200 dark:border-orange-500/20 text-2xs font-bold px-1 py-0.5 rounded-full flex-shrink-0">
                                         {lead.reactivation_count ?? 0}×
                                       </span>
                                     </button>
@@ -651,27 +674,27 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                     {/* Mode selector */}
                     <div className="grid grid-cols-2 gap-4">
                       <button
-                        onClick={() => { setMode('template'); setGeneratedMessages({}); setContextError(null) }}
-                        className={cn('flex flex-col items-start gap-3 p-5 rounded-2xl border-2 text-left transition-colors cursor-pointer',
+                        onClick={() => { setMode('template'); setGeneratedMessages({}); setContextError(null); setContextWarning(null) }}
+                        className={cn('flex flex-col items-start gap-3 p-5 rounded-[var(--radius-panel)] border-2 text-left transition-colors cursor-pointer',
                           mode === 'template' ? 'border-alliance-blue bg-alliance-blue/5' : 'border-border bg-card hover:bg-muted')}>
                         <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', mode === 'template' ? 'bg-alliance-blue/10' : 'bg-muted')}>
-                          <Shuffle size={18} className={mode === 'template' ? 'text-alliance-blue' : 'text-muted-foreground'} />
+                          <Shuffle size={18} className={mode === 'template' ? 'text-alliance-blue' : 'text-ink-muted'} />
                         </div>
                         <div>
                           <p className="font-semibold text-sm text-foreground">Usar Template</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">Selecione um template e misture a mensagem para cada lead</p>
+                          <p className="text-xs text-ink-muted mt-0.5">Selecione um template e misture a mensagem para cada lead</p>
                         </div>
                       </button>
                       <button
-                        onClick={() => { setMode('context'); setMixedMessages({}); setSelectedTemplate(null); setContextError(null) }}
-                        className={cn('flex flex-col items-start gap-3 p-5 rounded-2xl border-2 text-left transition-colors cursor-pointer',
+                        onClick={() => { setMode('context'); setMixedMessages({}); setSelectedTemplate(null); setContextError(null); setContextWarning(null) }}
+                        className={cn('flex flex-col items-start gap-3 p-5 rounded-[var(--radius-panel)] border-2 text-left transition-colors cursor-pointer',
                           mode === 'context' ? 'border-alliance-blue bg-alliance-blue/5' : 'border-border bg-card hover:bg-muted')}>
                         <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', mode === 'context' ? 'bg-alliance-blue/10' : 'bg-muted')}>
-                          <Sparkles size={18} className={mode === 'context' ? 'text-alliance-blue' : 'text-muted-foreground'} />
+                          <Sparkles size={18} className={mode === 'context' ? 'text-alliance-blue' : 'text-ink-muted'} />
                         </div>
                         <div>
                           <p className="font-semibold text-sm text-foreground">Criar com Contexto</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">IA analisa o histórico e cria mensagem personalizada para cada lead</p>
+                          <p className="text-xs text-ink-muted mt-0.5">IA analisa o histórico e cria mensagem personalizada para cada lead</p>
                         </div>
                       </button>
                     </div>
@@ -679,14 +702,14 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                     {/* Template mode */}
                     {mode === 'template' && (
                       <div className="flex flex-col gap-4">
-                        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                        <div className="bg-card border border-border rounded-[var(--radius-panel)] overflow-hidden">
                           <div className="px-5 py-4 border-b border-border">
                             <h3 className="text-sm font-semibold text-foreground">Selecionar template</h3>
                           </div>
                           {templates.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-8 gap-2">
-                              <FileText size={24} className="text-muted-foreground/20" />
-                              <p className="text-sm text-muted-foreground">Nenhum template. Crie um na aba Templates.</p>
+                              <FileText size={24} className="text-ink-muted/20" />
+                              <p className="text-sm text-ink-muted">Nenhum template. Crie um na aba Templates.</p>
                             </div>
                           ) : (
                             <div className="flex flex-col divide-y divide-border max-h-[220px] overflow-y-auto">
@@ -696,11 +719,11 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                                     selectedTemplate?.id === t.id ? 'bg-alliance-blue/5' : 'hover:bg-muted/50')}>
                                   <div className={cn('w-4 h-4 rounded-full border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors',
                                     selectedTemplate?.id === t.id ? 'bg-alliance-blue border-alliance-blue' : 'border-border')}>
-                                    {selectedTemplate?.id === t.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                    {selectedTemplate?.id === t.id && <div className="w-1.5 h-1.5 rounded-full bg-surface" />}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-foreground">{t.name}</p>
-                                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{t.content}</p>
+                                    <p className="text-xs text-ink-muted mt-0.5 line-clamp-2">{t.content}</p>
                                   </div>
                                 </button>
                               ))}
@@ -711,13 +734,13 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                           <div className="flex flex-col gap-3">
                             <button onClick={handleMixTemplate} disabled={mixing}
                               className={cn('flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
-                                !mixing ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-muted-foreground cursor-not-allowed')}>
+                                !mixing ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-ink-muted cursor-not-allowed')}>
                               {mixing ? <><RefreshCw size={14} className="animate-spin" /> Misturando...</> : <><Shuffle size={14} /> Misturar para {selectedLeadObjects.length} lead{selectedLeadObjects.length !== 1 ? 's' : ''}</>}
                             </button>
                             {mixError && (
                               <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                                <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
-                                <p className="text-xs text-red-500">{mixError}</p>
+                                <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0" />
+                                <p className="text-xs text-[var(--danger-ink)]">{mixError}</p>
                               </div>
                             )}
                             {Object.keys(mixedMessages).length > 0 && (
@@ -735,7 +758,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                     {mode === 'context' && (
                       <div className="flex flex-col gap-4">
                         <label className="flex flex-col gap-2">
-                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          <span className="text-xs font-semibold   text-ink-muted">
                             Tema da campanha
                           </span>
                           <textarea
@@ -743,22 +766,29 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                             onChange={e => {
                               setCampaignTheme(e.target.value)
                               setContextError(null)
+                              setContextWarning(null)
                               setGeneratedMessages({})
                             }}
                             rows={4}
                             placeholder="Ex: Em agosto, queremos falar que uma fase importante da obra já foi executada e que restam poucas unidades do La Reserva."
-                            className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-muted-foreground/50"
+                            className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-ink-muted/50"
                           />
                         </label>
                         <button onClick={handleGenerateContext} disabled={generatingContext || !campaignTheme.trim()}
                           className={cn('flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
-                            !generatingContext && campaignTheme.trim() ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-muted-foreground cursor-not-allowed')}>
+                            !generatingContext && campaignTheme.trim() ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-ink-muted cursor-not-allowed')}>
                           {generatingContext ? <><RefreshCw size={14} className="animate-spin" /> Gerando com IA...</> : <><Sparkles size={14} /> Gerar mensagens para {selectedLeadObjects.length} lead{selectedLeadObjects.length !== 1 ? 's' : ''}</>}
                         </button>
                         {contextError && (
                           <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                            <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
-                            <p className="text-xs text-red-500">{contextError}</p>
+                            <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0" />
+                            <p className="text-xs text-[var(--danger-ink)]">{contextError}</p>
+                          </div>
+                        )}
+                        {contextWarning && (
+                          <div className="flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+                            <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-amber-700" />
+                            <p className="text-xs leading-relaxed text-amber-800">{contextWarning}</p>
                           </div>
                         )}
                         {Object.keys(generatedMessages).length > 0 && (
@@ -767,15 +797,14 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                               <Check size={13} className="text-green-600" />
                               <p className="text-xs font-semibold text-green-600">{Object.keys(generatedMessages).length} de {selectedLeadObjects.length} mensagens geradas</p>
                             </div>
-                            {selectedLeadObjects.filter(l => generatedMessages[l.id]).slice(0, 3).map(lead => (
-                              <div key={lead.id} className="px-4 py-3 bg-muted/50 rounded-xl border border-border">
-                                <p className="text-xs font-semibold text-muted-foreground mb-1">{lead.name}</p>
-                                <p className="text-sm text-foreground">{generatedMessages[lead.id]}</p>
-                              </div>
-                            ))}
-                            {selectedLeadObjects.length > 3 && (
-                              <p className="text-xs text-muted-foreground text-center">+ {selectedLeadObjects.length - 3} mais</p>
-                            )}
+                            <div className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
+                              {selectedLeadObjects.filter(l => generatedMessages[l.id]).map(lead => (
+                                <div key={lead.id} className="rounded-xl border border-border bg-muted/50 px-4 py-3">
+                                  <p className="mb-1 text-xs font-semibold text-ink-muted">{lead.name}</p>
+                                  <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">{generatedMessages[lead.id]}</p>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -787,7 +816,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                 {step === 3 && (
                   <div className="flex flex-col gap-5">
                     <div className="flex flex-col gap-2">
-                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Intervalo entre mensagens</label>
+                      <label className="text-xs font-semibold text-ink-muted  ">Intervalo entre mensagens</label>
                       <div className="grid grid-cols-2 gap-2">
                         {INTERVAL_OPTIONS.map((opt, i) => (
                           <button key={i} onClick={() => setIntervalOption(i)}
@@ -799,11 +828,11 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Instância WhatsApp</label>
+                      <label className="text-xs font-semibold text-ink-muted  ">Instância WhatsApp</label>
                       {instances.length === 0 ? (
                         <div className="flex items-start gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                          <AlertTriangle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
-                          <p className="text-sm text-red-500">Nenhuma instância conectada. Vá à aba Instâncias.</p>
+                          <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-[var(--danger-ink)]">Nenhuma instância conectada. Vá à aba Instâncias.</p>
                         </div>
                       ) : (
                         <div className="flex flex-col gap-2">
@@ -814,7 +843,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                               <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
                               <div>
                                 <p className="font-medium text-foreground">{inst.name}</p>
-                                {inst.phone && <p className="text-xs text-muted-foreground">{inst.phone}</p>}
+                                {inst.phone && <p className="text-xs text-ink-muted">{inst.phone}</p>}
                               </div>
                             </button>
                           ))}
@@ -829,26 +858,26 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
               <div className="flex flex-col gap-3 px-6 py-4 border-t border-border flex-shrink-0">
                 {createError && (
                   <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                    <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
-                    <p className="text-xs text-red-500">{createError}</p>
+                    <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0" />
+                    <p className="text-xs text-[var(--danger-ink)]">{createError}</p>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
                   <button onClick={() => step > 1 ? setStep(s => s - 1) : setWizardOpen(false)}
-                    className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
+                    className="px-4 py-2 rounded-lg text-sm font-medium text-ink-muted hover:bg-muted transition-colors cursor-pointer">
                     {step === 1 ? 'Cancelar' : 'Voltar'}
                   </button>
                   {step < 3 ? (
                     <button onClick={() => setStep(s => s + 1)}
                       disabled={step === 1 ? !canGoStep2 : !canGoStep3}
                       className={cn('flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
-                        (step === 1 ? canGoStep2 : canGoStep3) ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-muted-foreground cursor-not-allowed')}>
+                        (step === 1 ? canGoStep2 : canGoStep3) ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-ink-muted cursor-not-allowed')}>
                       Próximo <ChevronRight size={14} />
                     </button>
                   ) : (
                     <button onClick={handleCreate} disabled={!canCreate || creating}
                       className={cn('flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
-                        canCreate && !creating ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-muted text-muted-foreground cursor-not-allowed')}>
+                        canCreate && !creating ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-muted text-ink-muted cursor-not-allowed')}>
                       {creating ? <><RefreshCw size={14} className="animate-spin" /> Salvando...</> : <><Send size={14} /> Salvar campanha</>}
                     </button>
                   )}
@@ -1069,7 +1098,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
       {/* Header row */}
       <div className="flex items-center justify-end gap-2">
         <button onClick={load} className="p-2 rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer" title="Atualizar">
-          <RefreshCw size={15} className={cn('text-muted-foreground', loading && 'animate-spin')} />
+          <RefreshCw size={15} className={cn('text-ink-muted', loading && 'animate-spin')} />
         </button>
         <button onClick={openWizard} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-alliance-blue text-white text-sm font-semibold hover:bg-alliance-dark transition-colors cursor-pointer">
           <Plus size={15} /> Nova Campanha
@@ -1077,24 +1106,24 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
       </div>
 
       {/* Campaigns table */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+      <div className="bg-card border border-border rounded-[var(--radius-panel)] overflow-hidden">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground">Campanhas</h2>
-          <span className="text-xs text-muted-foreground">{campaigns.length} encontrada{campaigns.length !== 1 ? 's' : ''}</span>
+          <span className="text-xs text-ink-muted">{campaigns.length} encontrada{campaigns.length !== 1 ? 's' : ''}</span>
         </div>
         {loading ? (
-          <div className="flex items-center justify-center py-16"><RefreshCw size={20} className="animate-spin text-muted-foreground" /></div>
+          <div className="flex items-center justify-center py-16"><RefreshCw size={20} className="animate-spin text-ink-muted" /></div>
         ) : campaigns.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <Send size={36} className="text-muted-foreground/20" />
-            <p className="text-sm text-muted-foreground">Nenhuma campanha encontrada</p>
+            <Send size={36} className="text-ink-muted/20" />
+            <p className="text-sm text-ink-muted">Nenhuma campanha encontrada</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
                 {['Nome', 'Status', 'Total', 'Enviados', 'Falhas', 'Data', ''].map((h, i) => (
-                  <th key={i} className={cn('px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider', i >= 2 && i <= 4 ? 'text-right' : 'text-left')}>{h}</th>
+                  <th key={i} className={cn('px-5 py-3 text-xs font-semibold text-ink-muted  ', i >= 2 && i <= 4 ? 'text-right' : 'text-left')}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1103,23 +1132,23 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                 <tr key={c.id} onClick={() => router.push(`/disparos/${c.id}`)} className="hover:bg-muted/50 transition-colors cursor-pointer">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 leading-none flex-shrink-0">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 leading-none flex-shrink-0">
                         Disparo
                       </span>
                       <span className="font-medium text-foreground">{c.name}</span>
                     </div>
                   </td>
                   <td className="px-5 py-3.5"><StatusBadge status={c.status} /></td>
-                  <td className="px-5 py-3.5 text-right text-muted-foreground">{c.total_leads}</td>
+                  <td className="px-5 py-3.5 text-right text-ink-muted">{c.total_leads}</td>
                   <td className="px-5 py-3.5 text-right text-green-600">{c.sent_count}</td>
-                  <td className="px-5 py-3.5 text-right text-red-500">{c.failed_count}</td>
-                  <td className="px-5 py-3.5 text-muted-foreground">{format(new Date(c.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</td>
+                  <td className="px-5 py-3.5 text-right text-[var(--danger-ink)]">{c.failed_count}</td>
+                  <td className="px-5 py-3.5 text-ink-muted">{format(new Date(c.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</td>
                   <td className="px-3 py-3.5" onClick={e => e.stopPropagation()}>
                     <button
                       onClick={e => handleDeleteCampaign(c.id, e)}
                       disabled={c.status === 'running' || deletingCampaignId === c.id}
                       title={c.status === 'running' ? 'Pare a campanha antes de excluir' : 'Excluir campanha'}
-                      className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer text-muted-foreground hover:text-red-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer text-ink-muted hover:text-[var(--danger-ink)] disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       {deletingCampaignId === c.id
                         ? <RefreshCw size={13} className="animate-spin" />
@@ -1144,7 +1173,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }}
               className={cn(
-                'bg-card border border-border rounded-2xl shadow-2xl w-full max-h-[90vh] flex flex-col overflow-hidden transition-all duration-200',
+                'bg-card border border-border rounded-[var(--radius-panel)] elev-lg w-full max-h-[90vh] flex flex-col overflow-hidden transition-all duration-200',
                 step === 1 ? 'max-w-5xl' : 'max-w-2xl',
               )}
               onClick={e => e.stopPropagation()}
@@ -1153,12 +1182,12 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
               <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
                 <div>
                   <h2 className="text-base font-bold text-foreground">Nova Campanha</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-ink-muted mt-0.5">
                     Passo {step} de 4 — {['Contatos', 'Template', 'Mensagens', 'Configuração'][step - 1]}
                   </p>
                 </div>
                 <button onClick={() => setWizardOpen(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer">
-                  <X size={16} className="text-muted-foreground" />
+                  <X size={16} className="text-ink-muted" />
                 </button>
               </div>
 
@@ -1168,11 +1197,11 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                   <div key={s} className="flex items-center gap-2">
                     <div className={cn(
                       'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors',
-                      step === s ? 'bg-alliance-blue text-white' : step > s ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground',
+                      step === s ? 'bg-alliance-blue text-white' : step > s ? 'bg-green-500 text-white' : 'bg-muted text-ink-muted',
                     )}>
                       {step > s ? <Check size={12} /> : s}
                     </div>
-                    {s < 4 && <ChevronRight size={14} className="text-muted-foreground" />}
+                    {s < 4 && <ChevronRight size={14} className="text-ink-muted" />}
                   </div>
                 ))}
               </div>
@@ -1185,16 +1214,16 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                   <div className="flex flex-col gap-4">
                     <div className="flex items-start gap-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                       <AlertTriangle size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-600 dark:text-amber-400">Recomendamos no máximo 50 contatos por campanha para evitar bloqueios.</p>
+                      <p className="text-xs text-[var(--warning-ink)] dark:text-amber-400">Recomendamos no máximo 50 contatos por campanha para evitar bloqueios.</p>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-ink-muted">
                         Clique em um estágio para selecionar todos, ou escolha leads individualmente
                       </p>
                       <span className={cn(
                         'text-xs font-semibold px-2.5 py-1 rounded-full transition-colors',
-                        selectedLeadIds.size > 0 ? 'bg-alliance-blue/15 text-alliance-blue' : 'bg-muted text-muted-foreground',
+                        selectedLeadIds.size > 0 ? 'bg-alliance-blue/15 text-alliance-blue' : 'bg-muted text-ink-muted',
                       )}>
                         {selectedLeadIds.size} selecionado{selectedLeadIds.size !== 1 ? 's' : ''}
                       </span>
@@ -1202,12 +1231,12 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
 
                     {leadsLoading ? (
                       <div className="flex items-center justify-center py-12">
-                        <RefreshCw size={18} className="animate-spin text-muted-foreground" />
+                        <RefreshCw size={18} className="animate-spin text-ink-muted" />
                       </div>
                     ) : leads.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 gap-2">
-                        <Users size={28} className="text-muted-foreground/20" />
-                        <p className="text-sm text-muted-foreground">Nenhum lead no CRM</p>
+                        <Users size={28} className="text-ink-muted/20" />
+                        <p className="text-sm text-ink-muted">Nenhum lead no CRM</p>
                       </div>
                     ) : (
                       <div className="flex gap-3 overflow-x-auto pb-2">
@@ -1231,25 +1260,25 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                                     ? 'border-dashed bg-card'
                                     : 'border-border bg-card hover:bg-muted',
                                 )}
-                                style={someSelected ? { borderColor: `${col.color}60` } : undefined}
+                                style={someSelected ? { borderColor: `color-mix(in oklch, ${col.solid} 45%, transparent)` } : undefined}
                               >
                                 <div className="flex items-center justify-between gap-1">
                                   <div className="flex items-center gap-1.5 min-w-0">
-                                    <Icon size={12} style={{ color: col.color }} className="flex-shrink-0" />
-                                    <span className="text-xs font-semibold truncate" style={{ color: col.color }}>{col.label}</span>
+                                    <Icon size={ICON.xs} style={{ color: col.solid }} className="flex-shrink-0" />
+                                    <span className="truncate text-xs font-semibold" style={{ color: col.ink }}>{col.label}</span>
                                   </div>
                                   <span className={cn(
-                                    'text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0',
+                                    'text-2xs font-bold px-1.5 py-0.5 rounded-full flex-shrink-0',
                                     allSelected
                                       ? 'bg-alliance-blue text-white'
                                       : someSelected
                                       ? 'bg-muted text-foreground'
-                                      : 'bg-muted text-muted-foreground',
+                                      : 'bg-muted text-ink-muted',
                                   )}>
                                     {selectedInStage}/{stageLeads.length}
                                   </span>
                                 </div>
-                                <p className="text-[10px] text-muted-foreground leading-tight">
+                                <p className="text-2xs text-ink-muted leading-tight">
                                   {allSelected
                                     ? '✓ Todos selecionados'
                                     : someSelected
@@ -1278,7 +1307,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                                         {sel && <Check size={8} className="text-white" />}
                                       </div>
                                       <p className="text-xs text-foreground truncate flex-1">{lead.name}</p>
-                                      <span className="inline-flex items-center gap-0.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20 text-[9px] font-bold px-1 py-0.5 rounded-full flex-shrink-0">
+                                      <span className="inline-flex items-center gap-0.5 bg-[var(--warning-soft)] dark:bg-orange-500/10 text-[var(--warning-ink)] dark:text-orange-400 border border-orange-200 dark:border-orange-500/20 text-2xs font-bold px-1 py-0.5 rounded-full flex-shrink-0">
                                         {lead.reactivation_count ?? 0}×
                                       </span>
                                     </button>
@@ -1293,8 +1322,8 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
 
                     {selectedLeadIds.size > 50 && (
                       <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
-                        <AlertTriangle size={13} className="text-red-500" />
-                        <p className="text-xs text-red-500">Mais de 50 contatos selecionados. Risco elevado de bloqueio.</p>
+                        <AlertTriangle size={13} className="text-[var(--danger-ink)]" />
+                        <p className="text-xs text-[var(--danger-ink)]">Mais de 50 contatos selecionados. Risco elevado de bloqueio.</p>
                       </div>
                     )}
                   </div>
@@ -1303,15 +1332,15 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                 {/* Step 2 — Template (single select) */}
                 {step === 2 && (
                   <div className="flex flex-col gap-3">
-                    <p className="text-sm text-muted-foreground">Selecione o template base para esta campanha.</p>
+                    <p className="text-sm text-ink-muted">Selecione o template base para esta campanha.</p>
                     {templatesLoading ? (
                       <div className="flex items-center justify-center py-10">
-                        <RefreshCw size={18} className="animate-spin text-muted-foreground" />
+                        <RefreshCw size={18} className="animate-spin text-ink-muted" />
                       </div>
                     ) : templates.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-10 gap-2">
-                        <FileText size={28} className="text-muted-foreground/20" />
-                        <p className="text-sm text-muted-foreground">Nenhum template disponível. Crie um na aba Templates.</p>
+                        <FileText size={28} className="text-ink-muted/20" />
+                        <p className="text-sm text-ink-muted">Nenhum template disponível. Crie um na aba Templates.</p>
                       </div>
                     ) : (
                       <div className="flex flex-col gap-2">
@@ -1330,11 +1359,11 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                               'w-4 h-4 rounded-full border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors',
                               selectedTemplate?.id === t.id ? 'bg-alliance-blue border-alliance-blue' : 'border-border',
                             )}>
-                              {selectedTemplate?.id === t.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                              {selectedTemplate?.id === t.id && <div className="w-1.5 h-1.5 rounded-full bg-surface" />}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-foreground truncate">{t.name}</p>
-                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                              <p className="text-xs text-ink-muted mt-0.5 line-clamp-2">
                                 {t.content}
                               </p>
                             </div>
@@ -1349,7 +1378,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                 {step === 3 && (
                   <div className="flex flex-col gap-4">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-ink-muted">
                         Misture as mensagens com IA — cada contato recebe uma variação única.
                       </p>
                       <button
@@ -1357,7 +1386,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                         disabled={mixing}
                         className={cn(
                           'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer flex-shrink-0',
-                          !mixing ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-muted-foreground cursor-not-allowed',
+                          !mixing ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-ink-muted cursor-not-allowed',
                         )}
                       >
                         {mixing
@@ -1368,29 +1397,29 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
 
                     {mixError && (
                       <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                        <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
-                        <p className="text-xs text-red-500">{mixError}</p>
+                        <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0" />
+                        <p className="text-xs text-[var(--danger-ink)]">{mixError}</p>
                       </div>
                     )}
 
                     {mixedContacts.length === 0 && !mixing && (
-                      <div className="flex flex-col items-center justify-center py-10 gap-2 border border-dashed border-border rounded-2xl">
-                        <Shuffle size={28} className="text-muted-foreground/20" />
-                        <p className="text-sm text-muted-foreground">Clique em &quot;Misturar com IA&quot; para gerar mensagens</p>
+                      <div className="flex flex-col items-center justify-center py-10 gap-2 border border-dashed border-border rounded-[var(--radius-panel)]">
+                        <Shuffle size={28} className="text-ink-muted/20" />
+                        <p className="text-sm text-ink-muted">Clique em &quot;Misturar com IA&quot; para gerar mensagens</p>
                       </div>
                     )}
 
                     {mixedContacts.length > 0 && (
                       <div className="flex flex-col gap-3">
                         {mixedContacts.map((c, i) => (
-                          <div key={c.lead.id} className="flex flex-col gap-2 p-4 rounded-2xl border border-border bg-card">
+                          <div key={c.lead.id} className="flex flex-col gap-2 p-4 rounded-[var(--radius-panel)] border border-border bg-card">
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-muted-foreground">#{i + 1}</span>
+                                <span className="text-xs font-bold text-ink-muted">#{i + 1}</span>
                                 <p className="text-sm font-semibold text-foreground">{c.lead.name}</p>
-                                <span className="text-xs font-mono text-muted-foreground">{c.lead.phone.replace('@s.whatsapp.net', '')}</span>
+                                <span className="text-xs font-mono text-ink-muted">{c.lead.phone.replace('@s.whatsapp.net', '')}</span>
                               </div>
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px] font-semibold flex-shrink-0">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-2xs font-semibold flex-shrink-0">
                                 delay {(c.typingDelay / 1000).toFixed(1)}s
                               </span>
                             </div>
@@ -1415,19 +1444,19 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                 {step === 4 && (
                   <div className="flex flex-col gap-5">
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Nome da campanha <span className="text-red-500">*</span>
+                      <label className="text-xs font-semibold text-ink-muted  ">
+                        Nome da campanha <span className="text-[var(--danger-ink)]">*</span>
                       </label>
                       <input
                         type="text"
                         value={campaignName}
                         onChange={e => setCampaignName(e.target.value)}
                         placeholder="Ex: Prospecção Maio 2026"
-                        className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-muted-foreground/50"
+                        className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-ink-muted/50"
                       />
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Intervalo entre mensagens</label>
+                      <label className="text-xs font-semibold text-ink-muted  ">Intervalo entre mensagens</label>
                       <div className="grid grid-cols-2 gap-2">
                         {INTERVAL_OPTIONS.map((opt, i) => (
                           <button
@@ -1446,7 +1475,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <label className="text-xs font-semibold text-ink-muted   flex items-center gap-1.5">
                         <Clock size={11} /> Horário permitido para envio
                       </label>
                       <div className="flex items-center gap-3">
@@ -1459,7 +1488,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                             <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
                           ))}
                         </select>
-                        <span className="text-sm text-muted-foreground flex-shrink-0">até</span>
+                        <span className="text-sm text-ink-muted flex-shrink-0">até</span>
                         <select
                           value={allowedHoursEnd}
                           onChange={e => setAllowedHoursEnd(Number(e.target.value))}
@@ -1470,14 +1499,14 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                           ))}
                         </select>
                       </div>
-                      <p className="text-[10px] text-muted-foreground">A campanha só poderá ser iniciada dentro deste intervalo de horas.</p>
+                      <p className="text-2xs text-ink-muted">A campanha só poderá ser iniciada dentro deste intervalo de horas.</p>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Instância WhatsApp</label>
+                      <label className="text-xs font-semibold text-ink-muted  ">Instância WhatsApp</label>
                       {instances.length === 0 ? (
                         <div className="flex items-start gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                          <AlertTriangle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
-                          <p className="text-sm text-red-500">Nenhuma instância conectada. Vá à aba Instâncias.</p>
+                          <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-[var(--danger-ink)]">Nenhuma instância conectada. Vá à aba Instâncias.</p>
                         </div>
                       ) : (
                         <div className="flex flex-col gap-2">
@@ -1495,7 +1524,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                               <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
                               <div>
                                 <p className="font-medium text-foreground">{inst.name}</p>
-                                {inst.phone && <p className="text-xs text-muted-foreground">{inst.phone}</p>}
+                                {inst.phone && <p className="text-xs text-ink-muted">{inst.phone}</p>}
                               </div>
                             </button>
                           ))}
@@ -1510,14 +1539,14 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
               <div className="flex flex-col gap-3 px-6 py-4 border-t border-border flex-shrink-0">
                 {createError && (
                   <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                    <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
-                    <p className="text-xs text-red-500">{createError}</p>
+                    <AlertTriangle size={14} className="text-[var(--danger-ink)] flex-shrink-0" />
+                    <p className="text-xs text-[var(--danger-ink)]">{createError}</p>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
                   <button
                     onClick={() => step > 1 ? setStep(s => s - 1) : setWizardOpen(false)}
-                    className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
+                    className="px-4 py-2 rounded-lg text-sm font-medium text-ink-muted hover:bg-muted transition-colors cursor-pointer"
                   >
                     {step === 1 ? 'Cancelar' : 'Voltar'}
                   </button>
@@ -1529,7 +1558,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                         'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
                         (step === 1 ? canGoStep2 : step === 2 ? canGoStep3 : canGoStep4)
                           ? 'bg-alliance-blue text-white hover:bg-alliance-dark'
-                          : 'bg-muted text-muted-foreground cursor-not-allowed',
+                          : 'bg-muted text-ink-muted cursor-not-allowed',
                       )}
                     >
                       Próximo <ChevronRight size={14} />
@@ -1542,7 +1571,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                         'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
                         canCreate && !creating
                           ? 'bg-green-600 text-white hover:bg-green-700'
-                          : 'bg-muted text-muted-foreground cursor-not-allowed',
+                          : 'bg-muted text-ink-muted cursor-not-allowed',
                       )}
                     >
                       {creating ? <><RefreshCw size={14} className="animate-spin" /> Criando...</> : 'Criar Campanha'}
@@ -1622,7 +1651,7 @@ function TabInstancias() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-end gap-2">
         <button onClick={load} className="p-2 rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer" title="Atualizar">
-          <RefreshCw size={15} className={cn('text-muted-foreground', loading && 'animate-spin')} />
+          <RefreshCw size={15} className={cn('text-ink-muted', loading && 'animate-spin')} />
         </button>
         <button onClick={() => setConnectOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-alliance-blue text-white text-sm font-semibold hover:bg-alliance-dark transition-colors cursor-pointer">
           <Plus size={15} /> Conectar Instância
@@ -1630,16 +1659,16 @@ function TabInstancias() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20"><RefreshCw size={22} className="animate-spin text-muted-foreground" /></div>
+        <div className="flex items-center justify-center py-20"><RefreshCw size={22} className="animate-spin text-ink-muted" /></div>
       ) : instances.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <Smartphone size={40} className="text-muted-foreground/20" />
-          <p className="text-sm text-muted-foreground">Nenhuma instância conectada</p>
+          <Smartphone size={40} className="text-ink-muted/20" />
+          <p className="text-sm text-ink-muted">Nenhuma instância conectada</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {instances.map(inst => (
-            <div key={inst.id} className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-4">
+            <div key={inst.id} className="bg-card border border-border rounded-[var(--radius-panel)] p-5 flex flex-col gap-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
@@ -1647,7 +1676,7 @@ function TabInstancias() {
                   </div>
                   <div>
                     <p className="font-semibold text-foreground text-sm">{inst.name}</p>
-                    <p className="text-xs text-muted-foreground font-mono mt-0.5 truncate max-w-[140px]">{inst.instance_id}</p>
+                    <p className="text-xs text-ink-muted font-mono mt-0.5 truncate max-w-[140px]">{inst.instance_id}</p>
                   </div>
                 </div>
                 <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium', INST_STATUS_STYLES[inst.status] ?? INST_STATUS_STYLES.disconnected)}>
@@ -1656,12 +1685,12 @@ function TabInstancias() {
                 </span>
               </div>
               <div className="flex flex-col gap-1.5 text-xs">
-                {inst.phone && <div className="flex items-center justify-between"><span className="text-muted-foreground">Telefone</span><span className="font-mono text-foreground">{inst.phone}</span></div>}
-                {inst.connected_at && <div className="flex items-center justify-between"><span className="text-muted-foreground">Conectado em</span><span className="text-foreground">{format(new Date(inst.connected_at), 'dd/MM HH:mm', { locale: ptBR })}</span></div>}
-                <div className="flex items-center justify-between"><span className="text-muted-foreground">Criado em</span><span className="text-foreground">{format(new Date(inst.created_at), 'dd/MM/yyyy', { locale: ptBR })}</span></div>
+                {inst.phone && <div className="flex items-center justify-between"><span className="text-ink-muted">Telefone</span><span className="font-mono text-foreground">{inst.phone}</span></div>}
+                {inst.connected_at && <div className="flex items-center justify-between"><span className="text-ink-muted">Conectado em</span><span className="text-foreground">{format(new Date(inst.connected_at), 'dd/MM HH:mm', { locale: ptBR })}</span></div>}
+                <div className="flex items-center justify-between"><span className="text-ink-muted">Criado em</span><span className="text-foreground">{format(new Date(inst.created_at), 'dd/MM/yyyy', { locale: ptBR })}</span></div>
               </div>
               <div className="flex items-center gap-2 pt-1 border-t border-border">
-                <button onClick={() => handleCheckStatus(inst.instance_id)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
+                <button onClick={() => handleCheckStatus(inst.instance_id)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium text-ink-muted hover:bg-muted transition-colors cursor-pointer">
                   <RefreshCw size={12} /> Verificar
                 </button>
                 {inst.status !== 'connected' && (
@@ -1669,7 +1698,7 @@ function TabInstancias() {
                     <QrCode size={12} /> QR Code
                   </button>
                 )}
-                <button onClick={() => setDeleteConfirm(inst.instance_id)} className="flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-medium text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer">
+                <button onClick={() => setDeleteConfirm(inst.instance_id)} className="flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--danger-ink)] hover:bg-red-500/10 transition-colors cursor-pointer">
                   <Trash2 size={12} />
                 </button>
               </div>
@@ -1677,10 +1706,10 @@ function TabInstancias() {
                 {deleteConfirm === inst.instance_id && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                     <div className="flex flex-col gap-2 pt-2 border-t border-border">
-                      <p className="text-xs text-red-500 font-medium">Confirmar exclusão?</p>
+                      <p className="text-xs text-[var(--danger-ink)] font-medium">Confirmar exclusão?</p>
                       <div className="flex gap-2">
                         <button onClick={() => handleDelete(inst.instance_id)} className="flex-1 py-1.5 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-colors cursor-pointer">Excluir</button>
-                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-1.5 rounded-lg bg-muted text-muted-foreground text-xs font-semibold cursor-pointer">Cancelar</button>
+                        <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-1.5 rounded-lg bg-muted text-ink-muted text-xs font-semibold cursor-pointer">Cancelar</button>
                       </div>
                     </div>
                   </motion.div>
@@ -1695,26 +1724,26 @@ function TabInstancias() {
       <AnimatePresence>
         {connectOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={e => { if (e.target === e.currentTarget) setConnectOpen(false) }}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }} className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }} className="bg-card border border-border rounded-[var(--radius-panel)] elev-lg w-full max-w-md" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-6 py-4 border-b border-border">
                 <h2 className="text-base font-bold text-foreground">Conectar Instância</h2>
-                <button onClick={() => setConnectOpen(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"><X size={16} className="text-muted-foreground" /></button>
+                <button onClick={() => setConnectOpen(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"><X size={16} className="text-ink-muted" /></button>
               </div>
               <div className="px-6 py-5 flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nome da instância</label>
-                  <input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ex: WhatsApp Principal" className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-muted-foreground/50" />
+                  <label className="text-xs font-semibold text-ink-muted  ">Nome da instância</label>
+                  <input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ex: WhatsApp Principal" className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-ink-muted/50" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Instance Token</label>
-                  <input type="text" value={newToken} onChange={e => setNewToken(e.target.value)} placeholder="token-da-instancia" className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-muted-foreground/50" />
+                  <label className="text-xs font-semibold text-ink-muted  ">Instance Token</label>
+                  <input type="text" value={newToken} onChange={e => setNewToken(e.target.value)} placeholder="token-da-instancia" className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-ink-muted/50" />
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
-                <button onClick={() => setConnectOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer">Cancelar</button>
+                <button onClick={() => setConnectOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-ink-muted hover:bg-muted transition-colors cursor-pointer">Cancelar</button>
                 <button onClick={handleConnect} disabled={!newName.trim() || !newToken.trim() || connecting}
                   className={cn('flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
-                    newName.trim() && newToken.trim() && !connecting ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-muted-foreground cursor-not-allowed')}>
+                    newName.trim() && newToken.trim() && !connecting ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-ink-muted cursor-not-allowed')}>
                   {connecting ? <><RefreshCw size={14} className="animate-spin" /> Conectando...</> : 'Conectar'}
                 </button>
               </div>
@@ -1727,26 +1756,26 @@ function TabInstancias() {
       <AnimatePresence>
         {qrOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={e => { if (e.target === e.currentTarget) setQrOpen(false) }}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }} className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }} className="bg-card border border-border rounded-[var(--radius-panel)] elev-lg w-full max-w-sm" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-                <div><h2 className="text-base font-bold text-foreground">QR Code</h2>{qrData && <p className="text-xs text-muted-foreground mt-0.5">{qrData.name}</p>}</div>
-                <button onClick={() => setQrOpen(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"><X size={16} className="text-muted-foreground" /></button>
+                <div><h2 className="text-base font-bold text-foreground">QR Code</h2>{qrData && <p className="text-xs text-ink-muted mt-0.5">{qrData.name}</p>}</div>
+                <button onClick={() => setQrOpen(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"><X size={16} className="text-ink-muted" /></button>
               </div>
               <div className="p-6 flex flex-col items-center gap-4">
                 {qrLoading ? (
-                  <div className="w-56 h-56 flex items-center justify-center"><RefreshCw size={28} className="animate-spin text-muted-foreground" /></div>
+                  <div className="w-56 h-56 flex items-center justify-center"><RefreshCw size={28} className="animate-spin text-ink-muted" /></div>
                 ) : qrData?.qr ? (
                   <>
-                    <div className="bg-white p-3 rounded-xl">
+                    <div className="bg-surface p-3 rounded-xl">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={qrData.qr.startsWith('data:') ? qrData.qr : `data:image/png;base64,${qrData.qr}`} alt="QR Code" width={220} height={220} className="block" />
                     </div>
-                    <p className="text-xs text-center text-muted-foreground">Escaneie no WhatsApp para conectar</p>
+                    <p className="text-xs text-center text-ink-muted">Escaneie no WhatsApp para conectar</p>
                   </>
                 ) : (
                   <div className="w-56 h-56 flex flex-col items-center justify-center gap-2">
-                    <QrCode size={32} className="text-muted-foreground/30" />
-                    <p className="text-xs text-muted-foreground">QR code indisponível</p>
+                    <QrCode size={32} className="text-ink-muted/30" />
+                    <p className="text-xs text-ink-muted">QR code indisponível</p>
                   </div>
                 )}
               </div>
@@ -1811,33 +1840,33 @@ function TabTemplates() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-end gap-2">
         <button onClick={load} className="p-2 rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer" title="Atualizar">
-          <RefreshCw size={15} className={cn('text-muted-foreground', loading && 'animate-spin')} />
+          <RefreshCw size={15} className={cn('text-ink-muted', loading && 'animate-spin')} />
         </button>
         <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-alliance-blue text-white text-sm font-semibold hover:bg-alliance-dark transition-colors cursor-pointer">
           <Plus size={15} /> Novo Template
         </button>
       </div>
 
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+      <div className="bg-card border border-border rounded-[var(--radius-panel)] overflow-hidden">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground">Templates</h2>
-          <span className="text-xs text-muted-foreground">{templates.length} template{templates.length !== 1 ? 's' : ''}</span>
+          <span className="text-xs text-ink-muted">{templates.length} template{templates.length !== 1 ? 's' : ''}</span>
         </div>
         {loading ? (
-          <div className="flex items-center justify-center py-16"><RefreshCw size={20} className="animate-spin text-muted-foreground" /></div>
+          <div className="flex items-center justify-center py-16"><RefreshCw size={20} className="animate-spin text-ink-muted" /></div>
         ) : templates.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <FileText size={36} className="text-muted-foreground/20" />
-            <p className="text-sm text-muted-foreground">Nenhum template criado ainda</p>
+            <FileText size={36} className="text-ink-muted/20" />
+            <p className="text-sm text-ink-muted">Nenhum template criado ainda</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nome</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Conteúdo</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mídia</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Data</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-ink-muted  ">Nome</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-ink-muted  ">Conteúdo</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-ink-muted  ">Mídia</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-ink-muted  ">Data</th>
                 <th className="px-5 py-3 w-20" />
               </tr>
             </thead>
@@ -1845,15 +1874,15 @@ function TabTemplates() {
               {templates.map(t => (
                 <tr key={t.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-5 py-3.5 font-medium text-foreground">{t.name}</td>
-                  <td className="px-5 py-3.5 text-muted-foreground max-w-xs">{t.content.length > 80 ? `${t.content.slice(0, 80)}…` : t.content}</td>
+                  <td className="px-5 py-3.5 text-ink-muted max-w-xs">{t.content.length > 80 ? `${t.content.slice(0, 80)}…` : t.content}</td>
                   <td className="px-5 py-3.5">
-                    {t.media_type ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">{MEDIA_TYPE_LABELS[t.media_type] ?? t.media_type}</span> : <span className="text-muted-foreground/40 text-xs">—</span>}
+                    {t.media_type ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-ink-muted">{MEDIA_TYPE_LABELS[t.media_type] ?? t.media_type}</span> : <span className="text-ink-muted/40 text-xs">—</span>}
                   </td>
-                  <td className="px-5 py-3.5 text-muted-foreground text-xs">{format(new Date(t.created_at), 'dd/MM/yyyy', { locale: ptBR })}</td>
+                  <td className="px-5 py-3.5 text-ink-muted text-xs">{format(new Date(t.created_at), 'dd/MM/yyyy', { locale: ptBR })}</td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-1 justify-end">
-                      <button onClick={() => openEdit(t)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer" title="Editar"><Pencil size={13} className="text-muted-foreground" /></button>
-                      <button onClick={() => setDeleteConfirm(t.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer" title="Excluir"><Trash2 size={13} className="text-red-500" /></button>
+                      <button onClick={() => openEdit(t)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer" title="Editar"><Pencil size={13} className="text-ink-muted" /></button>
+                      <button onClick={() => setDeleteConfirm(t.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer" title="Excluir"><Trash2 size={13} className="text-[var(--danger-ink)]" /></button>
                     </div>
                   </td>
                 </tr>
@@ -1867,27 +1896,27 @@ function TabTemplates() {
       <AnimatePresence>
         {modalOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={e => { if (e.target === e.currentTarget) setModalOpen(false) }}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }} className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }} className="bg-card border border-border rounded-[var(--radius-panel)] elev-lg w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
                 <h2 className="text-base font-bold text-foreground">{editing ? 'Editar Template' : 'Novo Template'}</h2>
-                <button onClick={() => setModalOpen(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"><X size={16} className="text-muted-foreground" /></button>
+                <button onClick={() => setModalOpen(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"><X size={16} className="text-ink-muted" /></button>
               </div>
               <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nome <span className="text-red-500">*</span></label>
-                  <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Nome do template" className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-muted-foreground/50" />
+                  <label className="text-xs font-semibold text-ink-muted  ">Nome <span className="text-[var(--danger-ink)]">*</span></label>
+                  <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Nome do template" className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-ink-muted/50" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Conteúdo <span className="text-red-500">*</span></label>
-                  <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="Texto da mensagem..." rows={5} className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-muted-foreground/50" />
+                  <label className="text-xs font-semibold text-ink-muted  ">Conteúdo <span className="text-[var(--danger-ink)]">*</span></label>
+                  <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="Texto da mensagem..." rows={5} className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-ink-muted/50" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">URL de Mídia (opcional)</label>
-                  <input type="url" value={form.media_url} onChange={e => setForm(f => ({ ...f, media_url: e.target.value }))} placeholder="https://..." className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-muted-foreground/50" />
+                  <label className="text-xs font-semibold text-ink-muted  ">URL de Mídia (opcional)</label>
+                  <input type="url" value={form.media_url} onChange={e => setForm(f => ({ ...f, media_url: e.target.value }))} placeholder="https://..." className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-alliance-blue/30 placeholder:text-ink-muted/50" />
                 </div>
                 {form.media_url.trim() && (
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tipo de Mídia</label>
+                    <label className="text-xs font-semibold text-ink-muted  ">Tipo de Mídia</label>
                     <select value={form.media_type} onChange={e => setForm(f => ({ ...f, media_type: e.target.value }))} className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-alliance-blue/30">
                       <option value="image">Imagem</option>
                       <option value="video">Vídeo</option>
@@ -1897,10 +1926,10 @@ function TabTemplates() {
                 )}
               </div>
               <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border flex-shrink-0">
-                <button onClick={() => setModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer">Cancelar</button>
+                <button onClick={() => setModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-ink-muted hover:bg-muted transition-colors cursor-pointer">Cancelar</button>
                 <button onClick={handleSave} disabled={!form.name.trim() || !form.content.trim() || saving}
                   className={cn('flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer',
-                    form.name.trim() && form.content.trim() && !saving ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-muted-foreground cursor-not-allowed')}>
+                    form.name.trim() && form.content.trim() && !saving ? 'bg-alliance-blue text-white hover:bg-alliance-dark' : 'bg-muted text-ink-muted cursor-not-allowed')}>
                   {saving ? <><RefreshCw size={14} className="animate-spin" /> Salvando...</> : (editing ? 'Salvar' : 'Criar')}
                 </button>
               </div>
@@ -1913,11 +1942,11 @@ function TabTemplates() {
       <AnimatePresence>
         {deleteConfirm && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={e => { if (e.target === e.currentTarget) setDeleteConfirm(null) }}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }} className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }} className="bg-card border border-border rounded-[var(--radius-panel)] elev-lg w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
               <h2 className="text-base font-bold text-foreground mb-2">Excluir template?</h2>
-              <p className="text-sm text-muted-foreground mb-5">Esta ação não pode ser desfeita.</p>
+              <p className="text-sm text-ink-muted mb-5">Esta ação não pode ser desfeita.</p>
               <div className="flex gap-3">
-                <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer">Cancelar</button>
+                <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2 rounded-xl border border-border text-sm font-medium text-ink-muted hover:bg-muted transition-colors cursor-pointer">Cancelar</button>
                 <button onClick={() => handleDelete(deleteConfirm)} disabled={deleting} className="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors cursor-pointer disabled:opacity-50">
                   {deleting ? 'Excluindo...' : 'Excluir'}
                 </button>

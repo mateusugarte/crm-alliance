@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from '@/lib/icons'
 import { ImovelReservadosClient } from '@/components/imoveis/imovel-reservados-client'
 import type { Imovel, Venda, UserProfile } from '@/lib/supabase/types'
 
@@ -60,21 +60,21 @@ export default async function ImoveisReservadosPage() {
       <div>
         <Link
           href="/imoveis"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-alliance-dark transition-colors mb-4"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-subtle hover:text-ink transition-colors mb-4"
         >
           <ArrowLeft size={13} />
           Voltar ao catálogo
         </Link>
-        <p className="text-xs font-semibold text-amber-600/80 uppercase tracking-widest mb-1">
+        <p className="text-xs font-semibold text-[var(--warning-ink)]/80   mb-1">
           Catálogo
         </p>
         <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-bold text-alliance-dark">Imóveis Reservados</h1>
-          <span className="text-sm font-semibold text-gray-400">
+          <h1 className="text-2xl font-bold text-ink">Imóveis Reservados</h1>
+          <span className="text-sm font-semibold text-ink-subtle">
             {imoveis.length} {imoveis.length === 1 ? 'unidade' : 'unidades'}
           </span>
         </div>
-        <p className="text-gray-400 text-sm mt-1">
+        <p className="text-ink-subtle text-sm mt-1">
           Unidades indisponíveis sem venda formalizada — preencha a ficha do comprador quando a venda for confirmada.
         </p>
       </div>

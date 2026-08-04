@@ -17,7 +17,7 @@ import {
   isAfter,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus, Calendar, Pencil, Trash2, Loader2, User } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Calendar, Pencil, Trash2, Loader2, User } from '@/lib/icons'
 import { toast } from 'sonner'
 import { MeetingPill } from './meeting-pill'
 import { MeetingFormPanel } from './meeting-form-panel'
@@ -38,9 +38,9 @@ interface AgendaClientProps {
 }
 
 const STATUS_CONFIG = {
-  scheduled: { label: 'Agendada', bg: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' },
-  completed: { label: 'Concluída', bg: 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/50' },
-  cancelled: { label: 'Cancelada', bg: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400' },
+  scheduled: { label: 'Agendada', bg: 'bg-[var(--success-soft)] dark:bg-emerald-500/10 text-[var(--success-ink)] dark:text-emerald-400' },
+  completed: { label: 'Concluída', bg: 'bg-surface-sunken text-ink' },
+  cancelled: { label: 'Cancelada', bg: 'bg-[var(--danger-soft)] dark:bg-red-500/10 text-[var(--danger-ink)] dark:text-red-400' },
 } satisfies Record<MeetingWithLead['status'], { label: string; bg: string }>
 
 function getInitials(name: string) {
@@ -79,13 +79,13 @@ function MeetingCard({
   const status = STATUS_CONFIG[meeting.status]
 
   return (
-    <div className="rounded-xl border border-gray-100 dark:border-white/8 bg-white dark:bg-white/5 p-3 flex flex-col gap-2.5">
+    <div className="rounded-xl border border-line bg-surface p-3 flex flex-col gap-2.5">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-semibold text-sm text-gray-800 dark:text-white truncate">{meeting.lead_name}</p>
-          <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">{meeting.lead_phone}</p>
+          <p className="font-semibold text-sm text-ink truncate">{meeting.lead_name}</p>
+          <p className="text-xs text-ink-subtle mt-0.5">{meeting.lead_phone}</p>
         </div>
-        <span className="text-base font-bold tabular-nums text-alliance-dark dark:text-alliance-blue flex-shrink-0">
+        <span className="text-base font-bold tabular-nums text-ink dark:text-alliance-blue flex-shrink-0">
           {format(new Date(meeting.datetime), 'HH:mm', { locale: ptBR })}
         </span>
       </div>
@@ -98,15 +98,15 @@ function MeetingCard({
           >
             {getInitials(meeting.consultant_name) || <User size={9} />}
           </div>
-          <span className="text-xs text-gray-500 dark:text-white/50">{meeting.consultant_name}</span>
+          <span className="text-xs text-ink-muted">{meeting.consultant_name}</span>
         </div>
-        <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full', status.bg)}>
+        <span className={cn('text-2xs font-semibold px-2 py-0.5 rounded-full', status.bg)}>
           {status.label}
         </span>
       </div>
 
       {meeting.notes && (
-        <p className="text-xs text-gray-500 dark:text-white/40 bg-gray-50 dark:bg-white/5 rounded-lg px-2.5 py-2 leading-relaxed">
+        <p className="text-xs text-ink-muted bg-surface-sunken rounded-lg px-2.5 py-2 leading-relaxed">
           {meeting.notes}
         </p>
       )}
@@ -114,7 +114,7 @@ function MeetingCard({
       <div className="flex items-center gap-2 pt-0.5">
         <button
           onClick={() => onEdit(meeting)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-gray-600 dark:text-white/60 border border-gray-200 dark:border-white/10 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-ink border border-line rounded-lg hover:bg-surface-sunken dark:hover:bg-surface/5 transition-colors cursor-pointer"
         >
           <Pencil size={11} />
           Editar
@@ -122,7 +122,7 @@ function MeetingCard({
         <button
           onClick={handleDelete}
           disabled={deleting}
-          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-red-500 bg-red-50 dark:bg-red-500/10 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors cursor-pointer disabled:opacity-50"
+          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-[var(--danger-ink)] bg-[var(--danger-soft)] dark:bg-red-500/10 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors cursor-pointer disabled:opacity-50"
         >
           {deleting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
           Excluir
@@ -200,33 +200,33 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
         {/* Toolbar */}
         <div className="flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 bg-white dark:bg-white/8 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm p-1">
+            <div className="flex items-center gap-1 bg-surface rounded-xl border border-line elev-sm p-1">
               <button
                 onClick={() => setCurrentDate(d => subMonths(d, 1))}
-                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg hover:bg-surface-sunken dark:hover:bg-surface/10 transition-colors cursor-pointer"
               >
-                <ChevronLeft size={16} className="text-alliance-dark dark:text-white/70" />
+                <ChevronLeft size={16} className="text-ink dark:text-white/70" />
               </button>
-              <span className="font-bold text-alliance-dark dark:text-white/90 px-3 min-w-36 text-center text-sm">
+              <span className="font-bold text-ink dark:text-white/90 px-3 min-w-36 text-center text-sm">
                 {monthLabel}
               </span>
               <button
                 onClick={() => setCurrentDate(d => addMonths(d, 1))}
-                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg hover:bg-surface-sunken dark:hover:bg-surface/10 transition-colors cursor-pointer"
               >
-                <ChevronRight size={16} className="text-alliance-dark dark:text-white/70" />
+                <ChevronRight size={16} className="text-ink dark:text-white/70" />
               </button>
             </div>
 
             <button
               onClick={goToday}
-              className="px-3 py-2 text-xs font-semibold text-alliance-dark dark:text-white/70 bg-white dark:bg-white/8 border border-gray-200 dark:border-white/10 rounded-xl hover:bg-gray-50 dark:hover:bg-white/12 transition-colors cursor-pointer"
+              className="px-3 py-2 text-xs font-semibold text-ink dark:text-white/70 bg-surface border border-line rounded-xl hover:bg-surface-sunken dark:hover:bg-surface/12 transition-colors cursor-pointer"
             >
               Hoje
             </button>
 
             {meetings.length > 0 && (
-              <span className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-white/40 bg-white dark:bg-white/8 border border-gray-200 dark:border-white/10 px-3 py-1.5 rounded-xl">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-ink-muted bg-surface border border-line px-3 py-1.5 rounded-xl">
                 <Calendar size={12} className="text-alliance-blue" />
                 {meetings.length} reuniões
               </span>
@@ -235,7 +235,7 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
 
           <button
             onClick={handleOpenNew}
-            className="flex items-center gap-2 px-4 py-2 bg-alliance-dark text-white text-sm font-semibold rounded-xl hover:bg-alliance-dark/90 transition-colors shadow-sm cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 bg-alliance-dark text-white text-sm font-semibold rounded-xl hover:bg-alliance-dark/90 transition-colors elev-sm cursor-pointer"
           >
             <Plus size={14} />
             Nova Reunião
@@ -243,11 +243,11 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
         </div>
 
         {/* Grid calendário */}
-        <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/8 overflow-hidden flex-1">
+        <div className="bg-surface rounded-[var(--radius-panel)] border border-line overflow-hidden flex-1">
           {/* Headers */}
-          <div className="grid grid-cols-7 border-b border-gray-100 dark:border-white/8 bg-gray-50 dark:bg-white/3">
+          <div className="grid grid-cols-7 border-b border-line bg-surface-sunken">
             {DAY_HEADERS.map(d => (
-              <div key={d} className="py-2.5 text-center text-xs font-bold text-gray-400 dark:text-white/30 uppercase tracking-wider">
+              <div key={d} className="py-2.5 text-center text-xs font-bold text-ink-subtle  ">
                 {d}
               </div>
             ))}
@@ -266,11 +266,11 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
                   key={day.toISOString()}
                   onClick={() => setSelectedDay(isSelected ? null : day)}
                   className={cn(
-                    'min-h-[110px] p-2 border-b border-r border-gray-50 dark:border-white/5 transition-colors cursor-pointer',
-                    !inMonth && 'bg-gray-50/60 dark:bg-white/1',
+                    'min-h-[110px] p-2 border-b border-r border-line transition-colors cursor-pointer',
+                    !inMonth && 'bg-surface-sunken/60 dark:bg-surface/1',
                     today && !isSelected && 'bg-alliance-blue/3 dark:bg-alliance-blue/5',
                     isSelected && 'bg-alliance-blue/8 dark:bg-alliance-blue/10',
-                    inMonth && !today && !isSelected && 'hover:bg-gray-50 dark:hover:bg-white/3',
+                    inMonth && !today && !isSelected && 'hover:bg-surface-sunken dark:hover:bg-surface/3',
                   )}
                 >
                   <div className="flex items-center justify-end mb-1.5">
@@ -278,12 +278,12 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
                       className={cn(
                         'text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full transition-colors',
                         today
-                          ? 'bg-alliance-blue text-white shadow-sm'
+                          ? 'bg-alliance-blue text-white elev-sm'
                           : isSelected
                           ? 'bg-alliance-dark dark:bg-alliance-blue text-white'
                           : inMonth
-                          ? 'text-alliance-dark dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/10'
-                          : 'text-gray-300 dark:text-white/20',
+                          ? 'text-ink dark:text-white/80 hover:bg-surface-sunken dark:hover:bg-surface/10'
+                          : 'text-ink-subtle',
                       )}
                     >
                       {format(day, 'd')}
@@ -298,7 +298,7 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
                       />
                     ))}
                     {dayMeetings.length > 2 && (
-                      <span className="text-[10px] text-alliance-blue font-semibold pl-1">
+                      <span className="text-2xs text-alliance-blue font-semibold pl-1">
                         +{dayMeetings.length - 2} mais
                       </span>
                     )}
@@ -315,10 +315,10 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
         {/* Header do painel */}
         <div className="flex items-center justify-between flex-shrink-0">
           <div>
-            <p className="text-xs font-semibold text-gray-400 dark:text-white/30 uppercase tracking-widest">
+            <p className="text-xs font-semibold text-ink-subtle  ">
               {selectedDay ? format(selectedDay, 'MMMM', { locale: ptBR }).replace(/^\w/, c => c.toUpperCase()) : 'Agenda'}
             </p>
-            <h2 className="font-bold text-gray-800 dark:text-white text-sm leading-tight mt-0.5 capitalize">
+            <h2 className="font-bold text-ink text-sm leading-tight mt-0.5 first-letter:uppercase">
               {panelTitle}
             </h2>
           </div>
@@ -337,10 +337,10 @@ export function AgendaClient({ meetings: initialMeetings, leads }: AgendaClientP
         <div className="flex-1 overflow-y-auto flex flex-col gap-2 pr-0.5">
           {panelMeetings.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-white/8 flex items-center justify-center mb-3">
-                <Calendar size={20} className="text-gray-300 dark:text-white/20" />
+              <div className="w-12 h-12 rounded-[var(--radius-panel)] bg-surface-sunken flex items-center justify-center mb-3">
+                <Calendar size={20} className="text-ink-subtle" />
               </div>
-              <p className="text-sm font-medium text-gray-400 dark:text-white/30">
+              <p className="text-sm font-medium text-ink-subtle">
                 {selectedDay ? 'Nenhuma reunião' : 'Sem próximas reuniões'}
               </p>
               {selectedDay && (

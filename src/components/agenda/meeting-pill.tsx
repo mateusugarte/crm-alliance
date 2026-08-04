@@ -29,7 +29,7 @@ export function MeetingPill({ meeting, onClick }: MeetingPillProps) {
     <span
       onClick={onClick}
       className={cn(
-        'inline-flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-[11px] font-semibold truncate max-w-full transition-opacity',
+        'inline-flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-xs font-semibold truncate max-w-full transition-opacity',
         onClick && 'cursor-pointer hover:opacity-80',
       )}
       style={{
@@ -38,7 +38,7 @@ export function MeetingPill({ meeting, onClick }: MeetingPillProps) {
       }}
       title={`${time} — ${meeting.lead_name} (${meeting.consultant_name})`}
     >
-      <span className="font-mono text-[10px] opacity-70">{time}</span>
+      <span className="font-mono text-2xs opacity-70">{time}</span>
       <span>{name}</span>
     </span>
   )

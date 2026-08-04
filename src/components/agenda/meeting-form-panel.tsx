@@ -19,7 +19,7 @@ import {
   getMinutes,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CalendarDays, ChevronLeft, ChevronRight, X, Loader2 } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, X, Loader2 } from '@/lib/icons'
 import { toast } from 'sonner'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
@@ -79,30 +79,30 @@ function MiniCalendar({ selectedDate, onSelectDate }: MiniCalendarProps) {
     .replace(/^\w/, c => c.toUpperCase())
 
   return (
-    <div className="bg-gray-50 rounded-2xl p-4">
+    <div className="bg-surface-sunken rounded-[var(--radius-panel)] p-4">
       {/* Month navigation */}
       <div className="flex items-center justify-between mb-3">
         <button
           type="button"
           onClick={() => setViewDate(d => subMonths(d, 1))}
-          className="p-1 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+          className="p-1 rounded-lg hover:bg-line transition-colors cursor-pointer"
         >
-          <ChevronLeft size={16} className="text-alliance-dark" />
+          <ChevronLeft size={16} className="text-ink" />
         </button>
-        <span className="text-sm font-bold text-alliance-dark">{monthLabel}</span>
+        <span className="text-sm font-bold text-ink">{monthLabel}</span>
         <button
           type="button"
           onClick={() => setViewDate(d => addMonths(d, 1))}
-          className="p-1 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+          className="p-1 rounded-lg hover:bg-line transition-colors cursor-pointer"
         >
-          <ChevronRight size={16} className="text-alliance-dark" />
+          <ChevronRight size={16} className="text-ink" />
         </button>
       </div>
 
       {/* Day headers */}
       <div className="grid grid-cols-7 mb-1">
         {DAY_HEADERS.map(d => (
-          <div key={d} className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider py-1">
+          <div key={d} className="text-center text-2xs font-bold text-ink-subtle   py-1">
             {d}
           </div>
         ))}
@@ -123,8 +123,8 @@ function MiniCalendar({ selectedDate, onSelectDate }: MiniCalendarProps) {
               onClick={() => inMonth && onSelectDate(day)}
               className={cn(
                 'w-8 h-8 flex items-center justify-center rounded-full text-xs transition-colors mx-auto',
-                !inMonth && 'text-gray-300 cursor-default',
-                inMonth && !selected && !todayDay && 'text-gray-700 hover:bg-gray-200 cursor-pointer',
+                !inMonth && 'text-ink-subtle cursor-default',
+                inMonth && !selected && !todayDay && 'text-ink hover:bg-line cursor-pointer',
                 inMonth && todayDay && !selected && 'bg-alliance-blue/10 text-alliance-blue font-semibold cursor-pointer',
                 selected && 'bg-alliance-dark text-white font-bold cursor-pointer',
               )}
@@ -148,7 +148,7 @@ interface TimeGridProps {
 function TimeGrid({ selectedTime, onSelectTime }: TimeGridProps) {
   return (
     <div>
-      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Horário</p>
+      <p className="text-2xs font-bold text-ink-subtle   mb-2">Horário</p>
       <div className="flex flex-wrap gap-1.5">
         {TIME_SLOTS.map(slot => (
           <button
@@ -159,7 +159,7 @@ function TimeGrid({ selectedTime, onSelectTime }: TimeGridProps) {
               'text-xs px-2.5 py-1 rounded-full border transition-colors cursor-pointer',
               selectedTime === slot
                 ? 'bg-alliance-dark text-white border-alliance-dark'
-                : 'border-gray-200 text-gray-600 hover:border-alliance-blue hover:text-alliance-blue',
+                : 'border-line-strong text-ink hover:border-alliance-blue hover:text-alliance-blue',
             )}
           >
             {slot}
@@ -198,19 +198,19 @@ function LeadSearch({ leads, selectedLeadId, onSelect, onClear, disabled }: Lead
     if (disabled) {
       return (
         <div className="flex items-center gap-2 bg-alliance-blue/5 border border-alliance-blue/20 rounded-xl px-3 py-2.5">
-          <span className="text-sm font-medium text-alliance-dark truncate">{selectedLead.name}</span>
-          <span className="text-xs text-gray-400 truncate">{selectedLead.phone}</span>
+          <span className="text-sm font-medium text-ink truncate">{selectedLead.name}</span>
+          <span className="text-xs text-ink-subtle truncate">{selectedLead.phone}</span>
         </div>
       )
     }
     return (
       <div className="flex items-center gap-2 bg-alliance-blue/5 border border-alliance-blue/20 rounded-xl px-3 py-2.5">
-        <span className="text-sm font-medium text-alliance-dark flex-1 truncate">{selectedLead.name}</span>
-        <span className="text-xs text-gray-400 truncate">{selectedLead.phone}</span>
+        <span className="text-sm font-medium text-ink flex-1 truncate">{selectedLead.name}</span>
+        <span className="text-xs text-ink-subtle truncate">{selectedLead.phone}</span>
         <button
           type="button"
           onClick={onClear}
-          className="ml-1 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0 cursor-pointer"
+          className="ml-1 text-ink-subtle hover:text-ink transition-colors flex-shrink-0 cursor-pointer"
           aria-label="Limpar lead selecionado"
         >
           <X size={14} />
@@ -228,26 +228,26 @@ function LeadSearch({ leads, selectedLeadId, onSelect, onClear, disabled }: Lead
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder="Buscar lead pelo nome ou telefone..."
-        className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue placeholder:text-gray-400"
+        className="w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-alliance-blue placeholder:text-ink-subtle"
       />
       {open && filtered.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg z-10 max-h-48 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-surface rounded-xl border border-line-strong elev-md z-10 max-h-48 overflow-y-auto">
           {filtered.map(lead => (
             <button
               key={lead.id}
               type="button"
               onMouseDown={() => { onSelect(lead); setQuery(''); setOpen(false) }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 transition-colors cursor-pointer"
+              className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-surface-sunken transition-colors cursor-pointer"
             >
-              <span className="text-sm font-medium text-gray-800 flex-1 truncate">{lead.name}</span>
-              <span className="text-xs text-gray-400 flex-shrink-0">{lead.phone}</span>
+              <span className="text-sm font-medium text-ink flex-1 truncate">{lead.name}</span>
+              <span className="text-xs text-ink-subtle flex-shrink-0">{lead.phone}</span>
             </button>
           ))}
         </div>
       )}
       {open && query.trim() && filtered.length === 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg z-10 px-3 py-2.5">
-          <span className="text-sm text-gray-400">Nenhum lead encontrado.</span>
+        <div className="absolute top-full left-0 right-0 mt-1 bg-surface rounded-xl border border-line-strong elev-md z-10 px-3 py-2.5">
+          <span className="text-sm text-ink-subtle">Nenhum lead encontrado.</span>
         </div>
       )}
     </div>
@@ -400,7 +400,7 @@ export function MeetingFormPanel({
         className="p-0 overflow-y-auto flex flex-col gap-0"
       >
         {/* Header */}
-        <div className="px-6 pt-6 pb-5 flex-shrink-0" style={{ backgroundColor: '#0A2EAD' }}>
+        <div className="px-6 pt-6 pb-5 flex-shrink-0" style={{ background: 'linear-gradient(135deg, var(--nav-from) 0%, var(--brand) 100%)' }}>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <CalendarDays size={18} className="text-white/80 flex-shrink-0" />
@@ -425,7 +425,7 @@ export function MeetingFormPanel({
 
             {/* Seção 1 — Lead */}
             <div className="px-6 py-5">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Lead</p>
+              <p className="text-2xs font-bold text-ink-subtle   mb-3">Lead</p>
               <LeadSearch
                 leads={leads}
                 selectedLeadId={selectedLeadId}
@@ -435,13 +435,13 @@ export function MeetingFormPanel({
               />
             </div>
 
-            <div className="border-t border-gray-100" />
+            <div className="border-t border-line" />
 
             {/* Seção 2 — Data e Hora */}
             <div className="px-6 py-5 flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Data e Hora</p>
-                <span className="text-xs font-medium text-alliance-dark">
+                <p className="text-2xs font-bold text-ink-subtle  ">Data e Hora</p>
+                <span className="text-xs font-medium text-ink">
                   {selectedDateLabel} — {selectedTime}
                 </span>
               </div>
@@ -461,28 +461,28 @@ export function MeetingFormPanel({
               />
             </div>
 
-            <div className="border-t border-gray-100" />
+            <div className="border-t border-line" />
 
             {/* Seção 3 — Observações */}
             <div className="px-6 py-5">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Observações</p>
+              <p className="text-2xs font-bold text-ink-subtle   mb-3">Observações</p>
               <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 placeholder="Ex: Reunião via Google Meet, link enviado pelo WhatsApp..."
                 rows={3}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-alliance-blue placeholder:text-gray-400"
+                className="w-full text-sm border border-line-strong rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-alliance-blue placeholder:text-ink-subtle"
               />
             </div>
           </div>
 
           {/* Footer */}
-          <div className="border-t border-gray-100 px-6 py-4 flex items-center justify-end gap-3 flex-shrink-0">
+          <div className="border-t border-line px-6 py-4 flex items-center justify-end gap-3 flex-shrink-0">
             <button
               type="button"
               onClick={handleClose}
               disabled={loading}
-              className="px-4 py-2 text-sm font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 cursor-pointer"
+              className="px-4 py-2 text-sm font-semibold text-ink border border-line-strong rounded-xl hover:bg-surface-sunken transition-colors disabled:opacity-50 cursor-pointer"
             >
               Cancelar
             </button>

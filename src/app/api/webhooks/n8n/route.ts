@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { Database } from '@/lib/supabase/types'
+import { extractMessageText } from '@/lib/whatsapp/extract-message-text'
 
 type LeadUpdate = Database['public']['Tables']['leads']['Update']
 
@@ -61,6 +62,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Payload cru do WhatsApp (citação, anúncio, buffer do n8n) vira texto legível
+    const cleanContent = extractMessageText(content)
+
     // Deduplicação pelo wa_message_id
     if (wa_message_id) {
       const { data: existing } = await supabase
@@ -81,7 +85,7 @@ export async function POST(request: NextRequest) {
         direction,
         sender_type,
         sender_name:  sender_name ?? (sender_type === 'bot' ? 'IA Alliance' : null),
-        content:      content.trim(),
+        content:      cleanContent,
         wa_message_id: wa_message_id ?? null,
       } as never)
 
