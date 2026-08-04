@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { endOfDay, endOfWeek, startOfDay, startOfWeek } from 'date-fns'
 import { createClient } from '@/lib/supabase/server'
-import { centralQuery } from '@/lib/central-do-dia/db'
+import { createServiceClient } from '@/lib/supabase/service'
 import { loadTaskQueue } from '@/lib/central-do-dia/tasks'
 
 export const dynamic = 'force-dynamic'
@@ -20,7 +20,9 @@ export async function GET(request: NextRequest) {
 
   try {
     try {
-      await centralQuery('select verificar_prazos()')
+      const service = createServiceClient()
+      const { error } = await service.rpc('verificar_prazos' as never)
+      if (error) throw error
     } catch (deadlineError) {
       console.error('[tasks] failed to refresh deadlines', deadlineError)
     }

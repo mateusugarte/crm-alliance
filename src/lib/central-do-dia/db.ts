@@ -11,7 +11,9 @@ function getPool() {
   if (!globalForCentral.centralPool) {
     globalForCentral.centralPool = new Pool({
       connectionString: process.env.PG_MEMORY_URL,
+      ssl: { rejectUnauthorized: false },
       max: 4,
+      connectionTimeoutMillis: 5_000,
       idleTimeoutMillis: 20_000,
     })
   }
