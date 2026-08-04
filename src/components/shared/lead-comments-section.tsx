@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Loader2, Send, Trash2, StickyNote } from 'lucide-react'
+import { Loader2, Send, Trash2, StickyNote } from '@/lib/icons'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import type { LeadComment } from '@/lib/supabase/types'
@@ -19,7 +19,7 @@ export function LeadCommentsSection({ leadId, currentUserId }: LeadCommentsSecti
   const [newComment, setNewComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const commentsListRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setLoading(true)
@@ -49,9 +49,9 @@ export function LeadCommentsSection({ leadId, currentUserId }: LeadCommentsSecti
   }, [leadId])
 
   useEffect(() => {
-    if (comments.length > 0) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
+    const commentsList = commentsListRef.current
+    if (!commentsList || comments.length === 0) return
+    commentsList.scrollTop = commentsList.scrollHeight
   }, [comments])
 
   const handleSubmit = async () => {
@@ -91,8 +91,8 @@ export function LeadCommentsSection({ leadId, currentUserId }: LeadCommentsSecti
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-2 max-h-52 overflow-y-auto pr-0.5">
+    <div className="flex h-full min-h-0 flex-col gap-2">
+      <div ref={commentsListRef} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-0.5">
         {loading ? (
           <div className="flex items-center justify-center py-6">
             <Loader2 size={16} className="animate-spin text-gray-300" />
@@ -134,7 +134,6 @@ export function LeadCommentsSection({ leadId, currentUserId }: LeadCommentsSecti
             </div>
           ))
         )}
-        <div ref={bottomRef} />
       </div>
 
       <div className="flex items-end gap-2">
@@ -148,14 +147,14 @@ export function LeadCommentsSection({ leadId, currentUserId }: LeadCommentsSecti
             }
           }}
           placeholder="Comentário interno... (Enter para enviar)"
-          rows={2}
-          className="flex-1 text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 leading-snug"
+          rows={1}
+          className="flex-1 resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs leading-snug focus:outline-none focus:ring-2 focus:ring-alliance-blue/20"
         />
         <button
           onClick={handleSubmit}
           disabled={!newComment.trim() || submitting}
           aria-label="Enviar comentário"
-          className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-alliance-dark text-white rounded-full hover:bg-alliance-dark/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alliance-dark"
+          className="flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg bg-gray-950 text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
         >
           {submitting
             ? <Loader2 size={13} className="animate-spin" />

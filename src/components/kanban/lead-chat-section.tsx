@@ -3,8 +3,9 @@
 import { useRef, useEffect } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Bot, Loader2, Send } from 'lucide-react'
+import { Bot, Loader2, Send } from '@/lib/icons'
 import type { Interaction } from './types'
+import { extractMessageText } from '@/lib/whatsapp/extract-message-text'
 
 interface LeadChatSectionProps {
   interactions: Interaction[]
@@ -25,18 +26,18 @@ export function LeadChatSection({
   onNewMessageChange,
   onSend,
 }: LeadChatSectionProps) {
-  const chatEndRef = useRef<HTMLDivElement>(null)
+  const chatBodyRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (interactions.length > 0) {
-      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
+    const chatBody = chatBodyRef.current
+    if (!chatBody || interactions.length === 0) return
+    chatBody.scrollTop = chatBody.scrollHeight
   }, [interactions])
 
   return (
-    <div className="flex flex-col rounded-2xl overflow-hidden border border-gray-100" style={{ backgroundColor: '#ECE5DD' }}>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-black/[0.06]" style={{ backgroundColor: '#f2f2f4' }}>
       {/* Chat body */}
-      <div className="flex flex-col gap-1.5 p-3 max-h-72 overflow-y-auto">
+      <div ref={chatBodyRef} className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-3">
         {fetchingInteractions ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 size={16} className="animate-spin text-gray-400" />
@@ -73,7 +74,7 @@ export function LeadChatSection({
                 key={msg.id}
                 className={`flex ${isLeft ? 'justify-start' : 'justify-end'}`}
               >
-                <div className={`relative max-w-[78%] rounded-2xl px-3 py-2 shadow-sm ${bubbleStyle}`}>
+                <div className={`relative max-w-[82%] rounded-xl px-3 py-2 shadow-sm ${bubbleStyle}`}>
                   <div className={`flex items-center gap-1 mb-0.5 ${labelStyle}`}>
                     {msg.sender_type === 'bot' && (
                       <Bot size={10} className="flex-shrink-0" />
@@ -81,7 +82,7 @@ export function LeadChatSection({
                     <p className="text-[10px] font-bold leading-none">{senderLabel}</p>
                   </div>
                   <p className="text-sm text-gray-800 leading-snug whitespace-pre-wrap break-words pr-8">
-                    {msg.content}
+                    {extractMessageText(msg.content)}
                   </p>
                   <span className="absolute bottom-1.5 right-2 text-[10px] text-gray-400 leading-none">
                     {time}
@@ -91,11 +92,10 @@ export function LeadChatSection({
             )
           })
         )}
-        <div ref={chatEndRef} />
       </div>
 
       {/* Input */}
-      <div className="flex items-end gap-2 px-3 py-2.5 bg-[#F0F0F0] border-t border-gray-200">
+      <div className="flex items-end gap-2 border-t border-black/[0.06] bg-white/75 px-3 py-2.5 backdrop-blur-xl">
         <textarea
           value={newMessage}
           onChange={e => onNewMessageChange(e.target.value)}
@@ -107,13 +107,13 @@ export function LeadChatSection({
           }}
           placeholder="Digite uma mensagem..."
           rows={1}
-          className="flex-1 text-sm bg-white rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-alliance-blue/40 border border-gray-200 leading-snug max-h-24 overflow-y-auto"
+          className="max-h-24 flex-1 resize-none overflow-y-auto rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs leading-snug focus:outline-none focus:ring-2 focus:ring-alliance-blue/20"
           style={{ lineHeight: '1.4' }}
         />
         <button
           onClick={onSend}
           disabled={!newMessage.trim() || sendingMessage}
-          className="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-alliance-dark text-white rounded-full hover:bg-alliance-dark/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alliance-dark"
+          className="flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg bg-gray-950 text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
           aria-label="Enviar mensagem"
         >
           {sendingMessage

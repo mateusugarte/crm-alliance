@@ -11,6 +11,7 @@ import { LeadCreateForm } from './lead-create-form'
 import { createClient } from '@/lib/supabase/client'
 import type { LeadWithLastInteraction, LeadContact, Label } from './types'
 import type { Interaction, Lead } from '@/lib/supabase/types'
+import { extractMessageText } from '@/lib/whatsapp/extract-message-text'
 
 function playNotificationBeep() {
   try {
@@ -74,7 +75,7 @@ export function InteracoesClient({ conversations: initialConversations, contacts
           setConversations(prev => {
             const idx = prev.findIndex(l => l.id === msg.lead_id)
             if (idx < 0) return prev
-            const updated = { ...prev[idx], lastMessage: msg.content, lastMessageAt: msg.created_at }
+            const updated = { ...prev[idx], lastMessage: extractMessageText(msg.content), lastMessageAt: msg.created_at }
             return [updated, ...prev.filter(l => l.id !== msg.lead_id)]
           })
 

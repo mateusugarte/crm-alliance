@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Building2, X, Plus, Loader2, Layers, AlertTriangle } from 'lucide-react'
+import { Building2, X, Plus, Loader2, Layers, AlertTriangle } from '@/lib/icons'
 import { toast } from 'sonner'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'

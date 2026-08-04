@@ -9,7 +9,7 @@ import {
   ArrowLeft, RefreshCw, Play, Pause, Square,
   Pencil, Check, X, MessageSquare, Timer,
   Trash2, UserPlus, Clock, Settings, AlertTriangle, Zap,
-} from 'lucide-react'
+} from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { disparoFetch } from '@/lib/disparo-api'
 import type { Campaign, Dispatch } from '@/lib/supabase/types'

@@ -1,20 +1,27 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import Image from 'next/image'
-import {
-  LayoutDashboard, Kanban, Calendar, Building2, MessageSquare,
-  Settings, PanelLeftClose, PanelLeftOpen, Send,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { ThemeToggle } from './theme-toggle'
 import { useEffect, useState } from 'react'
+import {
+  Building2, Calendar, Kanban, LayoutDashboard, MessageSquare,
+  PanelLeftClose, PanelLeftOpen, Send, Settings, ICON, type IconComponent,
+} from '@/lib/icons'
+import { cn } from '@/lib/utils'
+import { DURATION, EASE_OUT } from '@/lib/animations'
+import { ThemeToggle } from './theme-toggle'
 
 const LOGO_URL = 'https://lmvdruvmpybutmmidrfp.supabase.co/storage/v1/object/public/la%20reserva/Branco.png'
 
-const NAV_ITEMS = [
+interface NavEntry {
+  href: string
+  label: string
+  icon: IconComponent
+}
+
+const NAV_ITEMS: NavEntry[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/kanban', label: 'Pipeline', icon: Kanban },
   { href: '/agenda', label: 'Agenda', icon: Calendar },
@@ -22,14 +29,92 @@ const NAV_ITEMS = [
   { href: '/interacoes', label: 'Interações', icon: MessageSquare },
 ]
 
-const DISPARO_ITEMS = [
+const DISPARO_ITEMS: NavEntry[] = [
   { href: '/disparos', label: 'Disparos', icon: Send },
+]
+
+const SYSTEM_ITEMS: NavEntry[] = [
+  { href: '/configuracoes', label: 'Configurações', icon: Settings },
 ]
 
 interface NavShellProps {
   userInitial?: string
   userName?: string
   isAdm?: boolean
+}
+
+/**
+ * Item de navegação.
+ *
+ * Estava triplicado neste arquivo — uma cópia para o nav principal, outra para
+ * disparos, outra para configurações — com divergências de padding entre elas.
+ * Agora é um componente só.
+ */
+function NavItem({
+  entry,
+  collapsed,
+  active,
+}: {
+  entry: NavEntry
+  collapsed: boolean
+  active: boolean
+}) {
+  const Icon = entry.icon
+
+  return (
+    <Link
+      href={entry.href}
+      title={collapsed ? entry.label : undefined}
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        'relative flex items-center overflow-hidden rounded-lg text-sm transition-ui',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
+        collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2.5',
+        active ? 'font-medium text-white' : 'text-white/55 hover:bg-white/[0.07] hover:text-white',
+      )}
+    >
+      {active && (
+        <motion.span
+          layoutId="nav-active"
+          aria-hidden
+          className="absolute inset-0 rounded-lg bg-white/[0.13]"
+          transition={{ duration: DURATION.base, ease: EASE_OUT }}
+        />
+      )}
+      <Icon size={ICON.md} weight={active ? 'fill' : 'regular'} className="relative z-10 flex-shrink-0" />
+      <AnimatePresence initial={false}>
+        {!collapsed && (
+          <motion.span
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: DURATION.fast }}
+            className="relative z-10 overflow-hidden whitespace-nowrap"
+          >
+            {entry.label}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </Link>
+  )
+}
+
+function SectionHeading({ children, collapsed }: { children: string; collapsed: boolean }) {
+  return (
+    <AnimatePresence initial={false}>
+      {!collapsed && (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: DURATION.fast }}
+          className="whitespace-nowrap px-3 pb-1 pt-2 text-xs font-medium text-white/35"
+        >
+          {children}
+        </motion.p>
+      )}
+    </AnimatePresence>
+  )
 }
 
 export default function NavShell({ userInitial = 'C', userName = 'consultor', isAdm = false }: NavShellProps) {
@@ -48,42 +133,36 @@ export default function NavShell({ userInitial = 'C', userName = 'consultor', is
     try { localStorage.setItem('sidebar-collapsed', String(next)) } catch { /* ignore */ }
   }
 
+  const isActive = (href: string) => pathname.startsWith(href)
+
   return (
     <motion.aside
-      animate={{ width: collapsed ? 64 : 220 }}
+      animate={{ width: collapsed ? 68 : 228 }}
       initial={false}
-      transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-      className="flex-shrink-0 flex flex-col h-full overflow-hidden"
-      style={{ background: 'linear-gradient(180deg, #071f7a 0%, #0A2EAD 45%, #0d35c4 100%)' }}
+      transition={{ duration: DURATION.slow, ease: EASE_OUT }}
+      className="flex h-full flex-shrink-0 flex-col overflow-hidden"
+      style={{ background: 'linear-gradient(180deg, var(--nav-from) 0%, var(--nav-to) 100%)' }}
     >
-      {/* Logo */}
-      <div className="px-3 pt-5 pb-4 flex-shrink-0">
+      {/* Marca */}
+      <div className="flex-shrink-0 px-3 pb-4 pt-5">
         <div className="flex items-center gap-2.5 overflow-hidden">
-          {/* Ícone colapsado: logo */}
-          <div className="w-9 h-9 flex-shrink-0 flex items-center justify-center">
-            <Image
-              src={LOGO_URL}
-              alt="Alliance"
-              width={36}
-              height={36}
-              className="object-contain"
-              style={{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.3))' }}
-            />
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center">
+            <Image src={LOGO_URL} alt="Alliance" width={36} height={36} className="object-contain" />
           </div>
           <AnimatePresence initial={false}>
             {!collapsed && (
               <motion.div
-                initial={{ opacity: 0, x: -6 }}
+                initial={{ opacity: 0, x: -4 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -6 }}
-                transition={{ duration: 0.14 }}
+                exit={{ opacity: 0, x: -4 }}
+                transition={{ duration: DURATION.fast }}
                 className="overflow-hidden"
               >
-                <span className="font-bold text-white text-[15px] tracking-tight leading-none block whitespace-nowrap">
+                <span className="block whitespace-nowrap text-md font-semibold leading-none tracking-tight text-white">
                   Alliance
                 </span>
-                <span className="text-white/40 text-[9px] font-medium tracking-[0.2em] uppercase mt-0.5 block whitespace-nowrap">
-                  System
+                <span className="mt-1 block whitespace-nowrap text-2xs font-medium leading-none text-white/45">
+                  La Reserva
                 </span>
               </motion.div>
             )}
@@ -91,231 +170,84 @@ export default function NavShell({ userInitial = 'C', userName = 'consultor', is
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="mx-3 border-t border-white/10 mb-2 flex-shrink-0" />
+      <div className="mx-3 mb-2 flex-shrink-0 border-t border-white/[0.08]" />
 
-      {/* Nav principal */}
-      <nav className="flex-1 flex flex-col gap-0.5 px-2 py-1 overflow-hidden">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname.startsWith(href)
-          return (
-            <Link
-              key={href}
-              href={href}
-              title={collapsed ? label : undefined}
-              className={cn(
-                'relative flex items-center rounded-xl text-sm font-medium transition-colors duration-150 overflow-hidden',
-                collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2.5',
-                isActive ? 'text-white' : 'text-white/50 hover:text-white/85',
-              )}
-            >
-              {/* Active background pill */}
-              {isActive && (
-                <motion.div
-                  layoutId="nav-active-bg"
-                  className="absolute inset-0 rounded-xl bg-white/15"
-                  transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                />
-              )}
-              {/* Hover background */}
-              <span className={cn(
-                'absolute inset-0 rounded-xl transition-colors duration-150',
-                !isActive && 'hover:bg-white/8',
-              )} />
-
-              <Icon
-                size={16}
-                className="flex-shrink-0 relative z-10"
-                strokeWidth={isActive ? 2.2 : 1.8}
-              />
-              <AnimatePresence initial={false}>
-                {!collapsed && (
-                  <motion.span
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: 'auto' }}
-                    exit={{ opacity: 0, width: 0 }}
-                    transition={{ duration: 0.14 }}
-                    className={cn('whitespace-nowrap overflow-hidden relative z-10', isActive && 'font-semibold')}
-                  >
-                    {label}
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </Link>
-          )
-        })}
+      {/* Navegação principal */}
+      <nav className="flex flex-1 flex-col gap-1 overflow-hidden px-2.5">
+        {NAV_ITEMS.map(entry => (
+          <NavItem key={entry.href} entry={entry} collapsed={collapsed} active={isActive(entry.href)} />
+        ))}
       </nav>
 
-      {/* Divider disparos */}
-      <div className="mx-3 border-t border-white/10 mt-1 mb-1 flex-shrink-0" />
-
-      {/* Seção Disparos */}
-      <div className="px-2 pb-1 flex-shrink-0">
-        <AnimatePresence initial={false}>
-          {!collapsed && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.1 }}
-              className="px-3 pt-1.5 pb-1 text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] whitespace-nowrap"
-            >
-              Disparos
-            </motion.p>
-          )}
-        </AnimatePresence>
-        <div className="flex flex-col gap-0.5">
-          {DISPARO_ITEMS.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname.startsWith(href)
-            return (
-              <Link
-                key={href}
-                href={href}
-                title={collapsed ? label : undefined}
-                className={cn(
-                  'relative flex items-center rounded-xl text-sm font-medium transition-colors duration-150 overflow-hidden',
-                  collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2.5',
-                  isActive ? 'text-white' : 'text-white/50 hover:text-white/85',
-                )}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="nav-active-bg"
-                    className="absolute inset-0 rounded-xl bg-white/15"
-                    transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                  />
-                )}
-                <span className={cn(
-                  'absolute inset-0 rounded-xl transition-colors duration-150',
-                  !isActive && 'hover:bg-white/8',
-                )} />
-                <Icon
-                  size={16}
-                  className="flex-shrink-0 relative z-10"
-                  strokeWidth={isActive ? 2.2 : 1.8}
-                />
-                <AnimatePresence initial={false}>
-                  {!collapsed && (
-                    <motion.span
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: 'auto' }}
-                      exit={{ opacity: 0, width: 0 }}
-                      transition={{ duration: 0.14 }}
-                      className={cn('whitespace-nowrap overflow-hidden relative z-10', isActive && 'font-semibold')}
-                    >
-                      {label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </Link>
-            )
-          })}
+      {/* Disparos */}
+      <div className="flex-shrink-0 px-2.5 pb-1">
+        <SectionHeading collapsed={collapsed}>Disparos</SectionHeading>
+        <div className="flex flex-col gap-1">
+          {DISPARO_ITEMS.map(entry => (
+            <NavItem key={entry.href} entry={entry} collapsed={collapsed} active={isActive(entry.href)} />
+          ))}
         </div>
       </div>
 
-      {/* Divider sistema */}
-      <div className="mx-3 border-t border-white/10 mt-1 mb-1 flex-shrink-0" />
+      {/* Sistema */}
+      {isAdm && (
+        <div className="flex-shrink-0 px-2.5 pb-2">
+          <SectionHeading collapsed={collapsed}>Sistema</SectionHeading>
+          <div className="flex flex-col gap-1">
+            {SYSTEM_ITEMS.map(entry => (
+              <NavItem key={entry.href} entry={entry} collapsed={collapsed} active={isActive(entry.href)} />
+            ))}
+          </div>
+        </div>
+      )}
 
-      {/* Seção Sistema */}
-      <div className="px-2 pb-1 flex-shrink-0">
-        <AnimatePresence initial={false}>
-          {!collapsed && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.1 }}
-              className="px-3 pt-1.5 pb-1 text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] whitespace-nowrap"
-            >
-              Sistema
-            </motion.p>
-          )}
-        </AnimatePresence>
-        {isAdm && (
-          <Link
-            href="/configuracoes"
-            title={collapsed ? 'Configurações' : undefined}
-            className={cn(
-              'relative flex items-center rounded-xl text-sm font-medium transition-colors duration-150 overflow-hidden',
-              collapsed ? 'justify-center px-0 py-2' : 'gap-3 px-3 py-2',
-              pathname.startsWith('/configuracoes') ? 'text-white' : 'text-white/50 hover:text-white/85',
-            )}
-          >
-            {pathname.startsWith('/configuracoes') && (
-              <motion.div
-                layoutId="nav-active-bg"
-                className="absolute inset-0 rounded-xl bg-white/15"
-                transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-              />
-            )}
-            <span className={cn(
-              'absolute inset-0 rounded-xl transition-colors duration-150',
-              !pathname.startsWith('/configuracoes') && 'hover:bg-white/8',
-            )} />
-            <Settings size={15} strokeWidth={1.8} className="flex-shrink-0 relative z-10" />
-            <AnimatePresence initial={false}>
-              {!collapsed && (
-                <motion.span
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 'auto' }}
-                  exit={{ opacity: 0, width: 0 }}
-                  transition={{ duration: 0.14 }}
-                  className="whitespace-nowrap overflow-hidden relative z-10"
-                >
-                  Configurações
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </Link>
+      <div className="mx-3 flex-shrink-0 border-t border-white/[0.08]" />
+
+      {/* Usuário e controles */}
+      <div
+        className={cn(
+          'flex flex-shrink-0 flex-col px-3 pb-4 pt-3',
+          collapsed ? 'items-center gap-2.5' : 'gap-2.5',
         )}
-      </div>
-
-      {/* Divider footer */}
-      <div className="mx-3 border-t border-white/10 flex-shrink-0" />
-
-      {/* Footer: usuário + tema + colapsar */}
-      <div className={cn(
-        'px-3 pb-4 pt-3 flex-shrink-0',
-        collapsed ? 'flex flex-col items-center gap-2.5' : 'flex flex-col gap-2',
-      )}>
-        {/* Usuário */}
+      >
         <div className={cn('flex items-center', collapsed ? 'justify-center' : 'gap-2.5')}>
           <div className="relative flex-shrink-0">
-            <div className="w-7 h-7 rounded-full bg-white/20 text-white flex items-center justify-center text-[11px] font-bold border border-white/25">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-xs font-semibold text-white">
               {userInitial}
             </div>
             <span
-              className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full border-2"
-              style={{ borderColor: '#0A2EAD' }}
+              aria-hidden
+              className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 bg-[var(--accent-warm)]"
+              style={{ borderColor: 'var(--nav-to)' }}
             />
           </div>
           <AnimatePresence initial={false}>
             {!collapsed && (
               <motion.div
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: 'auto' }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.14 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: DURATION.fast }}
                 className="min-w-0 overflow-hidden"
               >
-                <span className="text-white/80 text-xs font-semibold truncate leading-tight capitalize block whitespace-nowrap">
+                <span className="block truncate whitespace-nowrap text-sm font-medium capitalize leading-tight text-white">
                   {userName}
                 </span>
-                <span className="text-white/35 text-[10px] leading-tight block">Online</span>
+                <span className="block text-xs leading-tight text-white/45">Online</span>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Controles */}
         <div className={cn('flex items-center gap-1', collapsed && 'flex-col')}>
           <ThemeToggle />
           <button
             onClick={toggleCollapse}
-            title={collapsed ? 'Expandir' : 'Colapsar'}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-all duration-150 cursor-pointer"
+            title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+            aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-white/55 transition-ui hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           >
-            {collapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+            {collapsed ? <PanelLeftOpen size={ICON.sm} /> : <PanelLeftClose size={ICON.sm} />}
           </button>
         </div>
       </div>

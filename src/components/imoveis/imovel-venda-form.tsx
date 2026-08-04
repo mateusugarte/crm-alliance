@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, X, DollarSign, User, Phone, Mail, Home, ChevronDown } from 'lucide-react'
+import { Loader2, X, DollarSign, User, Phone, Mail, Home, ChevronDown } from '@/lib/icons'
 import { toast } from 'sonner'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { formatCurrency } from '@/lib/utils/format'

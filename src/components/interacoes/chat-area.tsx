@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Send, Loader2, Zap, PauseCircle, PlusCircle, X, ChevronDown } from 'lucide-react'
+import { Send, Loader2, Zap, PauseCircle, PlusCircle, X, ChevronDown } from '@/lib/icons'
 import { AnimatePresence, motion } from 'framer-motion'
 import { format, isToday, isYesterday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'

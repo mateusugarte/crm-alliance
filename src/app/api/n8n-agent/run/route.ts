@@ -4,6 +4,7 @@ import { notifyInternalGroup } from '@/lib/ai/alice-tools'
 import { toWhatsAppNumber } from '@/lib/format-phone'
 import { normalizeLeadName } from '@/lib/lead-name'
 import { createServiceClient } from '@/lib/supabase/service'
+import { extractMessageText } from '@/lib/whatsapp/extract-message-text'
 import type { Database } from '@/lib/supabase/types'
 
 type Lead = Database['public']['Tables']['leads']['Row']
@@ -40,40 +41,6 @@ interface N8NAgentPayload {
 
 function unauthorized() {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-}
-
-function decodePercentEncoding(text: string) {
-  if (!/%[0-9A-Fa-f]{2}/.test(text)) return text
-  try {
-    return decodeURIComponent(text)
-  } catch {
-    return text
-  }
-}
-
-/**
- * Mensagens vindas de anuncio (Click-to-WhatsApp) chegam como o payload cru da
- * UazAPI: um JSON com `text` mais um `contextInfo` que carrega ate 10 KB de
- * thumbnail em base64. Guardar e mandar isso para a Alice polui o historico,
- * queima tokens e aparece como lixo no chat do corretor — extraimos so o texto.
- */
-function extractLeadText(raw: string): string {
-  const trimmed = raw.trim()
-  if (!trimmed.startsWith('{')) return decodePercentEncoding(trimmed)
-
-  try {
-    const parsed = JSON.parse(trimmed) as Record<string, unknown>
-    for (const key of ['text', 'conversation', 'caption', 'body']) {
-      const value = parsed[key]
-      if (typeof value === 'string' && value.trim()) {
-        return decodePercentEncoding(value.trim())
-      }
-    }
-  } catch {
-    // nao era JSON valido — segue com o texto original
-  }
-
-  return decodePercentEncoding(trimmed)
 }
 
 function phoneCandidates(raw: string) {
@@ -204,7 +171,7 @@ export async function POST(request: NextRequest) {
   }
 
   const payload = await request.json() as N8NAgentPayload
-  const message = extractLeadText(payload.message ?? payload.conversation ?? '')
+  const message = extractMessageText(payload.message ?? payload.conversation ?? '')
   const reactivation = payload.reactivation === true || (payload.reactivation as unknown) === 'true'
 
   if (!message) {

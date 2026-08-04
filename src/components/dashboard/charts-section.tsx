@@ -1,190 +1,208 @@
+'use client'
+
+import { BarChart3, ICON } from '@/lib/icons'
+import { cn } from '@/lib/utils'
 import { ActivityChart } from './activity-chart'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { CalendarClock, BarChart3 } from 'lucide-react'
-import type { TodayMeeting, PipelineStage } from '@/app/(protected)/dashboard/page'
+import type { PipelineStage } from '@/app/(protected)/dashboard/page'
 
 interface ChartData {
   labels: string[]
   data: number[]
-  total?: number
 }
 
 interface ChartsSectionProps {
-  reunioes: ChartData
   leads: ChartData
-  todayMeetings: TodayMeeting[]
   pipeline: PipelineStage[]
 }
 
-function getInitials(name: string) {
-  return name.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('')
-}
+const FUNNEL_KEYS = ['lead_frio', 'lead_morno', 'lead_quente', 'reuniao_agendada']
 
-export function ChartsSection({ reunioes, leads, todayMeetings, pipeline }: ChartsSectionProps) {
-  const totalLeads = pipeline.reduce((s, p) => s + p.count, 0)
-  const activePipeline = pipeline.filter(s => s.count > 0)
+export function ChartsSection({ leads, pipeline }: ChartsSectionProps) {
+  const totalLeads = pipeline.reduce((sum, stage) => sum + stage.count, 0)
+  const findStage = (key: string) => pipeline.find(stage => stage.key === key)
+  const noResponse = findStage('nao_respondeu')
+  const funnelStages = FUNNEL_KEYS
+    .map(key => findStage(key))
+    .filter((stage): stage is PipelineStage => Boolean(stage))
+  const followUp = findStage('follow_up')
+  const noInterest = findStage('sem_interesse')
+  const sales = (findStage('visita_confirmada')?.count ?? 0) + (findStage('cliente')?.count ?? 0)
+
+  // A escala das barras é relativa à maior etapa, não ao total. Com 676 frios
+  // e 1 reunião, escalar pelo total deixaria as três últimas invisíveis.
+  const maxCount = Math.max(...funnelStages.map(s => s.count), 1)
+
+  const percentOfBase = (value: number) => totalLeads > 0 ? (value / totalLeads) * 100 : 0
+  const formatPercent = (value: number) => {
+    if (value > 0 && value < 0.5) return '<1%'
+    return `${Math.round(value)}%`
+  }
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Gráficos de barras — sem card wrapper */}
-      <div className="grid grid-cols-2 gap-8">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+      <section className="min-h-[440px] rounded-[var(--radius-card)] border border-line bg-surface p-5 elev-sm">
         <ActivityChart
-          title="Novos Leads"
+          title="Novos leads"
           labels={leads.labels}
           data={leads.data}
           categoryLabel="Dia normal"
           peakLabel="Pico de captação"
         />
-        <ActivityChart
-          title="Reuniões"
-          labels={reunioes.labels}
-          data={reunioes.data}
-          totalOverride={reunioes.total}
-          categoryLabel="Dia normal"
-          peakLabel="Pico de reuniões"
-        />
-      </div>
+      </section>
 
-      {/* Divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-gray-100 dark:via-white/[0.06] to-transparent" />
-
-      {/* Seções inferiores */}
-      <div className="grid grid-cols-2 gap-8">
-        {/* Reuniões de hoje */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center">
-                <CalendarClock size={12} className="text-purple-500 dark:text-purple-400" />
-              </div>
-              <span className="text-[10px] font-semibold text-gray-400 dark:text-white/35 uppercase tracking-widest">
-                Reuniões de Hoje
-              </span>
+      <section className="rounded-[var(--radius-card)] border border-line bg-surface p-5 elev-sm">
+        <header className="mb-5 flex items-start justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-soft text-brand">
+              <BarChart3 size={ICON.md} />
+            </span>
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight text-ink">Funil comercial</h2>
+              <p className="text-xs text-ink-muted">Distribuição da base por estágio</p>
             </div>
-            {todayMeetings.length > 0 && (
-              <span className="text-[11px] font-bold text-purple-500 dark:text-purple-400 tabular-nums">
-                {todayMeetings.length}
-              </span>
-            )}
           </div>
+          <div className="text-right">
+            <span className="block text-xl font-semibold leading-tight tabular-nums text-ink">
+              {totalLeads.toLocaleString('pt-BR')}
+            </span>
+            <span className="text-xs text-ink-subtle">leads na base</span>
+          </div>
+        </header>
 
-          {todayMeetings.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 gap-1.5">
-              <CalendarClock size={16} className="text-gray-200 dark:text-white/15" />
-              <p className="text-[11px] text-gray-300 dark:text-white/20 text-center leading-snug">
-                Nenhuma reunião<br />agendada para hoje
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1.5">
-              {todayMeetings.map(m => (
+        {/* Fora do funil — quem nunca respondeu não entrou na qualificação */}
+        <div className="mb-5 flex items-center justify-between gap-4 rounded-lg bg-surface-sunken px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-ink">Aguardando resposta</p>
+            <p className="text-xs text-ink-muted">Ainda fora do fluxo de qualificação</p>
+          </div>
+          <div className="flex flex-shrink-0 items-baseline gap-2">
+            <span className="text-lg font-semibold tabular-nums text-ink">{noResponse?.count ?? 0}</span>
+            <span className="text-xs text-ink-subtle">
+              {formatPercent(percentOfBase(noResponse?.count ?? 0))} da base
+            </span>
+          </div>
+        </div>
+
+        {/* O funil.
+            O trapézio com clip-path que estava aqui cortava o próprio texto
+            ("Lead Frio" virava "ead Frio", o percentual sumia na borda) e é uma
+            forma que não representa nada: a área do trapézio não corresponde ao
+            valor. Barra proporcional corresponde. */}
+        <ol className="flex flex-col gap-3">
+          {funnelStages.map((stage, index) => {
+            const previous = index > 0 ? funnelStages[index - 1] : undefined
+            const stepConversion = previous && previous.count > 0
+              ? (stage.count / previous.count) * 100
+              : null
+
+            return (
+              <li key={stage.key}>
+                <div className="mb-1.5 flex items-baseline justify-between gap-3">
+                  <span className="flex items-center gap-2 text-sm font-medium text-ink">
+                    <span
+                      aria-hidden
+                      className="inline-block h-2 w-2 flex-shrink-0 rounded-full"
+                      style={{ backgroundColor: stage.color }}
+                    />
+                    {stage.label}
+                  </span>
+                  <span className="flex items-baseline gap-2 whitespace-nowrap">
+                    <span className="text-base font-semibold tabular-nums text-ink">
+                      {stage.count.toLocaleString('pt-BR')}
+                    </span>
+                    <span className="text-xs tabular-nums text-ink-subtle">
+                      {formatPercent(percentOfBase(stage.count))}
+                    </span>
+                  </span>
+                </div>
+
                 <div
-                  key={m.id}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/[0.05]"
+                  className="h-2.5 w-full overflow-hidden rounded-full"
+                  style={{ backgroundColor: stage.soft }}
+                  role="img"
+                  aria-label={`${stage.label}: ${stage.count} leads, ${formatPercent(percentOfBase(stage.count))} da base`}
                 >
                   <div
-                    className="flex-shrink-0 px-1.5 py-0.5 rounded-md min-w-[40px] text-center"
-                    style={{ backgroundColor: m.consultant_color + '18' }}
-                  >
-                    <span
-                      className="text-[12px] font-bold tabular-nums leading-none block"
-                      style={{ color: m.consultant_color }}
-                    >
-                      {format(new Date(m.datetime), 'HH:mm', { locale: ptBR })}
-                    </span>
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold text-gray-800 dark:text-white truncate leading-none">
-                      {m.lead_name}
-                    </p>
-                    <p className="text-[10px] text-gray-400 dark:text-white/30 truncate mt-0.5">
-                      {m.consultant_name}
-                    </p>
-                  </div>
-
-                  <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
-                    style={{ backgroundColor: m.consultant_color }}
-                    title={m.consultant_name}
-                  >
-                    {getInitials(m.consultant_name)}
-                  </div>
+                    className="h-full rounded-full transition-[width] duration-500 ease-[var(--ease-out-quart)]"
+                    style={{
+                      width: `${Math.max((stage.count / maxCount) * 100, stage.count > 0 ? 1.5 : 0)}%`,
+                      backgroundColor: stage.color,
+                    }}
+                  />
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
 
-        {/* Pipeline */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
-                <BarChart3 size={12} className="text-blue-500 dark:text-blue-400" />
-              </div>
-              <span className="text-[10px] font-semibold text-gray-400 dark:text-white/35 uppercase tracking-widest">
-                Pipeline
-              </span>
-            </div>
-            {totalLeads > 0 && (
-              <span className="text-[11px] font-bold text-blue-500 dark:text-blue-400 tabular-nums">
-                {totalLeads} leads
-              </span>
-            )}
+                {stepConversion !== null && previous && (
+                  <p className="mt-1 text-xs tabular-nums text-ink-subtle">
+                    {formatPercent(stepConversion)} de {previous.label.toLowerCase()}
+                  </p>
+                )}
+              </li>
+            )
+          })}
+        </ol>
+
+        <div className="mt-5 border-t border-line pt-4">
+          <p className="mb-2.5 text-sm font-medium text-ink-muted">Depois da reunião</p>
+          <div className="grid grid-cols-3 gap-2">
+            <OutcomeMetric
+              label="Follow-up"
+              value={followUp?.count ?? 0}
+              percent={formatPercent(percentOfBase(followUp?.count ?? 0))}
+              tokens={followUp}
+            />
+            <OutcomeMetric
+              label="Sem interesse"
+              value={noInterest?.count ?? 0}
+              percent={formatPercent(percentOfBase(noInterest?.count ?? 0))}
+              tokens={noInterest}
+            />
+            <OutcomeMetric
+              label="Vendas"
+              value={sales}
+              percent={formatPercent(percentOfBase(sales))}
+              tokens={findStage('cliente')}
+              highlight
+            />
           </div>
-
-          {totalLeads === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 gap-1.5">
-              <BarChart3 size={16} className="text-gray-200 dark:text-white/15" />
-              <p className="text-[11px] text-gray-300 dark:text-white/20 text-center leading-snug">
-                Nenhum lead<br />no pipeline
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2.5">
-              {activePipeline.map(stage => {
-                const pct = Math.round((stage.count / totalLeads) * 100)
-                return (
-                  <div key={stage.key}>
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: stage.color }}
-                        />
-                        <span className="text-[11px] font-medium text-gray-500 dark:text-white/50">
-                          {stage.label}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="text-[11px] font-semibold tabular-nums"
-                          style={{ color: stage.color }}
-                        >
-                          {stage.count}
-                        </span>
-                        <span className="text-[10px] text-gray-300 dark:text-white/20 tabular-nums w-7 text-right">
-                          {pct}%
-                        </span>
-                      </div>
-                    </div>
-                    <div className="h-[3px] bg-gray-100 dark:bg-white/[0.06] rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-700"
-                        style={{
-                          width: `${pct}%`,
-                          background: `linear-gradient(90deg, ${stage.color}99, ${stage.color})`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
         </div>
+      </section>
+    </div>
+  )
+}
+
+function OutcomeMetric({
+  label,
+  value,
+  percent,
+  tokens,
+  highlight = false,
+}: {
+  label: string
+  value: number
+  percent: string
+  tokens?: Pick<PipelineStage, 'color' | 'soft' | 'ink'>
+  highlight?: boolean
+}) {
+  const accent = highlight && tokens ? tokens.ink : undefined
+
+  return (
+    <div
+      className={cn('rounded-lg px-3 py-2.5', !highlight && 'bg-surface-sunken')}
+      style={highlight && tokens ? { backgroundColor: tokens.soft } : undefined}
+    >
+      <p className="flex items-center gap-1.5 text-xs font-medium" style={{ color: accent }}>
+        <span
+          aria-hidden
+          className="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full"
+          style={{ backgroundColor: tokens?.color }}
+        />
+        <span className={cn('truncate', !highlight && 'text-ink-muted')}>{label}</span>
+      </p>
+      <div className="mt-1 flex items-baseline gap-1.5">
+        <span className="text-lg font-semibold tabular-nums text-ink" style={{ color: accent }}>
+          {value}
+        </span>
+        <span className="text-xs tabular-nums text-ink-subtle">{percent}</span>
       </div>
     </div>
   )

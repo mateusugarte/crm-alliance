@@ -1,4 +1,4 @@
-import { ShieldCheck, Clock3, UserCheck, Users } from 'lucide-react'
+import { ShieldCheck, Clock3, UserCheck, Users } from '@/lib/icons'
 import { requireAdm } from '@/lib/auth/admin'
 import { CreateUserForm } from '@/components/configuracoes/create-user-form'
 import { createSystemUser } from './actions'

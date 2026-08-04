@@ -1,12 +1,11 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
-import { Smile } from 'lucide-react'
-import { Suspense } from 'react'
 import { MetricsGrid } from '@/components/dashboard/metrics-grid'
 import { ChartsSection } from '@/components/dashboard/charts-section'
 import { DisparosSection } from '@/components/dashboard/disparos-section'
-import { DateFilter } from '@/components/ui/date-filter'
+import { DashboardHero } from '@/components/dashboard/dashboard-hero'
+import { STAGES, STAGE_ORDER } from '@/lib/stages'
 import {
   format, subDays, eachDayOfInterval,
   startOfDay, endOfDay, startOfWeek, startOfMonth,
@@ -48,19 +47,15 @@ export interface DisparoDashboardData {
   funnel: DisparoFunnelItem[]
 }
 
-export interface TodayMeeting {
-  id: string
-  datetime: string
-  lead_name: string
-  consultant_name: string
-  consultant_color: string
-}
-
 export interface PipelineStage {
   key: string
   label: string
+  shortLabel: string
   count: number
+  /** Tokens vindos de `@/lib/stages` — nunca hex literal. */
   color: string
+  soft: string
+  ink: string
 }
 
 function getGreeting(): string {
@@ -198,11 +193,11 @@ async function getDisparoDashboardData(): Promise<DisparoDashboardData> {
     const averageDispatchesPerLead = impactedLeads > 0 ? totalSent / impactedLeads : 0
 
     const funnelBase = [
-      { key: 'impactados', label: 'Impactados', value: impactedLeads, color: '#0A2EAD' },
-      { key: 'responderam', label: 'Responderam', value: respondedLeads, color: '#1E90FF' },
-      { key: 'avancaram', label: 'Avançaram no pipeline', value: advancedLeads, color: '#FF8C00' },
-      { key: 'reunioes', label: 'Agendaram reunião', value: meetingLeads, color: '#228B22' },
-      { key: 'clientes', label: 'Viraram cliente', value: clientLeads, color: '#2ECC71' },
+      { key: 'impactados', label: 'Impactados', value: impactedLeads, color: 'var(--brand)' },
+      { key: 'responderam', label: 'Responderam', value: respondedLeads, color: 'var(--stage-frio)' },
+      { key: 'avancaram', label: 'Avançaram no pipeline', value: advancedLeads, color: 'var(--stage-morno)' },
+      { key: 'reunioes', label: 'Agendaram reunião', value: meetingLeads, color: 'var(--stage-reuniao)' },
+      { key: 'clientes', label: 'Viraram cliente', value: clientLeads, color: 'var(--stage-cliente)' },
     ]
 
     const funnel = funnelBase.map((item, index) => ({
@@ -227,11 +222,11 @@ async function getDisparoDashboardData(): Promise<DisparoDashboardData> {
     }
   } catch {
     const emptyFunnel = [
-      { key: 'impactados', label: 'Impactados', value: 0, color: '#0A2EAD', conversionFromPrevious: 100 },
-      { key: 'responderam', label: 'Responderam', value: 0, color: '#1E90FF', conversionFromPrevious: 0 },
-      { key: 'avancaram', label: 'Avançaram no pipeline', value: 0, color: '#FF8C00', conversionFromPrevious: 0 },
-      { key: 'reunioes', label: 'Agendaram reunião', value: 0, color: '#228B22', conversionFromPrevious: 0 },
-      { key: 'clientes', label: 'Viraram cliente', value: 0, color: '#2ECC71', conversionFromPrevious: 0 },
+      { key: 'impactados', label: 'Impactados', value: 0, color: 'var(--brand)', conversionFromPrevious: 100 },
+      { key: 'responderam', label: 'Responderam', value: 0, color: 'var(--stage-frio)', conversionFromPrevious: 0 },
+      { key: 'avancaram', label: 'Avançaram no pipeline', value: 0, color: 'var(--stage-morno)', conversionFromPrevious: 0 },
+      { key: 'reunioes', label: 'Agendaram reunião', value: 0, color: 'var(--stage-reuniao)', conversionFromPrevious: 0 },
+      { key: 'clientes', label: 'Viraram cliente', value: 0, color: 'var(--stage-cliente)', conversionFromPrevious: 0 },
     ]
 
     return {
@@ -263,17 +258,9 @@ async function getChartData(dateRange: { start: Date; end: Date } | null) {
     const displayFormat = days.length <= 7 ? 'EEE' : 'dd/MM'
     const labels = days.map(d => format(d, displayFormat, { locale: ptBR }).replace('.', ''))
 
-    const [{ data: meetingStageRows }, { count: totalMeetingStages }, { data: leadRows }] = await Promise.all([
-      supabase.from('leads').select('updated_at')
-        .in('stage', MEETING_STAGE_KEYS)
-        .gte('updated_at', effectiveStart.toISOString())
-        .lte('updated_at', effectiveEnd.toISOString()),
-      supabase.from('leads').select('id', { count: 'exact', head: true })
-        .in('stage', MEETING_STAGE_KEYS),
-      supabase.from('leads').select('created_at')
-        .gte('created_at', effectiveStart.toISOString())
-        .lte('created_at', effectiveEnd.toISOString()),
-    ])
+    const { data: leadRows } = await supabase.from('leads').select('created_at')
+      .gte('created_at', effectiveStart.toISOString())
+      .lte('created_at', effectiveEnd.toISOString())
 
     const countByDay = (rows: Array<{ [key: string]: string }>, field: string) =>
       days.map(d => {
@@ -284,70 +271,12 @@ async function getChartData(dateRange: { start: Date; end: Date } | null) {
         }).length
       })
 
-    return {
-      reunioes: {
-        labels,
-        data: countByDay(meetingStageRows as Array<{ updated_at: string }> ?? [], 'updated_at'),
-        total: totalMeetingStages ?? 0,
-      },
-      leads: { labels, data: countByDay(leadRows as Array<{ created_at: string }> ?? [], 'created_at') },
-    }
+    return { labels, data: countByDay(leadRows as Array<{ created_at: string }> ?? [], 'created_at') }
   } catch {
     const labels = Array.from({ length: 7 }, (_, i) =>
       format(subDays(new Date(), 6 - i), 'EEE', { locale: ptBR }).replace('.', '')
     )
-    return {
-      reunioes: { labels, data: [0, 0, 0, 0, 0, 0, 0], total: 0 },
-      leads:    { labels, data: [0, 0, 0, 0, 0, 0, 0] },
-    }
-  }
-}
-
-async function getTodayMeetings(): Promise<TodayMeeting[]> {
-  try {
-    const supabase = await createClient()
-    const now = new Date()
-    const todayStart = startOfDay(now).toISOString()
-    const todayEnd = endOfDay(now).toISOString()
-
-    const { data: rawData } = await supabase
-      .from('meetings')
-      .select('id, datetime, lead_id, assigned_to')
-      .gte('datetime', todayStart)
-      .lte('datetime', todayEnd)
-      .eq('status', 'scheduled')
-      .order('datetime', { ascending: true })
-      .limit(4)
-
-    const data = (rawData ?? []) as Array<{ id: string; datetime: string; lead_id: string; assigned_to: string | null }>
-
-    if (!data.length) return []
-
-    const leadIds = [...new Set(data.map(m => m.lead_id).filter(Boolean))]
-    const userIds = [...new Set(data.map(m => m.assigned_to).filter((x): x is string => x !== null))]
-
-    const [{ data: leadsData }, { data: profilesData }] = await Promise.all([
-      supabase.from('leads').select('id, name').in('id', leadIds),
-      userIds.length
-        ? supabase.from('user_profiles').select('id, full_name, badge_color').in('id', userIds)
-        : Promise.resolve({ data: [] }),
-    ])
-
-    const leadMap = new Map((leadsData ?? []).map((l: { id: string; name: string }) => [l.id, l.name]))
-    const profileMap = new Map((profilesData ?? []).map((p: { id: string; full_name: string; badge_color: string }) => [p.id, p]))
-
-    return data.map(m => {
-      const profile = m.assigned_to ? profileMap.get(m.assigned_to) : null
-      return {
-        id: m.id,
-        datetime: m.datetime,
-        lead_name: leadMap.get(m.lead_id) ?? 'Lead',
-        consultant_name: (profile as { full_name: string } | null)?.full_name ?? 'Não atribuído',
-        consultant_color: (profile as { badge_color: string } | null)?.badge_color ?? '#1E90FF',
-      }
-    })
-  } catch {
-    return []
+    return { labels, data: [0, 0, 0, 0, 0, 0, 0] }
   }
 }
 
@@ -357,22 +286,18 @@ async function getPipelineDistribution(): Promise<PipelineStage[]> {
     const { data } = await supabase.from('leads').select('stage')
     const leads = (data ?? []) as Array<{ stage: string }>
 
-    const STAGES: Array<{ key: string; label: string; color: string }> = [
-      { key: 'nao_respondeu',     label: 'Não Respondeu', color: '#64748B' },
-      { key: 'lead_frio',         label: 'Lead Frio',     color: '#1E90FF' },
-      { key: 'lead_morno',        label: 'Lead Morno',    color: '#FF8C00' },
-      { key: 'lead_quente',       label: 'Lead Quente',   color: '#FF4500' },
-      { key: 'follow_up',         label: 'Follow-up',     color: '#9B59B6' },
-      { key: 'sem_interesse',     label: 'Sem interesse', color: '#991B1B' },
-      { key: 'reuniao_agendada',  label: 'Reunião',       color: '#228B22' },
-      { key: 'visita_confirmada', label: 'Venda',         color: '#E67E22' },
-      { key: 'cliente',           label: 'Cliente',       color: '#2ECC71' },
-    ]
-
-    return STAGES.map(s => ({
-      ...s,
-      count: leads.filter(l => l.stage === s.key).length,
-    }))
+    return STAGE_ORDER.map((key) => {
+      const { label, shortLabel, solid, soft, ink } = STAGES[key]
+      return {
+        key,
+        label,
+        shortLabel,
+        color: solid,
+        soft,
+        ink,
+        count: leads.filter(l => l.stage === key).length,
+      }
+    })
   } catch {
     return []
   }
@@ -386,11 +311,10 @@ export default async function DashboardPage({
   const params = await searchParams
   const dateRange = getDateRange(params.period ?? 'tudo', params.from, params.to)
 
-  const [userName, metrics, chartData, todayMeetings, pipeline, disparos] = await Promise.all([
+  const [userName, metrics, leadChartData, pipeline, disparos] = await Promise.all([
     getUserName(),
     getMetrics(),
     getChartData(dateRange),
-    getTodayMeetings(),
     getPipelineDistribution(),
     getDisparoDashboardData(),
   ])
@@ -399,40 +323,17 @@ export default async function DashboardPage({
   const dateLabel = getFormattedDate()
 
   return (
-    <div className="px-8 py-7 flex flex-col gap-6 min-h-full">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-semibold text-gray-400 dark:text-white/30 uppercase tracking-widest mb-1.5">
-            {greeting}
-          </p>
-          <h1 className="text-[1.75rem] font-bold text-gray-900 dark:text-white leading-tight flex items-center gap-2.5">
-            {userName}
-            <Smile size={26} className="text-alliance-blue flex-shrink-0" strokeWidth={1.75} />
-          </h1>
-        </div>
-        <div className="flex flex-col items-end gap-2 mt-1">
-          <div className="text-right">
-            <p className="text-xs text-gray-400 dark:text-white/40 capitalize">{dateLabel}</p>
-            <div className="flex items-center gap-1.5 justify-end mt-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-              <span className="text-[11px] text-gray-400 dark:text-white/30 font-medium">Sistema online</span>
-            </div>
-          </div>
-          <Suspense fallback={null}>
-            <DateFilter />
-          </Suspense>
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-white/10 to-transparent -mt-2" />
+    <div className="flex min-h-full flex-col gap-5 px-6 py-6 lg:px-8">
+      <DashboardHero
+        greeting={greeting}
+        userName={userName}
+        dateLabel={dateLabel}
+        totalLeads={metrics.total_leads}
+      />
 
       <MetricsGrid metrics={metrics} />
       <ChartsSection
-        reunioes={chartData.reunioes}
-        leads={chartData.leads}
-        todayMeetings={todayMeetings}
+        leads={leadChartData}
         pipeline={pipeline}
       />
       <DisparosSection data={disparos} />

@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { InteracoesClient } from '@/components/interacoes/interacoes-client'
 import type { LeadWithLastInteraction, LeadContact, Label } from '@/components/interacoes/types'
 import type { Lead, Interaction } from '@/lib/supabase/types'
+import { extractMessageText } from '@/lib/whatsapp/extract-message-text'
 
 async function getLeadsData(): Promise<{
   conversations: LeadWithLastInteraction[]
@@ -71,7 +72,7 @@ async function getLeadsData(): Promise<{
         created_at: l.created_at,
       }
       if (last) {
-        conversations.push({ ...base, lastMessage: last.content, lastMessageAt: last.created_at })
+        conversations.push({ ...base, lastMessage: extractMessageText(last.content), lastMessageAt: last.created_at })
       } else {
         contactLeadIds.push(l.id)
       }

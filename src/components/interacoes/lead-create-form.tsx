@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, X, UserPlus, Phone, MapPin, ChevronDown } from 'lucide-react'
+import { Loader2, X, UserPlus, Phone, MapPin, ChevronDown } from '@/lib/icons'
 import { toast } from 'sonner'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import type { Lead } from '@/lib/supabase/types'

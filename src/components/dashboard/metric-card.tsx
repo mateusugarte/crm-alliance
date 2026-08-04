@@ -1,15 +1,35 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
-import { TrendingUp, TrendingDown } from 'lucide-react'
+import { motion, useReducedMotion } from 'framer-motion'
+import { useEffect, useState, type ReactNode } from 'react'
+import { TrendingDown, TrendingUp } from '@/lib/icons'
 import { staggerItem } from '@/lib/animations'
+import { cn } from '@/lib/utils'
+
+/**
+ * Cartões de métrica.
+ *
+ * O que mudou e por quê:
+ *
+ *  · A faixa de 2px no topo e o filete lateral colorido saíram. Uma barra
+ *    colorida não diz ao usuário qual métrica ele está lendo — o rótulo diz.
+ *    A cor agora vive onde é interpretável: no ícone.
+ *
+ *  · O eyebrow de 10px em maiúsculas com tracking largo virou rótulo de 13px.
+ *    Além de repetido em todo card, 10px cinza sobre branco não passa em
+ *    contraste, e "REUNIÕES" quebrava em duas linhas em telas estreitas.
+ *
+ *  · O card em destaque tinha altura de duas linhas com o número no rodapé e
+ *    um vazio no meio. Agora tem altura própria e conteúdo assentado.
+ */
 
 interface MetricCardProps {
   label: string
   value: number
-  variant?: 'featured' | 'default' | 'wide'
-  icon?: React.ReactNode
+  /** Contexto abaixo do número: "18% dos impactados", "de 806 na base". */
+  hint?: string
+  icon?: ReactNode
+  /** Cor de acento — token do sistema, não hex. */
   accentColor?: string
   trend?: number
   className?: string
@@ -17,144 +37,180 @@ interface MetricCardProps {
   suffix?: string
 }
 
-function useCountUp(target: number, duration = 600, decimals = 0) {
-  const [count, setCount] = useState(0)
+function useCountUp(target: number, duration = 550, decimals = 0) {
+  const reduced = useReducedMotion()
+  const [count, setCount] = useState(target)
+
   useEffect(() => {
+    if (reduced) { setCount(target); return }
     if (target === 0) { setCount(0); return }
+    let raf = 0
     const start = performance.now()
     const frame = (now: number) => {
-      const elapsed = now - start
-      const progress = Math.min(elapsed / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 3)
+      const progress = Math.min((now - start) / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 4)
       const next = eased * target
       setCount(decimals > 0 ? Number(next.toFixed(decimals)) : Math.round(next))
-      if (progress < 1) requestAnimationFrame(frame)
+      if (progress < 1) raf = requestAnimationFrame(frame)
     }
-    requestAnimationFrame(frame)
-  }, [target, duration, decimals])
+    setCount(0)
+    raf = requestAnimationFrame(frame)
+    return () => cancelAnimationFrame(raf)
+  }, [target, duration, decimals, reduced])
+
   return count
 }
 
-function TrendBadge({ trend }: { trend: number }) {
+function formatValue(count: number, decimals: number) {
+  return decimals > 0 ? count.toFixed(decimals).replace('.', ',') : count.toLocaleString('pt-BR')
+}
+
+function TrendBadge({ trend, onDark = false }: { trend: number; onDark?: boolean }) {
   const positive = trend >= 0
+  const Icon = positive ? TrendingUp : TrendingDown
   return (
-    <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-md ${
-      positive
-        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
-        : 'bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400'
-    }`}>
-      {positive ? <TrendingUp size={8} /> : <TrendingDown size={8} />}
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-2xs font-semibold tabular-nums',
+        onDark
+          ? 'bg-white/15 text-white'
+          : positive
+            ? 'bg-[var(--success-soft)] text-[var(--success-ink)]'
+            : 'bg-[var(--danger-soft)] text-[var(--danger-ink)]',
+      )}
+    >
+      <Icon size={11} />
       {positive ? '+' : ''}{trend}%
     </span>
   )
 }
 
+/* -------------------------------------------------------------------------
+   KPI — os números que importam na primeira dobra
+   ---------------------------------------------------------------------- */
+
 export function MetricCard({
-  label,
-  value,
-  variant = 'default',
-  icon,
-  accentColor = '#1E90FF',
-  trend,
-  className,
-  decimals = 0,
-  suffix = '',
+  label, value, hint, icon, accentColor = 'var(--brand-accent)',
+  trend, className, decimals = 0, suffix = '',
 }: MetricCardProps) {
-  const count = useCountUp(value, 600, decimals)
-  const displayValue = decimals > 0 ? count.toFixed(decimals).replace('.', ',') : count.toString()
+  const count = useCountUp(value, 550, decimals)
 
-  if (variant === 'featured') {
-    return (
-      <motion.div
-        variants={staggerItem}
-        className={`rounded-xl px-5 py-4 flex flex-col justify-between relative overflow-hidden ${className ?? ''}`}
-        style={{ background: 'linear-gradient(150deg, #06195e 0%, #0A2EAD 55%, #1457c4 100%)' }}
-      >
-        {/* Subtle radial glow */}
-        <div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-white/[0.04] blur-2xl pointer-events-none" />
-
-        <div className="relative flex items-start justify-between gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-white/40 leading-tight">
-            {label}
-          </span>
-          {icon && (
-            <span className="w-6 h-6 rounded-lg bg-white/[0.12] flex items-center justify-center text-white/60 flex-shrink-0">
-              {icon}
-            </span>
-          )}
-        </div>
-
-        <div className="relative flex items-baseline gap-2 mt-3">
-          <span className="text-[2rem] font-bold tabular-nums leading-none text-white">
-            {displayValue}{suffix}
-          </span>
-          {trend !== undefined && <TrendBadge trend={trend} />}
-        </div>
-      </motion.div>
-    )
-  }
-
-  if (variant === 'wide') {
-    return (
-      <motion.div
-        variants={staggerItem}
-        className={`rounded-xl bg-white dark:bg-white/[0.03] border border-gray-100 dark:border-white/[0.06] flex items-center gap-4 px-5 py-3 relative overflow-hidden ${className ?? ''}`}
-      >
-        <div
-          className="w-[2px] self-stretch rounded-full flex-shrink-0"
-          style={{ backgroundColor: accentColor }}
-        />
-        <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: accentColor + '15', color: accentColor }}
-        >
-          {icon}
-        </div>
-        <div className="flex-1 min-w-0">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-white/35 block mb-0.5">
-            {label}
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold tabular-nums" style={{ color: accentColor }}>
-              {displayValue}{suffix}
-            </span>
-            {trend !== undefined && <TrendBadge trend={trend} />}
-          </div>
-        </div>
-      </motion.div>
-    )
-  }
-
-  // Default
   return (
     <motion.div
       variants={staggerItem}
-      className={`rounded-xl bg-white dark:bg-white/[0.03] border border-gray-100 dark:border-white/[0.06] flex flex-col relative overflow-hidden ${className ?? ''}`}
+      className={cn(
+        'flex flex-col justify-between gap-4 rounded-[var(--radius-card)] border border-line bg-surface p-5 elev-sm',
+        className,
+      )}
     >
-      {/* Top accent — 2px, minimal */}
-      <div className="h-[2px] w-full rounded-t-xl" style={{ backgroundColor: accentColor }} />
-
-      <div className="px-4 pb-4 pt-3 flex flex-col gap-2">
-        <div className="flex items-start justify-between gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-white/35 leading-tight">
-            {label}
+      <div className="flex items-start justify-between gap-3">
+        <span className="text-sm font-medium text-ink-muted">{label}</span>
+        {icon && (
+          <span
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg"
+            style={{
+              backgroundColor: `color-mix(in oklch, ${accentColor} 12%, transparent)`,
+              color: accentColor,
+            }}
+          >
+            {icon}
           </span>
-          {icon && (
-            <span
-              className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: accentColor + '15', color: accentColor }}
-            >
-              {icon}
-            </span>
-          )}
-        </div>
-        <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-bold tabular-nums text-gray-900 dark:text-white leading-none">
-            {displayValue}{suffix}
+        )}
+      </div>
+
+      <div>
+        <div className="flex items-baseline gap-2.5">
+          <span className="text-3xl font-semibold leading-none tracking-tight tabular-nums text-ink">
+            {formatValue(count, decimals)}{suffix}
           </span>
           {trend !== undefined && <TrendBadge trend={trend} />}
         </div>
+        {hint && <p className="mt-1.5 text-xs text-ink-subtle">{hint}</p>}
       </div>
     </motion.div>
   )
+}
+
+/* -------------------------------------------------------------------------
+   KPI de destaque — um só por tela, na cor da marca
+   ---------------------------------------------------------------------- */
+
+export function MetricCardFeatured({
+  label, value, hint, icon, trend, className, decimals = 0, suffix = '',
+}: MetricCardProps) {
+  const count = useCountUp(value, 550, decimals)
+
+  return (
+    <motion.div
+      variants={staggerItem}
+      className={cn(
+        'relative flex flex-col justify-between gap-4 overflow-hidden rounded-[var(--radius-card)] p-5 elev-md',
+        className,
+      )}
+      style={{ background: 'linear-gradient(150deg, var(--nav-from) 0%, var(--brand) 100%)' }}
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-white/[0.07] blur-2xl"
+      />
+
+      <div className="relative flex items-start justify-between gap-3">
+        <span className="text-sm font-medium text-white/70">{label}</span>
+        {icon && (
+          <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white/15 text-white/90">
+            {icon}
+          </span>
+        )}
+      </div>
+
+      <div className="relative">
+        <div className="flex items-baseline gap-2.5">
+          <span className="text-3xl font-semibold leading-none tracking-tight tabular-nums text-white">
+            {formatValue(count, decimals)}{suffix}
+          </span>
+          {trend !== undefined && <TrendBadge trend={trend} onDark />}
+        </div>
+        {hint && <p className="mt-1.5 text-xs text-white/55">{hint}</p>}
+      </div>
+    </motion.div>
+  )
+}
+
+/* -------------------------------------------------------------------------
+   Métrica em faixa — números secundários lado a lado numa superfície só,
+   em vez de um card por número
+   ---------------------------------------------------------------------- */
+
+export function MetricInline({
+  label, value, icon, accentColor = 'var(--ink-muted)', decimals = 0, suffix = '', hint,
+}: MetricCardProps) {
+  const count = useCountUp(value, 550, decimals)
+
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5">
+      {icon && (
+        <span
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg"
+          style={{
+            backgroundColor: `color-mix(in oklch, ${accentColor} 12%, transparent)`,
+            color: accentColor,
+          }}
+        >
+          {icon}
+        </span>
+      )}
+      <div className="min-w-0">
+        <span className="block truncate text-xs text-ink-muted">{label}</span>
+        <span className="text-lg font-semibold leading-tight tabular-nums text-ink">
+          {formatValue(count, decimals)}{suffix}
+        </span>
+        {hint && <span className="ml-1.5 text-xs text-ink-subtle">{hint}</span>}
+      </div>
+    </div>
+  )
+}
+
+/** Divisor entre métricas de uma mesma faixa. */
+export function MetricDivider() {
+  return <span aria-hidden className="my-3 hidden w-px flex-shrink-0 self-stretch bg-line sm:block" />
 }

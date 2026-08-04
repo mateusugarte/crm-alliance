@@ -1,9 +1,27 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Users, Calendar, MessageSquareOff, Flame, PauseCircle, Home, Gauge, Snowflake, ThermometerSun, Zap } from 'lucide-react'
-import { staggerContainer } from '@/lib/animations'
-import { MetricCard } from './metric-card'
+import {
+  Calendar, Flame, Gauge, Home, MessageSquareOff, PauseCircle,
+  Snowflake, ThermometerSun, Users, Zap, ICON,
+} from '@/lib/icons'
+import { staggerContainer, staggerItem } from '@/lib/animations'
+import { MetricCard, MetricCardFeatured, MetricDivider, MetricInline } from './metric-card'
+
+/**
+ * Grade de métricas.
+ *
+ * Antes: dez cartões na primeira dobra — um destaque, quatro pequenos, um
+ * largo e mais quatro de score — todos com o mesmo peso visual. Dez números
+ * com a mesma voz equivalem a nenhum: nada dizia o que olhar primeiro.
+ *
+ * Agora, três níveis explícitos:
+ *   1. Três KPIs em cartão — o que decide o dia do corretor.
+ *   2. Uma faixa com os números de acompanhamento.
+ *   3. Uma faixa com os scores por temperatura.
+ *
+ * Mesmos dez números, um terço dos elementos, hierarquia legível.
+ */
 
 interface MetricsData {
   total_leads: number
@@ -22,101 +40,113 @@ interface MetricsGridProps {
   metrics: MetricsData
 }
 
+function percentOf(part: number, total: number) {
+  if (!total) return undefined
+  const value = (part / total) * 100
+  if (value > 0 && value < 1) return '<1% da base'
+  return `${Math.round(value)}% da base`
+}
+
+const STRIP =
+  'flex flex-col divide-y divide-line rounded-[var(--radius-card)] border border-line bg-surface elev-sm sm:flex-row sm:divide-y-0'
+
 export function MetricsGrid({ metrics }: MetricsGridProps) {
+  const total = metrics.total_leads
+
   return (
     <motion.div
       variants={staggerContainer}
       initial="initial"
       animate="animate"
-      className="flex flex-col gap-3"
+      className="flex flex-col gap-4"
     >
-      {/* Linha 1+2: Featured (2 rows) + 4 cards */}
-      <div
-        className="grid gap-3"
-        style={{ gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: 'auto auto' }}
-      >
-        {/* Featured — span 2 rows */}
-        <div style={{ gridRow: 'span 2' }}>
-          <MetricCard
-            label="Total de Leads"
-            value={metrics.total_leads}
-            variant="featured"
-            icon={<Users size={14} />}
-            className="h-full"
-          />
-        </div>
-
+      {/* 1 — os três números que decidem o dia */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <MetricCardFeatured
+          label="Total de leads"
+          value={total}
+          hint="Base completa, sem filtro de período"
+          icon={<Users size={ICON.md} />}
+        />
+        <MetricCard
+          label="Leads quentes"
+          value={metrics.aquecidos}
+          hint={percentOf(metrics.aquecidos, total)}
+          icon={<Flame size={ICON.md} />}
+          accentColor="var(--stage-quente)"
+        />
         <MetricCard
           label="Reuniões"
           value={metrics.reunioes}
-          icon={<Calendar size={14} />}
-          accentColor="var(--color-stage-follow-up)"
-        />
-        <MetricCard
-          label="Leads Quentes"
-          value={metrics.aquecidos}
-          icon={<Flame size={14} />}
-          accentColor="var(--color-stage-quente)"
-        />
-
-        <MetricCard
-          label="Sem Resposta"
-          value={metrics.sem_resposta}
-          icon={<MessageSquareOff size={14} />}
-          accentColor="var(--color-feedback-error)"
-        />
-        <MetricCard
-          label="Pausados"
-          value={metrics.pausadas}
-          icon={<PauseCircle size={14} />}
-          accentColor="var(--color-feedback-warning)"
+          hint={percentOf(metrics.reunioes, total)}
+          icon={<Calendar size={ICON.md} />}
+          accentColor="var(--stage-reuniao)"
         />
       </div>
 
-      {/* Linha 3: funil */}
-      <MetricCard
-        label="Leads pós-reunião"
-        value={metrics.disponiveis}
-        variant="wide"
-        icon={<Home size={14} />}
-        accentColor="var(--color-stage-reuniao)"
-      />
+      {/* 2 — acompanhamento. Uma superfície, três números. */}
+      <motion.div variants={staggerItem} className={STRIP}>
+        <MetricInline
+          label="Sem resposta"
+          value={metrics.sem_resposta}
+          hint={percentOf(metrics.sem_resposta, total)}
+          icon={<MessageSquareOff size={ICON.md} />}
+          accentColor="var(--stage-nao-respondeu)"
+        />
+        <MetricDivider />
+        <MetricInline
+          label="Automação pausada"
+          value={metrics.pausadas}
+          icon={<PauseCircle size={ICON.md} />}
+          accentColor="var(--warning)"
+        />
+        <MetricDivider />
+        <MetricInline
+          label="Leads pós-reunião"
+          value={metrics.disponiveis}
+          icon={<Home size={ICON.md} />}
+          accentColor="var(--stage-visita)"
+        />
+      </motion.div>
 
-      {/* Linha 4: score por temperatura */}
-      <div className="grid grid-cols-4 gap-3">
-        <MetricCard
+      {/* 3 — score por temperatura. Quatro valores, uma faixa. */}
+      <motion.div variants={staggerItem} className={STRIP}>
+        <MetricInline
           label="Score médio global"
           value={metrics.score_medio}
-          variant="wide"
-          icon={<Gauge size={14} />}
-          accentColor="#185FA5"
           decimals={1}
+          suffix=" / 10"
+          icon={<Gauge size={ICON.md} />}
+          accentColor="var(--brand-accent)"
         />
-        <MetricCard
-          label="Score médio frio"
+        <MetricDivider />
+        <MetricInline
+          label="Score dos frios"
           value={metrics.score_medio_frio}
-          variant="wide"
-          icon={<Snowflake size={14} />}
-          accentColor="var(--color-stage-frio)"
           decimals={1}
+          suffix=" / 10"
+          icon={<Snowflake size={ICON.md} />}
+          accentColor="var(--stage-frio)"
         />
-        <MetricCard
-          label="Score médio morno"
+        <MetricDivider />
+        <MetricInline
+          label="Score dos mornos"
           value={metrics.score_medio_morno}
-          variant="wide"
-          icon={<ThermometerSun size={14} />}
-          accentColor="var(--color-stage-morno)"
           decimals={1}
+          suffix=" / 10"
+          icon={<ThermometerSun size={ICON.md} />}
+          accentColor="var(--stage-morno)"
         />
-        <MetricCard
-          label="Score médio quente"
+        <MetricDivider />
+        <MetricInline
+          label="Score dos quentes"
           value={metrics.score_medio_quente}
-          variant="wide"
-          icon={<Zap size={14} />}
-          accentColor="var(--color-stage-quente)"
           decimals={1}
+          suffix=" / 10"
+          icon={<Zap size={ICON.md} />}
+          accentColor="var(--stage-quente)"
         />
-      </div>
+      </motion.div>
     </motion.div>
   )
 }

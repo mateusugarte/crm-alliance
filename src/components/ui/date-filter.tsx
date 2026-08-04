@@ -2,19 +2,25 @@
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { Calendar } from 'lucide-react'
+import { Calendar, ICON } from '@/lib/icons'
+import { cn } from '@/lib/utils'
 
 type Period = 'tudo' | 'hoje' | 'semana' | 'mes' | 'personalizado'
 
 const PERIODS: { key: Period; label: string }[] = [
-  { key: 'tudo',         label: 'Tudo' },
-  { key: 'hoje',         label: 'Hoje' },
-  { key: 'semana',       label: 'Semana' },
-  { key: 'mes',          label: 'Mês' },
+  { key: 'tudo', label: 'Tudo' },
+  { key: 'hoje', label: 'Hoje' },
+  { key: 'semana', label: 'Semana' },
+  { key: 'mes', label: 'Mês' },
   { key: 'personalizado', label: 'Personalizado' },
 ]
 
-export function DateFilter() {
+interface DateFilterProps {
+  /** Renderiza sobre superfície escura (a faixa de abertura do Dashboard). */
+  onDark?: boolean
+}
+
+export function DateFilter({ onDark = false }: DateFilterProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -33,46 +39,78 @@ export function DateFilter() {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-white/8 rounded-xl p-1">
-        {PERIODS.map(p => (
-          <button
-            key={p.key}
-            onClick={() => {
-              if (p.key !== 'personalizado') navigate(p.key)
-              else navigate('personalizado')
-            }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-              currentPeriod === p.key
-                ? 'bg-white dark:bg-white/15 text-alliance-blue dark:text-white shadow-sm'
-                : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70'
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
+    <div className="flex flex-wrap items-center gap-2">
+      <div
+        role="group"
+        aria-label="Período"
+        className={cn(
+          'flex items-center gap-0.5 rounded-full p-1',
+          onDark ? 'bg-white/12 backdrop-blur-sm' : 'bg-surface-sunken',
+        )}
+      >
+        {PERIODS.map(p => {
+          const active = currentPeriod === p.key
+          return (
+            <button
+              key={p.key}
+              onClick={() => navigate(p.key)}
+              aria-pressed={active}
+              className={cn(
+                'cursor-pointer rounded-full px-3 py-1.5 text-xs font-medium transition-ui',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
+                onDark
+                  ? active
+                    ? 'bg-white text-ink focus-visible:ring-white'
+                    : 'text-white/65 hover:bg-white/10 hover:text-white focus-visible:ring-white/60'
+                  : active
+                    ? 'bg-surface text-ink elev-xs focus-visible:ring-ring'
+                    : 'text-ink-muted hover:text-ink focus-visible:ring-ring',
+              )}
+            >
+              {p.label}
+            </button>
+          )
+        })}
       </div>
 
       {currentPeriod === 'personalizado' && (
         <div className="flex items-center gap-1.5">
-          <Calendar size={12} className="text-gray-400 flex-shrink-0" />
+          <Calendar
+            size={ICON.xs}
+            className={cn('flex-shrink-0', onDark ? 'text-white/60' : 'text-ink-subtle')}
+          />
           <input
             type="date"
+            aria-label="Data inicial"
             value={fromDate}
             onChange={e => setFromDate(e.target.value)}
-            className="px-2 py-1.5 rounded-lg text-xs border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-gray-700 dark:text-white outline-none"
+            className={cn(
+              'rounded-lg border px-2 py-1.5 text-xs outline-none transition-ui focus-visible:ring-2',
+              onDark
+                ? 'border-white/20 bg-white/10 text-white focus-visible:ring-white/60'
+                : 'border-line bg-surface text-ink focus-visible:ring-ring',
+            )}
           />
-          <span className="text-gray-400 text-xs">–</span>
+          <span className={onDark ? 'text-xs text-white/50' : 'text-xs text-ink-subtle'}>–</span>
           <input
             type="date"
+            aria-label="Data final"
             value={toDate}
             onChange={e => setToDate(e.target.value)}
-            className="px-2 py-1.5 rounded-lg text-xs border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-gray-700 dark:text-white outline-none"
+            className={cn(
+              'rounded-lg border px-2 py-1.5 text-xs outline-none transition-ui focus-visible:ring-2',
+              onDark
+                ? 'border-white/20 bg-white/10 text-white focus-visible:ring-white/60'
+                : 'border-line bg-surface text-ink focus-visible:ring-ring',
+            )}
           />
           <button
             onClick={() => navigate('personalizado', fromDate, toDate)}
             disabled={!fromDate || !toDate}
-            className="px-3 py-1.5 rounded-lg text-xs bg-alliance-blue text-white font-medium hover:bg-alliance-blue/90 transition-colors disabled:opacity-40 cursor-pointer"
+            className={cn(
+              'cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-ui disabled:cursor-not-allowed disabled:opacity-40',
+              onDark ? 'bg-white text-ink hover:bg-white/90' : 'bg-brand text-white hover:bg-brand-hover',
+            )}
           >
             Aplicar
           </button>

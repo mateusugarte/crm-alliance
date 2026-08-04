@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from '@/lib/icons'
 import { ImovelReservadosClient } from '@/components/imoveis/imovel-reservados-client'
 import type { Imovel, Venda, UserProfile } from '@/lib/supabase/types'
 

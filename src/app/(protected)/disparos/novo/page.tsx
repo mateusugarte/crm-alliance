@@ -10,7 +10,7 @@ import {
   ArrowLeft, ArrowRight, Check, RefreshCw, Plus, X, Sparkles,
   FileText, Users, Clock, Shuffle, Phone, AlertTriangle,
   MessageSquare, Send, Timer, Zap,
-} from 'lucide-react'
+} from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { disparoFetch } from '@/lib/disparo-api'
 import type { Database, Template, WaInstance } from '@/lib/supabase/types'

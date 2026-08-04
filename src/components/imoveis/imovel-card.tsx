@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { BedDouble, Bath, Maximize, Pencil, Trash2, Layers, DollarSign, MoreHorizontal, ArrowLeftRight, GripVertical } from 'lucide-react'
+import { BedDouble, Bath, Maximize, Pencil, Trash2, Layers, DollarSign, MoreHorizontal, ArrowLeftRight, GripVertical } from '@/lib/icons'
 import { formatCurrency } from '@/lib/utils/format'
 import { cn } from '@/lib/utils'
 import type { Imovel } from '@/lib/supabase/types'

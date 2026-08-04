@@ -2,8 +2,11 @@
 
 import { memo } from 'react'
 import { useDraggable } from '@dnd-kit/core'
-import { Pause, Bot, MapPin, Home, Send, PhoneCall } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { Bot, Home, MapPin, Pause, PhoneCall, Send, ICON } from '@/lib/icons'
+import { Chip } from '@/components/ui/chip'
+import { scoreBandTokens } from '@/lib/stages'
+import { cn } from '@/lib/utils'
 import type { Lead } from '@/lib/supabase/types'
 import { formatPhone } from '@/lib/format-phone'
 
@@ -25,59 +28,33 @@ export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = fals
   const aceitouConsultor = lead.aceitou_consultor === true
   const leadScore = Math.max(0, Math.min(100, lead.lead_score ?? 0))
   const scoreLabel = (leadScore / 10).toFixed(1).replace('.', ',')
-  const scoreClass = (() => {
-    switch (lead.lead_score_band) {
-      case 'prioridade':
-        return 'bg-emerald-600 text-white border-emerald-600'
-      case 'quente':
-        return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/25'
-      case 'morno':
-        return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/25'
-      case 'frio':
-        return 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/25'
-      default:
-        return 'bg-gray-50 text-gray-500 border-gray-200 dark:bg-white/8 dark:text-white/45 dark:border-white/10'
-    }
-  })()
+  const scoreTokens = scoreBandTokens(lead.lead_score_band)
+  const reactivations = lead.reactivation_count ?? 0
 
-  // Placeholder ghost que fica na coluna enquanto o DragOverlay segue o cursor
+  // Placeholder que fica na coluna enquanto o DragOverlay segue o cursor
   if (isDragging) {
     return (
       <div
         ref={setNodeRef}
         {...listeners}
-        className={`rounded-xl border-2 border-dashed ${
-          lead.automation_paused ? 'border-orange-200' : 'border-gray-200'
-        } bg-gray-50/60`}
-        style={{ minHeight: '88px' }}
+        className="min-h-[84px] rounded-[var(--radius-card)] border-2 border-dashed border-line-strong bg-surface/40"
       />
     )
   }
 
-  const borderClass = lead.automation_paused
-    ? 'border border-gray-100 [border-left:4px_solid_theme(colors.orange.400)]'
-    : aceitouConsultor
-      ? 'border border-emerald-200 dark:border-emerald-500/30 [border-left:4px_solid_theme(colors.emerald.400)]'
-      : 'border border-gray-100'
-
-  const overlayStyle = isOverlay
-    ? {
-        transform: 'rotate(2deg)',
-        boxShadow: '0 20px 40px rgba(0,0,0,0.18)',
-        cursor: 'grabbing' as const,
-        pointerEvents: 'none' as const,
-      }
-    : undefined
-
   return (
     <motion.div
       ref={isOverlay ? undefined : setNodeRef}
-      style={overlayStyle}
-      whileHover={isOverlay ? undefined : { y: -2, transition: { duration: 0.15 } }}
-      className={`bg-white dark:bg-white/5 rounded-xl p-3.5 shadow-sm dark:shadow-none select-none
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alliance-blue focus-visible:ring-offset-1
-        ${isOverlay ? '' : 'cursor-pointer active:cursor-grabbing hover:shadow-md dark:hover:bg-white/8 transition-all'}
-        ${borderClass}`}
+      style={
+        isOverlay
+          ? { rotate: '1.5deg', boxShadow: 'var(--elev-lg)', cursor: 'grabbing', pointerEvents: 'none' }
+          : undefined
+      }
+      className={cn(
+        'select-none rounded-[var(--radius-card)] border border-line bg-surface p-3 elev-xs',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+        !isOverlay && 'cursor-pointer transition-ui hover:-translate-y-px hover:border-line-strong hover:elev-md active:cursor-grabbing',
+      )}
       tabIndex={isOverlay ? -1 : 0}
       role={isOverlay ? undefined : 'button'}
       aria-label={isOverlay ? undefined : `Ver detalhes de ${displayName}`}
@@ -93,97 +70,91 @@ export const LeadCard = memo(function LeadCard({ lead, onClick, isOverlay = fals
       }}
       {...(isOverlay ? {} : { ...attributes, ...listeners })}
     >
-      <div className="flex flex-col gap-2">
-        {/* Nome + badges */}
-        <div className="flex items-start justify-between gap-1">
-          <div className="min-w-0 flex flex-1 items-start gap-1.5">
-            <span className="font-semibold text-sm text-alliance-dark dark:text-white leading-tight truncate">
-              {displayName}
-            </span>
-            <span
-              className={`inline-flex items-center justify-center h-5 min-w-7 px-1.5 rounded-full border text-[10px] font-bold leading-none flex-shrink-0 ${scoreClass}`}
-              title={`Score do lead: ${scoreLabel}/10`}
-            >
-              {scoreLabel}
-            </span>
-          </div>
-          <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-            {aceitouConsultor && (
-              <span className="inline-flex items-center gap-0.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                <PhoneCall size={8} />
-                quer consultor
-              </span>
-            )}
-            {isBeforeAI && (
-              <span className="inline-flex items-center gap-0.5 bg-amber-50 text-amber-600 border border-amber-200 text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                antes da IA
-              </span>
-            )}
-            {lead.automation_paused && (
-              <span className="inline-flex items-center gap-0.5 bg-orange-100 text-orange-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                <Pause size={9} />
-                pausado
-              </span>
-            )}
-          </div>
-        </div>
+      {/* Nome + score. O estágio não se repete aqui — a coluna já diz qual é.
+          Era isso que a faixa lateral colorida estava fazendo: nada. */}
+      <div className="flex items-start justify-between gap-2.5">
+        <span className="min-w-0 flex-1 overflow-hidden break-words text-base font-semibold leading-snug text-ink [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+          {displayName}
+        </span>
+        <span
+          style={{ backgroundColor: scoreTokens.soft, color: scoreTokens.ink }}
+          className="inline-flex h-6 min-w-9 flex-shrink-0 items-center justify-center rounded-md px-1.5 text-xs font-semibold leading-none tabular-nums"
+          title={`Score do lead: ${scoreLabel} de 10`}
+        >
+          {scoreLabel}
+        </span>
+      </div>
 
-        {/* Detalhes */}
-        <div className="flex flex-col gap-0.5">
+      {/* Localização e imóvel de interesse */}
+      {(lead.city || lead.imovel_interesse) && (
+        <div className="mt-1.5 flex flex-col gap-1">
           {lead.city && (
-            <span className="text-xs text-gray-400 dark:text-white/35 flex items-center gap-1">
-              <MapPin size={10} className="flex-shrink-0" />
+            <span className="flex items-center gap-1.5 text-xs text-ink-subtle">
+              <MapPin size={ICON.xs} className="flex-shrink-0" />
               {lead.city}
             </span>
           )}
           {lead.imovel_interesse && (
-            <span className="text-xs text-alliance-blue font-medium flex items-center gap-1">
-              <Home size={10} className="flex-shrink-0" />
+            <span className="flex items-center gap-1.5 text-xs font-medium text-ink-muted">
+              <Home size={ICON.xs} className="flex-shrink-0" />
               {lead.imovel_interesse}
             </span>
           )}
         </div>
+      )}
 
-        {/* Separator */}
-        <div className="border-t border-gray-50 dark:border-white/5" />
-
-        {/* Etiquetas */}
-        {lead.labels && lead.labels.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {lead.labels.map(label => (
-              <span
-                key={label.id}
-                className="inline-flex items-center text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-                style={{
-                  backgroundColor: `${label.color}20`,
-                  color: label.color,
-                  border: `1px solid ${label.color}40`,
-                }}
-              >
-                {label.name}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Badge IA / Consultor + tentativas de disparo */}
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            {lead.assigned_to === null ? (
-              <span className="inline-flex items-center gap-1 bg-alliance-dark text-white text-xs font-medium px-2 py-0.5 rounded-full">
-                <Bot size={9} /> agente de IA
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 bg-gray-100 dark:bg-white/8 text-gray-600 dark:text-white/50 text-xs font-medium px-2 py-0.5 rounded-full">
-                Consultor
-              </span>
-            )}
-          </div>
-          <span className="inline-flex items-center gap-1 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20 text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap">
-            <Send size={8} />
-            {lead.reactivation_count ?? 0}×
-          </span>
+      {/* Sinais do lead */}
+      {(aceitouConsultor || isBeforeAI || lead.automation_paused || (lead.labels?.length ?? 0) > 0) && (
+        <div className="mt-2 flex flex-wrap items-center gap-1">
+          {aceitouConsultor && (
+            <Chip
+              icon={PhoneCall}
+              tokens={{ solid: 'var(--success)', soft: 'var(--success-soft)', ink: 'var(--success-ink)' }}
+            >
+              quer consultor
+            </Chip>
+          )}
+          {lead.automation_paused && (
+            <Chip
+              icon={Pause}
+              tokens={{ solid: 'var(--warning)', soft: 'var(--warning-soft)', ink: 'var(--warning-ink)' }}
+            >
+              pausado
+            </Chip>
+          )}
+          {isBeforeAI && <Chip>antes da IA</Chip>}
+          {lead.labels?.map(label => (
+            <Chip
+              key={label.id}
+              tokens={{ solid: label.color, soft: `${label.color}1F`, ink: label.color }}
+            >
+              {label.name}
+            </Chip>
+          ))}
         </div>
+      )}
+
+      {/* Rodapé: responsável + disparos de reativação */}
+      <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-line pt-2">
+        <span className="inline-flex items-center gap-1.5 text-xs text-ink-subtle">
+          {lead.assigned_to === null ? (
+            <>
+              <Bot size={ICON.xs} />
+              agente de IA
+            </>
+          ) : (
+            'Consultor'
+          )}
+        </span>
+        {reactivations > 0 && (
+          <span
+            className="inline-flex flex-shrink-0 items-center gap-1 text-xs tabular-nums text-ink-subtle"
+            title={`${reactivations} disparo${reactivations > 1 ? 's' : ''} de reativação`}
+          >
+            <Send size={ICON.xs} />
+            {reactivations}
+          </span>
+        )}
       </div>
     </motion.div>
   )

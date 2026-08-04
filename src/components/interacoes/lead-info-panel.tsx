@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, MapPin, Home, Zap, PauseCircle, User, Calendar, MessageSquare, Pencil, Check, UserCheck } from 'lucide-react'
+import { X, MapPin, Home, Zap, PauseCircle, User, Calendar, MessageSquare, Pencil, Check, UserCheck } from '@/lib/icons'
 import { LeadCommentsSection } from '@/components/shared/lead-comments-section'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'

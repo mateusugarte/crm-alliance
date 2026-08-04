@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Clock, FileText, DollarSign, BedDouble, Bath, Maximize } from 'lucide-react'
+import { Clock, FileText, DollarSign, BedDouble, Bath, Maximize } from '@/lib/icons'
 import { ImovelVendaForm } from './imovel-venda-form'
 import { formatCurrency } from '@/lib/utils/format'
 import type { Imovel, Venda } from '@/lib/supabase/types'

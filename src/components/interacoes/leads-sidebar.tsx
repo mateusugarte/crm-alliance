@@ -3,7 +3,7 @@
 import {
   Bot, PauseCircle, Search, User, MessagesSquare,
   Plus, PenLine, Users, ArrowLeft, PhoneCall,
-} from 'lucide-react'
+} from '@/lib/icons'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { formatDistanceToNow } from 'date-fns'

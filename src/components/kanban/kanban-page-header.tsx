@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Tag, X, Loader2, Trash2 } from 'lucide-react'
+import { Plus, Tag, X, Loader2, Trash2 } from '@/lib/icons'
 import { toast } from 'sonner'
 import {
   Dialog,

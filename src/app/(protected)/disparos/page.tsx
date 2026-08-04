@@ -9,7 +9,8 @@ import { ptBR } from 'date-fns/locale'
 import {
   RefreshCw, Plus, X, ChevronRight, AlertTriangle, Check,
   Send, Smartphone, FileText, QrCode, Trash2, Pencil, Sparkles, Users, Shuffle, Clock,
-} from 'lucide-react'
+  ICON,
+} from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { disparoFetch } from '@/lib/disparo-api'
 import type { Database, ReactivationCampaign, WaInstance, Campaign, Template } from '@/lib/supabase/types'
@@ -562,12 +563,12 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                                   allSelected ? 'border-alliance-blue bg-alliance-blue/10'
                                     : someSelected ? 'border-dashed bg-card'
                                     : 'border-border bg-card hover:bg-muted')}
-                                style={someSelected ? { borderColor: `${col.color}60` } : undefined}
+                                style={someSelected ? { borderColor: `color-mix(in oklch, ${col.solid} 45%, transparent)` } : undefined}
                               >
                                 <div className="flex items-center justify-between gap-1">
                                   <div className="flex items-center gap-1.5 min-w-0">
-                                    <Icon size={12} style={{ color: col.color }} className="flex-shrink-0" />
-                                    <span className="text-xs font-semibold truncate" style={{ color: col.color }}>{col.label}</span>
+                                    <Icon size={ICON.xs} style={{ color: col.solid }} className="flex-shrink-0" />
+                                    <span className="truncate text-xs font-semibold" style={{ color: col.ink }}>{col.label}</span>
                                   </div>
                                   <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0',
                                     allSelected ? 'bg-alliance-blue text-white' : someSelected ? 'bg-muted text-foreground' : 'bg-muted text-muted-foreground')}>
@@ -1231,12 +1232,12 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                                     ? 'border-dashed bg-card'
                                     : 'border-border bg-card hover:bg-muted',
                                 )}
-                                style={someSelected ? { borderColor: `${col.color}60` } : undefined}
+                                style={someSelected ? { borderColor: `color-mix(in oklch, ${col.solid} 45%, transparent)` } : undefined}
                               >
                                 <div className="flex items-center justify-between gap-1">
                                   <div className="flex items-center gap-1.5 min-w-0">
-                                    <Icon size={12} style={{ color: col.color }} className="flex-shrink-0" />
-                                    <span className="text-xs font-semibold truncate" style={{ color: col.color }}>{col.label}</span>
+                                    <Icon size={ICON.xs} style={{ color: col.solid }} className="flex-shrink-0" />
+                                    <span className="truncate text-xs font-semibold" style={{ color: col.ink }}>{col.label}</span>
                                   </div>
                                   <span className={cn(
                                     'text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0',

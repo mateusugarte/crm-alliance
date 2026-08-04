@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle2, ChevronDown, ChevronUp, User, Phone, Mail, Home, DollarSign, Building2, Pencil } from 'lucide-react'
+import { CheckCircle2, ChevronDown, ChevronUp, User, Phone, Mail, Home, DollarSign, Building2, Pencil } from '@/lib/icons'
 import { formatCurrency } from '@/lib/utils/format'
 import type { Imovel, Venda } from '@/lib/supabase/types'
 

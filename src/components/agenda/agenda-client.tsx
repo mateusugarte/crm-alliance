@@ -17,7 +17,7 @@ import {
   isAfter,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus, Calendar, Pencil, Trash2, Loader2, User } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Calendar, Pencil, Trash2, Loader2, User } from '@/lib/icons'
 import { toast } from 'sonner'
 import { MeetingPill } from './meeting-pill'
 import { MeetingFormPanel } from './meeting-form-panel'

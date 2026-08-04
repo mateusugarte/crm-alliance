@@ -20,7 +20,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { toast } from 'sonner'
-import { Plus, Building2, Crown, Clock, RotateCcw } from 'lucide-react'
+import { Plus, Building2, Crown, Clock, RotateCcw } from '@/lib/icons'
 import Link from 'next/link'
 import { ImovelCard } from './imovel-card'
 import { ImovelFormPanel } from './imovel-form-panel'

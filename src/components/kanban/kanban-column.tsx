@@ -2,7 +2,9 @@
 
 import { memo, useMemo, useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
-import { ArrowDownNarrowWide, ChevronDown } from 'lucide-react'
+import { ArrowDownNarrowWide, ChevronDown, ICON } from '@/lib/icons'
+import { CountPill, StageDot } from '@/components/ui/chip'
+import { cn } from '@/lib/utils'
 import { LeadCard } from './lead-card'
 import type { KanbanColumnConfig } from './types'
 import type { Lead } from '@/lib/supabase/types'
@@ -38,87 +40,70 @@ export const KanbanColumn = memo(function KanbanColumn({ column, leads, onLeadCl
 
   return (
     <div
-      className="rounded-2xl min-w-[260px] max-w-[260px] flex flex-col h-full transition-all duration-150 bg-[#F9FAFB] dark:bg-white/[0.03]"
-      style={{
-        backgroundColor: isOver ? column.color + '10' : undefined,
-        outline: isOver ? `2px dashed ${column.color}` : undefined,
-      }}
+      className="flex h-full min-w-[268px] max-w-[268px] flex-col rounded-[var(--radius-panel)] bg-surface-sunken transition-ui"
+      style={
+        isOver
+          ? { backgroundColor: column.soft, boxShadow: `inset 0 0 0 2px ${column.solid}` }
+          : undefined
+      }
     >
-      {/* Header */}
-      <div className="px-3 pt-3 pb-2 flex-shrink-0">
-        <div
-          className="rounded-xl px-3 py-2.5 flex items-center justify-between"
-          style={{ backgroundColor: column.color + '18' }}
-        >
-          <div className="flex items-center gap-2">
-            <Icon size={15} strokeWidth={2} style={{ color: column.color }} />
-            <span
-              className="font-semibold text-xs uppercase tracking-widest"
-              style={{ color: column.color }}
-            >
-              {column.label}
-            </span>
+      {/* Cabeçalho — fixo enquanto a coluna rola. O estágio é comunicado por
+          um ponto colorido com rótulo, não por faixa lateral. */}
+      <header className="sticky top-0 z-[var(--z-sticky)] flex-shrink-0 rounded-t-[var(--radius-panel)] bg-surface-sunken px-3 pb-2 pt-3">
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-surface px-3 py-2 elev-xs">
+          <div className="flex min-w-0 items-center gap-2">
+            <StageDot tokens={column} size={7} />
+            <Icon size={ICON.xs} style={{ color: column.solid }} className="flex-shrink-0" />
+            <span className="truncate text-sm font-semibold text-ink">{column.label}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex flex-shrink-0 items-center gap-1">
             <button
               type="button"
               onClick={() => {
                 setSortByScore(prev => !prev)
                 setVisibleCount(INITIAL_LIMIT)
               }}
-              className="w-6 h-6 rounded-full flex items-center justify-center border transition-all cursor-pointer"
-              style={{
-                backgroundColor: sortByScore ? column.color : '#FFFFFF',
-                borderColor: column.color + '45',
-                color: sortByScore ? '#FFFFFF' : column.color,
-              }}
+              className={cn(
+                'flex h-6 w-6 cursor-pointer items-center justify-center rounded-md transition-ui',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                sortByScore
+                  ? 'bg-ink text-surface'
+                  : 'text-ink-subtle hover:bg-surface-sunken hover:text-ink',
+              )}
               title={sortByScore ? 'Voltar para últimos categorizados' : 'Ordenar por melhor score'}
               aria-pressed={sortByScore}
               aria-label={sortByScore ? 'Voltar para últimos categorizados' : 'Ordenar por melhor score'}
             >
-              <ArrowDownNarrowWide size={12} strokeWidth={2.2} />
+              <ArrowDownNarrowWide size={ICON.xs} />
             </button>
-            <span
-              className="text-xs font-bold text-white w-5 h-5 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: column.color }}
-            >
-              {leads.length}
-            </span>
+            <CountPill value={leads.length} tokens={column} />
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Cards */}
-      <div
-        ref={setNodeRef}
-        className="flex flex-col gap-2 px-3 pb-3 overflow-y-auto flex-1"
-      >
+      <div ref={setNodeRef} className="flex flex-1 flex-col gap-2 overflow-y-auto px-3 pb-3">
         {visibleLeads.map((lead) => (
-          <LeadCard
-            key={lead.id}
-            lead={lead}
-            onClick={() => onLeadClick(lead)}
-          />
+          <LeadCard key={lead.id} lead={lead} onClick={() => onLeadClick(lead)} />
         ))}
 
         {leads.length === 0 && (
-          <div className="text-center text-xs text-gray-400 dark:text-white/20 py-10 border-2 border-dashed border-gray-200 dark:border-white/8 rounded-xl">
-            Arraste um lead aqui
+          <div className="rounded-[var(--radius-card)] border border-dashed border-line-strong px-3 py-10 text-center text-xs text-ink-subtle">
+            Arraste um lead para cá
           </div>
         )}
 
         {hasMore && (
           <button
             onClick={() => setVisibleCount(c => c + LOAD_MORE_STEP)}
-            className="w-full mt-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer border border-dashed"
-            style={{
-              color: column.color,
-              borderColor: column.color + '40',
-              backgroundColor: column.color + '08',
-            }}
+            className={cn(
+              'mt-1 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2',
+              'text-xs font-medium text-ink-muted transition-ui hover:bg-surface hover:text-ink',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            )}
           >
-            <ChevronDown size={13} />
-            Ver mais ({hiddenCount})
+            <ChevronDown size={ICON.xs} />
+            Ver mais {hiddenCount}
           </button>
         )}
       </div>
