@@ -272,7 +272,7 @@ function TaskRow({ task, onRegistered, onUndone }: {
 
   const tokens = stageTokens(task.stage)
   const done = task.status === 'feita'
-  const late = task.status === 'vencida'
+  const late = !done && (task.status === 'vencida' || now >= new Date(task.dueAt).getTime())
   const call = task.call
   const outcome = call ? outcomeConfig(call.outcome) : null
   const qualification = qualificationLabels(task, now)
