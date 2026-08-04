@@ -3,6 +3,7 @@ import { runAliceAgent } from '@/lib/ai/alice-agent'
 import { notifyInternalGroup } from '@/lib/ai/alice-tools'
 import { toWhatsAppNumber } from '@/lib/format-phone'
 import { normalizeLeadName } from '@/lib/lead-name'
+import { compactCommercialSummary } from '@/lib/lead-summary'
 import { createServiceClient } from '@/lib/supabase/service'
 import { extractMessageText } from '@/lib/whatsapp/extract-message-text'
 import type { Database } from '@/lib/supabase/types'
@@ -131,7 +132,6 @@ function buildLeadUpdates(lead: Lead, output: Awaited<ReturnType<typeof runAlice
   } else if (output.actions.includes('qualificado') && output.internal_summary) {
     updates.summary = output.internal_summary
   }
-
   if (typeof leadUpdates.automation_paused === 'boolean') {
     updates.automation_paused = leadUpdates.automation_paused
   }
@@ -157,6 +157,17 @@ function buildLeadUpdates(lead: Lead, output: Awaited<ReturnType<typeof runAlice
     updates.stage = lead.stage === 'lead_frio' || lead.stage === 'lead_morno' || lead.stage === 'nao_respondeu'
       ? 'lead_quente'
       : lead.stage
+  }
+
+  if (updates.summary !== undefined) {
+    updates.summary_comercial_curto = compactCommercialSummary({
+      summary: updates.summary,
+      city: updates.city !== undefined ? updates.city : lead.city,
+      intention: updates.intention !== undefined ? updates.intention : lead.intention,
+      propertyInterest: updates.imovel_interesse !== undefined ? updates.imovel_interesse : lead.imovel_interesse,
+      acceptedConsultant: updates.aceitou_consultor !== undefined ? updates.aceitou_consultor : lead.aceitou_consultor,
+    })
+    updates.summary_comercial_atualizado_em = new Date().toISOString()
   }
 
   return updates

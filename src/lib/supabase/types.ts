@@ -28,6 +28,184 @@ export interface Database {
         }
         Update: Partial<Database['public']['Tables']['user_profiles']['Insert']>
       }
+      feriados: {
+        Row: { data: string; descricao: string }
+        Insert: { data: string; descricao: string }
+        Update: { data?: string; descricao?: string }
+      }
+      configuracoes_sistema: {
+        Row: { chave: string; valor: Json; atualizado_em: string; atualizado_por: string | null }
+        Insert: { chave: string; valor: Json; atualizado_em?: string; atualizado_por?: string | null }
+        Update: Partial<Database['public']['Tables']['configuracoes_sistema']['Insert']>
+      }
+      lead_stage_events: {
+        Row: {
+          id: string
+          lead_id: string
+          from_stage: string | null
+          to_stage: string
+          changed_at: string
+          changed_by: string
+          origem: string
+        }
+        Insert: {
+          id?: string
+          lead_id: string
+          from_stage?: string | null
+          to_stage: string
+          changed_at?: string
+          changed_by: string
+          origem?: string
+        }
+        Update: Partial<Database['public']['Tables']['lead_stage_events']['Insert']>
+      }
+      tarefas: {
+        Row: {
+          id: string
+          lead_id: string
+          responsavel_id: string
+          tipo: 'ligacao' | 'followup' | 'whatsapp' | 'visita'
+          origem: 'qualificacao' | 'resgate' | 'retorno_agendado' | 'retentativa' | 'manual'
+          tentativa_num: number
+          criada_em: string
+          vence_em: string
+          concluida_em: string | null
+          status: 'pendente' | 'feita' | 'vencida' | 'cancelada'
+          escalonada_em: string | null
+          briefing: Json | null
+          observacao: string | null
+        }
+        Insert: {
+          id?: string
+          lead_id: string
+          responsavel_id: string
+          tipo?: 'ligacao' | 'followup' | 'whatsapp' | 'visita'
+          origem: 'qualificacao' | 'resgate' | 'retorno_agendado' | 'retentativa' | 'manual'
+          tentativa_num?: number
+          criada_em?: string
+          vence_em: string
+          concluida_em?: string | null
+          status?: 'pendente' | 'feita' | 'vencida' | 'cancelada'
+          escalonada_em?: string | null
+          briefing?: Json | null
+          observacao?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['tarefas']['Insert']>
+      }
+      ligacoes: {
+        Row: {
+          id: string
+          lead_id: string
+          tarefa_id: string | null
+          responsavel_id: string
+          registrada_em: string
+          desfecho: 'atendeu' | 'nao_atendeu' | 'caixa_postal' | 'numero_errado' | 'pediu_retorno' | 'sem_interesse'
+          retorno_em: string | null
+          observacao: string | null
+          marcou_reuniao: boolean
+          reuniao_em: string | null
+          excluida_em: string | null
+          excluida_por: string | null
+          estado_anterior: Json | null
+          tarefa_gerada_id: string | null
+        }
+        Insert: {
+          id?: string
+          lead_id: string
+          tarefa_id?: string | null
+          responsavel_id: string
+          registrada_em?: string
+          desfecho: 'atendeu' | 'nao_atendeu' | 'caixa_postal' | 'numero_errado' | 'pediu_retorno' | 'sem_interesse'
+          retorno_em?: string | null
+          observacao?: string | null
+          marcou_reuniao?: boolean
+          reuniao_em?: string | null
+          excluida_em?: string | null
+          excluida_por?: string | null
+          estado_anterior?: Json | null
+          tarefa_gerada_id?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['ligacoes']['Insert']>
+      }
+      lead_activity_events: {
+        Row: {
+          id: string
+          lead_id: string
+          actor_id: string | null
+          tipo: 'ligacao' | 'ligacao_desfeita' | 'reuniao_marcada' | 'retorno_agendado' | 'retentativa_agendada' | 'mudanca_estagio' | 'comentario' | 'sistema'
+          titulo: string
+          descricao: string | null
+          metadata: Json
+          referencia_tipo: string | null
+          referencia_id: string | null
+          criada_em: string
+          desfeita_em: string | null
+        }
+        Insert: {
+          id?: string
+          lead_id: string
+          actor_id?: string | null
+          tipo: 'ligacao' | 'ligacao_desfeita' | 'reuniao_marcada' | 'retorno_agendado' | 'retentativa_agendada' | 'mudanca_estagio' | 'comentario' | 'sistema'
+          titulo: string
+          descricao?: string | null
+          metadata?: Json
+          referencia_tipo?: string | null
+          referencia_id?: string | null
+          criada_em?: string
+          desfeita_em?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['lead_activity_events']['Insert']>
+      }
+      fila_diaria: {
+        Row: {
+          id: string
+          data: string
+          responsavel_id: string
+          tarefa_id: string
+          posicao: number
+          faixa: 'alta' | 'media' | 'longo_prazo' | null
+          gerada_em: string
+        }
+        Insert: {
+          id?: string
+          data: string
+          responsavel_id: string
+          tarefa_id: string
+          posicao: number
+          faixa?: 'alta' | 'media' | 'longo_prazo' | null
+          gerada_em?: string
+        }
+        Update: Partial<Database['public']['Tables']['fila_diaria']['Insert']>
+      }
+      mensagens_saida: {
+        Row: {
+          id: string
+          destino: string
+          destino_tipo: 'usuario' | 'grupo'
+          corpo: string
+          contexto: Json
+          criada_em: string
+          enviada_em: string | null
+          erro: string | null
+          tentativas: number
+          processando_em: string | null
+          processando_por: string | null
+        }
+        Insert: {
+          id?: string
+          destino: string
+          destino_tipo: 'usuario' | 'grupo'
+          corpo: string
+          contexto?: Json
+          criada_em?: string
+          enviada_em?: string | null
+          erro?: string | null
+          tentativas?: number
+          processando_em?: string | null
+          processando_por?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['mensagens_saida']['Insert']>
+      }
       login_logs: {
         Row: {
           id: string
@@ -77,6 +255,8 @@ export interface Database {
           intention: 'morar' | 'investir' | null
           imovel_interesse: string | null
           summary: string | null
+          summary_comercial_curto: string | null
+          summary_comercial_atualizado_em: string | null
           interaction_count: number
           antes_ia: boolean | null
           reactivation_count: number
@@ -88,6 +268,18 @@ export interface Database {
           lead_score_band: 'muito_frio' | 'frio' | 'morno' | 'quente' | 'prioridade'
           lead_score_reasons: Json
           lead_score_updated_at: string | null
+          qualificado_em: string | null
+          prazo_primeiro_contato: string | null
+          primeira_ligacao_em: string | null
+          tentativas_ligacao: number
+          ultimo_contato_em: string | null
+          ultimo_desfecho: 'atendeu' | 'nao_atendeu' | 'caixa_postal' | 'numero_errado' | 'pediu_retorno' | 'sem_interesse' | null
+          score_resgate: number | null
+          score_resgate_em: string | null
+          resgate_status: 'elegivel' | 'na_fila' | 'trabalhado' | 'arquivado' | 'inelegivel'
+          ultima_vez_na_fila: string | null
+          motivo_perda: string | null
+          dados_a_corrigir: boolean
           labels?: Array<{ id: string; name: string; color: string }>
           created_at: string
           updated_at: string
@@ -113,6 +305,8 @@ export interface Database {
           intention?: 'morar' | 'investir' | null
           imovel_interesse?: string | null
           summary?: string | null
+          summary_comercial_curto?: string | null
+          summary_comercial_atualizado_em?: string | null
           interaction_count?: number
           antes_ia?: boolean | null
           reactivation_count?: number
@@ -124,6 +318,18 @@ export interface Database {
           lead_score_band?: 'muito_frio' | 'frio' | 'morno' | 'quente' | 'prioridade'
           lead_score_reasons?: Json
           lead_score_updated_at?: string | null
+          qualificado_em?: string | null
+          prazo_primeiro_contato?: string | null
+          primeira_ligacao_em?: string | null
+          tentativas_ligacao?: number
+          ultimo_contato_em?: string | null
+          ultimo_desfecho?: 'atendeu' | 'nao_atendeu' | 'caixa_postal' | 'numero_errado' | 'pediu_retorno' | 'sem_interesse' | null
+          score_resgate?: number | null
+          score_resgate_em?: string | null
+          resgate_status?: 'elegivel' | 'na_fila' | 'trabalhado' | 'arquivado' | 'inelegivel'
+          ultima_vez_na_fila?: string | null
+          motivo_perda?: string | null
+          dados_a_corrigir?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -592,6 +798,45 @@ export interface Database {
       move_lead_stage: {
         Args: { lead_uuid: string; new_stage: string }
         Returns: undefined
+      }
+      move_lead_stage_context: {
+        Args: { lead_uuid: string; new_stage: string; p_motivo_perda?: string | null; p_origem?: string }
+        Returns: undefined
+      }
+      registrar_ligacao: {
+        Args: {
+          p_tarefa_id: string
+          p_desfecho: 'atendeu' | 'nao_atendeu' | 'caixa_postal' | 'numero_errado' | 'pediu_retorno' | 'sem_interesse'
+          p_observacao?: string | null
+          p_retorno_em?: string | null
+          p_marcou_reuniao?: boolean
+          p_reuniao_em?: string | null
+          p_motivo_perda?: string | null
+        }
+        Returns: Database['public']['Tables']['ligacoes']['Row']
+      }
+      registrar_ligacao_v2: {
+        Args: {
+          p_tarefa_id: string
+          p_desfecho: 'atendeu' | 'nao_atendeu' | 'caixa_postal' | 'numero_errado' | 'pediu_retorno' | 'sem_interesse'
+          p_observacao?: string | null
+          p_retorno_em?: string | null
+          p_marcou_reuniao?: boolean
+          p_motivo_perda?: string | null
+        }
+        Returns: Json
+      }
+      desfazer_ligacao: {
+        Args: { p_ligacao_id: string }
+        Returns: undefined
+      }
+      desfazer_ligacao_v2: {
+        Args: { p_ligacao_id: string }
+        Returns: Json
+      }
+      calcula_prazo: {
+        Args: { p_qualificado_em: string }
+        Returns: string
       }
       calculate_lead_score: {
         Args: { p_lead_id: string }

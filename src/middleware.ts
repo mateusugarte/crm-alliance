@@ -4,12 +4,14 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Webhooks e a rota do agente n8n se autenticam com secret próprio no header,
+  // Webhooks, crons, outbox e o agente n8n se autenticam com secret próprio no header,
   // não com cookie de sessão — não precisam (e não devem depender) do Supabase Auth aqui.
   const skipsAuth =
     pathname === '/' ||
     pathname.startsWith('/api/webhooks/') ||
-    pathname.startsWith('/api/n8n-agent/')
+    pathname.startsWith('/api/n8n-agent/') ||
+    pathname.startsWith('/api/cron/') ||
+    pathname.startsWith('/api/outbox/')
 
   if (skipsAuth) {
     return NextResponse.next()

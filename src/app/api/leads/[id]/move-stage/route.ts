@@ -12,14 +12,23 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
-  const body = await request.json() as { stage?: string }
+  const body = await request.json() as { stage?: string; motivo_perda?: string | null }
 
   if (!body.stage || !VALID_STAGES.includes(body.stage as typeof VALID_STAGES[number])) {
     return NextResponse.json({ error: 'Invalid stage' }, { status: 400 })
   }
 
+  if (body.stage === 'sem_interesse' && !body.motivo_perda?.trim()) {
+    return NextResponse.json({ error: 'Motivo de perda obrigatorio' }, { status: 400 })
+  }
+
   const { error } = await supabase
-    .rpc('move_lead_stage', { lead_uuid: id, new_stage: body.stage } as never)
+    .rpc('move_lead_stage_context', {
+      lead_uuid: id,
+      new_stage: body.stage,
+      p_motivo_perda: body.motivo_perda?.trim() || null,
+      p_origem: 'kanban',
+    } as never)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

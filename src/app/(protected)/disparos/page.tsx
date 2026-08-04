@@ -175,6 +175,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
   const [generatedMessages, setGeneratedMessages] = useState<Record<string, string>>({})
   const [generatingContext, setGeneratingContext] = useState(false)
   const [contextError, setContextError] = useState<string | null>(null)
+  const [contextWarning, setContextWarning] = useState<string | null>(null)
 
   // Step 3: Config
   const [intervalOption, setIntervalOption] = useState(1)
@@ -244,6 +245,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
     setCampaignTheme('')
     setGeneratedMessages({})
     setContextError(null)
+    setContextWarning(null)
     setCreateError(null)
     setIntervalOption(1)
     setWizardOpen(true)
@@ -311,6 +313,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
     setGeneratedMessages({})
     setMixError(null)
     setContextError(null)
+    setContextWarning(null)
     setRandomColdFeedback(
       selected.length < requested
         ? `Selecionei ${selected.length}. Só existem ${availableColdZeroImpactLeads.length} leads frios 0× disponíveis.`
@@ -347,7 +350,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
       return
     }
 
-    setGeneratingContext(true); setContextError(null)
+    setGeneratingContext(true); setContextError(null); setContextWarning(null)
     try {
       const res = await fetch('/api/leads/reactivation-context', {
         method: 'POST',
@@ -361,10 +364,29 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
         const err = await res.json() as { error?: string }
         setContextError(err.error ?? 'Erro ao gerar mensagens')
       } else {
-        const data = await res.json() as { results: { lead_id: string; message: string }[] }
+        const data = await res.json() as {
+          results: { lead_id: string; message: string; eligible: boolean; quality_flags: string[] }[]
+          excluded: { lead_id: string; name: string; reason: string | null }[]
+        }
         const map: Record<string, string> = {}
         for (const r of data.results) { if (r.message) map[r.lead_id] = r.message }
         setGeneratedMessages(map)
+        if (data.excluded.length > 0) {
+          const excludedIds = new Set(data.excluded.map(item => item.lead_id))
+          setSelectedLeadIds(previous => {
+            const next = new Set(previous)
+            for (const id of excludedIds) next.delete(id)
+            return next
+          })
+          const details = data.excluded.slice(0, 3)
+            .map(item => `${item.name || 'Lead'}: ${item.reason ?? 'incompatível com reativação'}`)
+            .join(' · ')
+          setContextWarning(`${data.excluded.length} ${data.excluded.length === 1 ? 'contato foi removido' : 'contatos foram removidos'} por risco de mensagem inadequada. ${details}`)
+        }
+        const eligibleCount = data.results.filter(item => item.eligible).length
+        if (Object.keys(map).length < eligibleCount) {
+          setContextError('Algumas mensagens não passaram pela geração. Gere novamente antes de avançar.')
+        }
       }
     } catch { setContextError('Erro de conexão') }
     setGeneratingContext(false)
@@ -652,7 +674,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                     {/* Mode selector */}
                     <div className="grid grid-cols-2 gap-4">
                       <button
-                        onClick={() => { setMode('template'); setGeneratedMessages({}); setContextError(null) }}
+                        onClick={() => { setMode('template'); setGeneratedMessages({}); setContextError(null); setContextWarning(null) }}
                         className={cn('flex flex-col items-start gap-3 p-5 rounded-[var(--radius-panel)] border-2 text-left transition-colors cursor-pointer',
                           mode === 'template' ? 'border-alliance-blue bg-alliance-blue/5' : 'border-border bg-card hover:bg-muted')}>
                         <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', mode === 'template' ? 'bg-alliance-blue/10' : 'bg-muted')}>
@@ -664,7 +686,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                         </div>
                       </button>
                       <button
-                        onClick={() => { setMode('context'); setMixedMessages({}); setSelectedTemplate(null); setContextError(null) }}
+                        onClick={() => { setMode('context'); setMixedMessages({}); setSelectedTemplate(null); setContextError(null); setContextWarning(null) }}
                         className={cn('flex flex-col items-start gap-3 p-5 rounded-[var(--radius-panel)] border-2 text-left transition-colors cursor-pointer',
                           mode === 'context' ? 'border-alliance-blue bg-alliance-blue/5' : 'border-border bg-card hover:bg-muted')}>
                         <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', mode === 'context' ? 'bg-alliance-blue/10' : 'bg-muted')}>
@@ -744,6 +766,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                             onChange={e => {
                               setCampaignTheme(e.target.value)
                               setContextError(null)
+                              setContextWarning(null)
                               setGeneratedMessages({})
                             }}
                             rows={4}
@@ -762,21 +785,26 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                             <p className="text-xs text-[var(--danger-ink)]">{contextError}</p>
                           </div>
                         )}
+                        {contextWarning && (
+                          <div className="flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+                            <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-amber-700" />
+                            <p className="text-xs leading-relaxed text-amber-800">{contextWarning}</p>
+                          </div>
+                        )}
                         {Object.keys(generatedMessages).length > 0 && (
                           <div className="flex flex-col gap-3">
                             <div className="flex items-center gap-2 px-4 py-2.5 bg-green-500/10 border border-green-500/20 rounded-xl">
                               <Check size={13} className="text-green-600" />
                               <p className="text-xs font-semibold text-green-600">{Object.keys(generatedMessages).length} de {selectedLeadObjects.length} mensagens geradas</p>
                             </div>
-                            {selectedLeadObjects.filter(l => generatedMessages[l.id]).slice(0, 3).map(lead => (
-                              <div key={lead.id} className="px-4 py-3 bg-muted/50 rounded-xl border border-border">
-                                <p className="text-xs font-semibold text-ink-muted mb-1">{lead.name}</p>
-                                <p className="text-sm text-foreground">{generatedMessages[lead.id]}</p>
-                              </div>
-                            ))}
-                            {selectedLeadObjects.length > 3 && (
-                              <p className="text-xs text-ink-muted text-center">+ {selectedLeadObjects.length - 3} mais</p>
-                            )}
+                            <div className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
+                              {selectedLeadObjects.filter(l => generatedMessages[l.id]).map(lead => (
+                                <div key={lead.id} className="rounded-xl border border-border bg-muted/50 px-4 py-3">
+                                  <p className="mb-1 text-xs font-semibold text-ink-muted">{lead.name}</p>
+                                  <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">{generatedMessages[lead.id]}</p>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>

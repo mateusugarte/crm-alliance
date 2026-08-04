@@ -67,7 +67,7 @@ export const OUTCOMES: OutcomeConfig[] = [
   {
     value: 'numero_errado',
     label: 'Número errado',
-    pastLabel: 'Número errado',
+    pastLabel: 'Número para corrigir',
     icon: X,
     tone: tone('warning'),
     isContact: false,
@@ -75,7 +75,7 @@ export const OUTCOMES: OutcomeConfig[] = [
   {
     value: 'sem_interesse',
     label: 'Sem interesse',
-    pastLabel: 'Sem interesse',
+    pastLabel: 'Sem interesse agora',
     icon: Ban,
     tone: tone('danger'),
     isContact: true,
@@ -88,7 +88,7 @@ export function outcomeConfig(value: TaskOutcome): OutcomeConfig {
   return BY_VALUE.get(value) ?? OUTCOMES[2]!
 }
 
-/** Motivos de perda oferecidos quando o desfecho é "sem interesse". */
+/** Contexto registrado antes de o lead voltar para a base fria. */
 export const LOSS_REASONS = [
   'Preço ou condição',
   'Momento de compra',

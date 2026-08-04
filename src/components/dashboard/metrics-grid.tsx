@@ -1,152 +1,115 @@
 'use client'
 
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
-  Calendar, Flame, Gauge, Home, MessageSquareOff, PauseCircle,
-  Snowflake, ThermometerSun, Users, Zap, ICON,
+  CalendarCheck, Flame, MessageSquareOff, PauseCircle, PhoneCall, ICON,
 } from '@/lib/icons'
 import { staggerContainer, staggerItem } from '@/lib/animations'
-import { MetricCard, MetricCardFeatured, MetricDivider, MetricInline } from './metric-card'
-
-/**
- * Grade de métricas.
- *
- * Antes: dez cartões na primeira dobra — um destaque, quatro pequenos, um
- * largo e mais quatro de score — todos com o mesmo peso visual. Dez números
- * com a mesma voz equivalem a nenhum: nada dizia o que olhar primeiro.
- *
- * Agora, três níveis explícitos:
- *   1. Três KPIs em cartão — o que decide o dia do corretor.
- *   2. Uma faixa com os números de acompanhamento.
- *   3. Uma faixa com os scores por temperatura.
- *
- * Mesmos dez números, um terço dos elementos, hierarquia legível.
- */
 
 interface MetricsData {
   total_leads: number
-  reunioes: number
-  sem_resposta: number
+  chegaram_reuniao: number
+  follow_up: number
+  sem_interesse: number
+  vendas: number
+  sem_resposta_contexto: number
+  frios_sem_disparo: number
   aquecidos: number
+  aguardando_primeiro_contato: number
   pausadas: number
-  disponiveis: number
-  score_medio: number
-  score_medio_frio: number
-  score_medio_morno: number
-  score_medio_quente: number
 }
-
 interface MetricsGridProps {
   metrics: MetricsData
 }
 
-function percentOf(part: number, total: number) {
-  if (!total) return undefined
-  const value = (part / total) * 100
-  if (value > 0 && value < 1) return '<1% da base'
-  return `${Math.round(value)}% da base`
+function ActionMetric({
+  label,
+  value,
+  detail,
+  icon,
+  href,
+  accent,
+}: {
+  label: string
+  value: number
+  detail: React.ReactNode
+  icon: React.ReactNode
+  href?: string
+  accent: string
+}) {
+  const content = (
+    <motion.div
+      variants={staggerItem}
+      className="group h-full rounded-[var(--radius-card)] border border-line bg-surface p-5 elev-sm transition-ui hover:border-line-strong"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium text-ink-muted">{label}</p>
+          <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums text-ink">{value.toLocaleString('pt-BR')}</p>
+        </div>
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ color: accent, backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)` }}>
+          {icon}
+        </span>
+      </div>
+      <div className="mt-4 border-t border-line pt-3 text-xs text-ink-muted">{detail}</div>
+    </motion.div>
+  )
+
+  return href ? <Link href={href} className="block h-full outline-none focus-visible:ring-2 focus-visible:ring-ring">{content}</Link> : content
 }
 
-const STRIP =
-  'flex flex-col divide-y divide-line rounded-[var(--radius-card)] border border-line bg-surface elev-sm sm:flex-row sm:divide-y-0'
-
 export function MetricsGrid({ metrics }: MetricsGridProps) {
-  const total = metrics.total_leads
-
   return (
-    <motion.div
-      variants={staggerContainer}
-      initial="initial"
-      animate="animate"
-      className="flex flex-col gap-4"
-    >
-      {/* 1 — os três números que decidem o dia */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <MetricCardFeatured
-          label="Total de leads"
-          value={total}
-          hint="Base completa, sem filtro de período"
-          icon={<Users size={ICON.md} />}
-        />
-        <MetricCard
-          label="Leads quentes"
+    <motion.section variants={staggerContainer} initial="initial" animate="animate" className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-3">
+        <ActionMetric
+          label="Quentes agora"
           value={metrics.aquecidos}
-          hint={percentOf(metrics.aquecidos, total)}
+          detail="Abrir os leads prontos para contato"
           icon={<Flame size={ICON.md} />}
-          accentColor="var(--stage-quente)"
+          href="/kanban?stage=lead_quente"
+          accent="var(--stage-quente)"
         />
-        <MetricCard
-          label="Reuniões"
-          value={metrics.reunioes}
-          hint={percentOf(metrics.reunioes, total)}
-          icon={<Calendar size={ICON.md} />}
-          accentColor="var(--stage-reuniao)"
+        <ActionMetric
+          label="Aguardando 1º contato"
+          value={metrics.aguardando_primeiro_contato}
+          detail="Qualificados que ainda não têm ligação registrada"
+          icon={<PhoneCall size={ICON.md} />}
+          accent="var(--brand)"
+        />
+        <ActionMetric
+          label="Chegaram à reunião"
+          value={metrics.chegaram_reuniao}
+          detail={
+            <span className="flex flex-wrap gap-x-3 gap-y-1">
+              <span>{metrics.follow_up} pensando</span>
+              <span>{metrics.sem_interesse} disseram não</span>
+              <span>{metrics.vendas} compraram</span>
+            </span>
+          }
+          icon={<CalendarCheck size={ICON.md} />}
+          accent="var(--stage-reuniao)"
         />
       </div>
 
-      {/* 2 — acompanhamento. Uma superfície, três números. */}
-      <motion.div variants={staggerItem} className={STRIP}>
-        <MetricInline
-          label="Sem resposta"
-          value={metrics.sem_resposta}
-          hint={percentOf(metrics.sem_resposta, total)}
-          icon={<MessageSquareOff size={ICON.md} />}
-          accentColor="var(--stage-nao-respondeu)"
-        />
-        <MetricDivider />
-        <MetricInline
-          label="Automação pausada"
-          value={metrics.pausadas}
-          icon={<PauseCircle size={ICON.md} />}
-          accentColor="var(--warning)"
-        />
-        <MetricDivider />
-        <MetricInline
-          label="Leads pós-reunião"
-          value={metrics.disponiveis}
-          icon={<Home size={ICON.md} />}
-          accentColor="var(--stage-visita)"
-        />
+      <motion.div variants={staggerItem} className="grid overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface elev-sm sm:grid-cols-2">
+        <div className="flex items-center gap-3 border-b border-line px-5 py-3.5 sm:border-b-0 sm:border-r">
+          <MessageSquareOff size={ICON.md} className="text-[var(--stage-frio)]" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-ink-muted">Frios sem nenhum disparo</p>
+            <p className="text-lg font-semibold tabular-nums text-ink">{metrics.frios_sem_disparo.toLocaleString('pt-BR')}</p>
+          </div>
+          <span className="text-2xs text-ink-subtle">{metrics.sem_resposta_contexto.toLocaleString('pt-BR')} sem interação</span>
+        </div>
+        <div className="flex items-center gap-3 px-5 py-3.5">
+          <PauseCircle size={ICON.md} className="text-warning" />
+          <div>
+            <p className="text-xs text-ink-muted">Automação pausada</p>
+            <p className="text-lg font-semibold tabular-nums text-ink">{metrics.pausadas.toLocaleString('pt-BR')}</p>
+          </div>
+        </div>
       </motion.div>
-
-      {/* 3 — score por temperatura. Quatro valores, uma faixa. */}
-      <motion.div variants={staggerItem} className={STRIP}>
-        <MetricInline
-          label="Score médio global"
-          value={metrics.score_medio}
-          decimals={1}
-          suffix=" / 10"
-          icon={<Gauge size={ICON.md} />}
-          accentColor="var(--brand-accent)"
-        />
-        <MetricDivider />
-        <MetricInline
-          label="Score dos frios"
-          value={metrics.score_medio_frio}
-          decimals={1}
-          suffix=" / 10"
-          icon={<Snowflake size={ICON.md} />}
-          accentColor="var(--stage-frio)"
-        />
-        <MetricDivider />
-        <MetricInline
-          label="Score dos mornos"
-          value={metrics.score_medio_morno}
-          decimals={1}
-          suffix=" / 10"
-          icon={<ThermometerSun size={ICON.md} />}
-          accentColor="var(--stage-morno)"
-        />
-        <MetricDivider />
-        <MetricInline
-          label="Score dos quentes"
-          value={metrics.score_medio_quente}
-          decimals={1}
-          suffix=" / 10"
-          icon={<Zap size={ICON.md} />}
-          accentColor="var(--stage-quente)"
-        />
-      </motion.div>
-    </motion.div>
+    </motion.section>
   )
 }

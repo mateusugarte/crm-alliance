@@ -20,7 +20,9 @@ import type { Interaction, LeadFull } from './types'
 import { LabelsSection } from './lead-labels-section'
 import { LeadChatSection } from './lead-chat-section'
 import { LeadCallsSection } from './lead-calls-section'
+import { LeadActivitySection } from './lead-activity-section'
 import { LeadCommentsSection } from '@/components/shared/lead-comments-section'
+import { compactCommercialSummary } from '@/lib/lead-summary'
 
 const STAGE_LABELS: Record<Lead['stage'], string> = {
   nao_respondeu: 'Não Respondeu',
@@ -40,7 +42,6 @@ interface LeadDetailModalProps {
   lead: Lead | null
   open: boolean
   onClose: () => void
-  onAssume?: () => void
   onTogglePause?: () => void
   onLeadUpdated?: (updatedLead: Lead) => void
   onLeadDeleted?: (leadId: string) => void
@@ -55,10 +56,6 @@ function formatDate(value?: string | null, pattern = 'dd/MM/yyyy') {
 function distance(value?: string | null) {
   if (!value) return 'Sem registro'
   return formatDistanceToNow(new Date(value), { locale: ptBR, addSuffix: false })
-}
-
-function summaryWithoutStaleScore(summary?: string | null) {
-  return summary?.replace(/, com score \d+(?:[.,]\d+)?\/10/i, '') ?? null
 }
 
 function getReasonTexts(input: unknown): string[] {
@@ -100,14 +97,14 @@ function MetricCard({
   detail?: string
 }) {
   return (
-    <div className="min-w-0 border-r border-white/10 px-4 py-2.5 last:border-r-0">
-      <div className="flex items-center gap-2 text-white/45">
-        {icon}
-        <p className="text-xs font-medium">{label}</p>
+    <div className="min-w-0 rounded-[var(--radius-card)] border border-black/[0.06] bg-surface px-3.5 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.025)]">
+      <div className="flex items-center gap-2 text-ink-subtle">
+        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-surface-sunken text-ink-muted">{icon}</span>
+        <p className="text-2xs font-semibold uppercase text-ink-subtle">{label}</p>
       </div>
-      <div className="mt-1 flex min-w-0 items-baseline gap-2">
-        <p className="truncate text-lg font-semibold text-white">{value}</p>
-        {detail && <p className="truncate text-2xs text-white/35">{detail}</p>}
+      <div className="mt-2 flex min-w-0 items-baseline gap-2">
+        <p className="truncate text-lg font-semibold text-ink">{value}</p>
+        {detail && <p className="truncate text-2xs text-ink-subtle">{detail}</p>}
       </div>
     </div>
   )
@@ -150,13 +147,11 @@ export function LeadDetailModal({
   lead,
   open,
   onClose,
-  onAssume,
   onTogglePause,
   onLeadUpdated,
   onLeadDeleted,
   currentUserId,
 }: LeadDetailModalProps) {
-  const [assumeLoading, setAssumeLoading] = useState(false)
   const [pauseLoading, setPauseLoading] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [saveLoading, setSaveLoading] = useState(false)
@@ -221,7 +216,6 @@ export function LeadDetailModal({
 
   useEffect(() => {
     if (!open) {
-      setAssumeLoading(false)
       setPauseLoading(false)
       setEditMode(false)
       setSaveLoading(false)
@@ -316,12 +310,14 @@ export function LeadDetailModal({
 
   const displayName = displayLead.name?.trim() || formatPhone(displayLead.phone) || 'Lead sem nome'
   const isMeetingLike = ['reuniao_agendada', 'follow_up', 'sem_interesse', 'visita_confirmada', 'cliente'].includes(displayLead.stage)
-
-  const handleAssume = async () => {
-    if (!onAssume || assumeLoading) return
-    setAssumeLoading(true)
-    try { await onAssume() } finally { setAssumeLoading(false) }
-  }
+  const commercialSummary = compactCommercialSummary({
+    summary: displayLead.summary,
+    shortSummary: displayLead.summary_comercial_curto,
+    city: displayLead.city,
+    intention: displayLead.intention,
+    propertyInterest: displayLead.imovel_interesse,
+    acceptedConsultant: displayLead.aceitou_consultor,
+  })
 
   const handleTogglePause = async () => {
     if (!onTogglePause || pauseLoading) return
@@ -421,13 +417,6 @@ export function LeadDetailModal({
     }
   }
 
-  const handleCallLead = async () => {
-    if (assumeLoading) return
-    if (onAssume) await handleAssume()
-    const phone = displayLead.phone?.replace(/\D/g, '')
-    if (phone) window.location.href = `tel:+${phone}`
-  }
-
   return (
     <TooltipProvider delay={400}>
       {open && (
@@ -484,14 +473,6 @@ export function LeadDetailModal({
                     <p className="text-2xs font-medium text-ink-subtle">Score comercial</p>
                     <p className="text-2xl font-semibold leading-none text-ink">{insight.scoreLabel}</p>
                   </div>
-                  <button
-                    onClick={handleCallLead}
-                    disabled={assumeLoading || !displayLead.phone}
-                    className="inline-flex h-9 items-center gap-2 rounded-xl bg-ink px-4 text-xs font-semibold text-white elev-sm transition hover:bg-ink/88 disabled:opacity-40"
-                  >
-                    {assumeLoading ? <Loader2 size={14} className="animate-spin" /> : <PhoneCall size={14} />}
-                    Ligar para o lead
-                  </button>
                     {!editMode && (
                       <Tooltip>
                         <TooltipTrigger render={
@@ -527,47 +508,47 @@ export function LeadDetailModal({
                 <Loader2 size={24} className="animate-spin text-alliance-blue" />
               </div>
             ) : (
-              <div className="min-h-0 flex-1 overflow-y-auto p-3 xl:overflow-hidden">
-                <div className="grid min-w-0 gap-3 xl:h-full xl:grid-cols-[minmax(300px,1.05fr)_minmax(330px,0.95fr)_minmax(260px,0.8fr)] xl:grid-rows-[auto_minmax(0,1fr)_auto]">
-                  <main className="flex min-w-0 flex-col gap-3 xl:contents">
-                    <div className="grid overflow-hidden rounded-[var(--radius-panel)] border border-black bg-ink elev-sm md:grid-cols-2 xl:col-span-3 xl:row-start-1 xl:grid-cols-4">
-                      <MetricCard icon={<MessageCircle size={13} />} label="Interações" value={interactions.length || displayLead.interaction_count || 0} detail={`${insight.inbound.length} respostas`} />
-                      <MetricCard icon={<Send size={13} />} label="Disparos" value={`${displayLead.reactivation_count ?? 0}x`} detail={displayLead.last_reactivated_at ? `último há ${distance(displayLead.last_reactivated_at)}` : 'nenhum'} />
-                      <MetricCard icon={<Clock3 size={13} />} label="Tempo no estágio" value={insight.stageTime.replace('aproximadamente ', '')} detail={formatDate(displayLead.updated_at)} />
-                      <MetricCard icon={<CalendarDays size={13} />} label={isMeetingLike ? 'Passou por reunião' : 'Lead criado'} value={insight.age.replace('aproximadamente ', '')} detail={formatDate(displayLead.created_at)} />
-                    </div>
+              <div className="min-h-0 flex-1 overflow-y-auto p-3 md:p-5">
+                <div className="mx-auto max-w-[1580px] space-y-3 pb-8">
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <MetricCard icon={<MessageCircle size={13} />} label="Interações" value={interactions.length || displayLead.interaction_count || 0} detail={`${insight.inbound.length} respostas`} />
+                    <MetricCard icon={<Send size={13} />} label="Disparos" value={`${displayLead.reactivation_count ?? 0}x`} detail={displayLead.last_reactivated_at ? `último há ${distance(displayLead.last_reactivated_at)}` : 'nenhum'} />
+                    <MetricCard icon={<Clock3 size={13} />} label="Tempo no estágio" value={insight.stageTime.replace('aproximadamente ', '')} detail={formatDate(displayLead.updated_at)} />
+                    <MetricCard icon={<CalendarDays size={13} />} label={isMeetingLike ? 'Passou por reunião' : 'Lead criado'} value={insight.age.replace('aproximadamente ', '')} detail={formatDate(displayLead.created_at)} />
+                  </div>
 
-                    <SectionCard title="Resumo comercial" icon={<Sparkles size={13} />} className="flex min-h-0 flex-col overflow-hidden xl:col-start-1 xl:row-start-2">
-                      {editMode ? (
-                        <textarea
-                          value={editSummary}
-                          onChange={e => setEditSummary(e.target.value)}
-                          rows={5}
-                          placeholder="Resumo padronizado do lead..."
-                          className="min-h-0 flex-1 resize-none rounded-xl border border-line-strong bg-surface px-3 py-2 text-xs leading-relaxed text-ink focus:outline-none focus:ring-2 focus:ring-alliance-blue/20"
-                        />
-                      ) : (
-                        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                          <p className="whitespace-pre-wrap text-xs leading-relaxed text-ink">
-                            {summaryWithoutStaleScore(displayLead.summary) || 'Nenhum resumo disponível ainda. Quando houver conversa suficiente, o ideal é registrar objetivo, produto de interesse, objeções e próximo passo.'}
-                          </p>
-                        </div>
-                      )}
+                  <div className="grid min-w-0 items-start gap-3 xl:grid-cols-[minmax(290px,0.78fr)_minmax(430px,1.25fr)_minmax(300px,0.82fr)]">
+                    <div className="grid min-w-0 gap-3">
+                      <SectionCard title="Resumo comercial" icon={<Sparkles size={13} />}>
+                        {editMode ? (
+                          <textarea
+                            value={editSummary}
+                            onChange={e => setEditSummary(e.target.value)}
+                            rows={5}
+                            placeholder="Resumo padronizado do lead..."
+                            className="w-full resize-y rounded-xl border border-line-strong bg-surface px-3 py-2 text-xs leading-relaxed text-ink focus:outline-none focus:ring-2 focus:ring-alliance-blue/20"
+                          />
+                        ) : (
+                          <p className="text-sm leading-relaxed text-ink">{commercialSummary}</p>
+                        )}
 
-                      {insight.reasons.length > 0 && (
-                        <div className="mt-3 grid gap-1.5 border-t border-black/[0.05] pt-3">
-                          {insight.reasons.map(reason => (
-                            <div key={reason} className="flex items-start gap-2 text-xs leading-snug text-ink">
-                              <CheckCircle2 size={12} className="mt-0.5 flex-shrink-0 text-emerald-500" />
-                              <span>{reason}</span>
+                        {insight.reasons.length > 0 && (
+                          <details className="mt-3 border-t border-black/[0.05] pt-3">
+                            <summary className="cursor-pointer text-2xs font-semibold text-ink-muted">Ver sinais da pontuação</summary>
+                            <div className="mt-2 grid gap-1.5">
+                              {insight.reasons.map(reason => (
+                                <div key={reason} className="flex items-start gap-2 text-xs leading-snug text-ink-muted">
+                                  <CheckCircle2 size={12} className="mt-0.5 flex-shrink-0 text-emerald-500" />
+                                  <span>{reason}</span>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </SectionCard>
+                          </details>
+                        )}
+                      </SectionCard>
 
-                    <SectionCard title="Qualificação" icon={<Target size={13} />} className="xl:col-start-1 xl:row-start-3">
-                      {editMode ? (
+                      <SectionCard title="Qualificação" icon={<Target size={13} />}>
+                        {editMode ? (
                         <div className="grid gap-2 md:grid-cols-2">
                           <div className="flex flex-col gap-1.5">
                             <label className="text-2xs font-medium text-ink-muted">Nome</label>
@@ -622,10 +603,11 @@ export function LeadDetailModal({
                           <InfoPill label="Última resposta" value={insight.lastInboundText} />
                           <InfoPill label="Última interação" value={insight.lastInteractionText} />
                         </div>
-                      )}
-                    </SectionCard>
+                        )}
+                      </SectionCard>
+                    </div>
 
-                    <SectionCard title="Conversa no WhatsApp" icon={<MessageCircle size={13} />} className="flex min-h-[420px] min-w-0 flex-col overflow-hidden xl:col-start-2 xl:row-start-2 xl:row-span-2 xl:min-h-0">
+                    <SectionCard title="Conversa no WhatsApp" icon={<MessageCircle size={13} />} className="flex h-[460px] min-w-0 flex-col overflow-hidden xl:h-[500px]">
                       <LeadChatSection
                         interactions={interactions}
                         fetchingInteractions={fetchingInteractions}
@@ -636,32 +618,24 @@ export function LeadDetailModal({
                         onSend={handleSendMessage}
                       />
                     </SectionCard>
-                  </main>
 
-                  <aside className="flex min-h-0 min-w-0 flex-col gap-2 xl:col-start-3 xl:row-start-2 xl:row-span-2">
-                    <SectionCard title="Próximo passo" icon={<PhoneCall size={13} />} className="flex-shrink-0 bg-ink p-3 text-white [&>div:first-child]:mb-2 [&>div>div]:bg-surface/10 [&>div>div]:text-white/70 [&_h3]:text-white/65">
-                      <p className="text-base font-semibold leading-tight text-white">
-                        {displayLead.aceitou_consultor || displayLead.stage === 'lead_quente'
-                          ? 'Ligar para o lead'
-                          : insight.inbound.length === 0
-                            ? 'Aguardar resposta'
-                            : 'Avançar a conversa'}
-                      </p>
-                      <p className="mt-1.5 text-xs leading-relaxed text-white/55">
-                        {displayLead.aceitou_consultor
-                          ? 'O lead aceitou contato. Priorize uma ligação breve e objetiva.'
-                          : insight.inbound.length === 0
-                            ? 'Ainda não houve resposta do lead.'
-                            : 'Use o contexto para definir o próximo compromisso.'}
-                      </p>
-                    </SectionCard>
+                    <aside className="grid min-w-0 content-start gap-3">
+                      <SectionCard title="Etiquetas" icon={<Tags size={13} />}>
+                        <LabelsSection
+                          labels={fullLead?.labels ?? []}
+                          leadId={displayLead.id}
+                          onLabelsChange={(updated) => {
+                            if (fullLead) setFullLead({ ...fullLead, labels: updated })
+                          }}
+                        />
+                      </SectionCard>
 
-                    <SectionCard title="Ligações" icon={<PhoneCall size={13} />} className="flex-shrink-0 p-3 [&>div:first-child]:mb-2">
-                      <LeadCallsSection leadId={displayLead.id} />
-                    </SectionCard>
+                      <SectionCard title="Ligações" icon={<PhoneCall size={13} />}>
+                        <LeadCallsSection leadId={displayLead.id} />
+                      </SectionCard>
 
-                    <SectionCard title="Automação" icon={<Bot size={13} />} className="flex-shrink-0 p-3 [&>div:first-child]:mb-2">
-                      <div className="flex items-center justify-between gap-3">
+                      <SectionCard title="Automação" icon={<Bot size={13} />}>
+                        <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="text-xs font-semibold text-ink">{displayLead.automation_paused ? 'Alice pausada' : 'Alice ativa'}</p>
                           <p className="mt-0.5 text-2xs text-ink-subtle">
@@ -681,69 +655,40 @@ export function LeadDetailModal({
                           {pauseLoading ? <Loader2 size={13} className="animate-spin" /> : displayLead.automation_paused ? <Play size={13} /> : <Pause size={13} />}
                           {displayLead.automation_paused ? 'Retomar' : 'Pausar'}
                         </button>
-                      </div>
-                    </SectionCard>
+                        </div>
+                      </SectionCard>
+                    </aside>
+                  </div>
 
-                    <SectionCard title="Etiquetas" icon={<Tags size={13} />} className="flex-shrink-0 p-3 [&>div:first-child]:mb-2">
-                      <LabelsSection
-                        labels={fullLead?.labels ?? []}
-                        leadId={displayLead.id}
-                        onLabelsChange={(updated) => {
-                          if (fullLead) setFullLead({ ...fullLead, labels: updated })
-                        }}
-                      />
-                    </SectionCard>
-
-                    <SectionCard title="Comentários internos" icon={<ClipboardList size={13} />} className="min-h-[120px] flex-1 overflow-hidden p-3 [&>div:first-child]:mb-2">
+                  <div className="grid items-stretch gap-3 xl:grid-cols-[1.12fr_0.88fr]">
+                    <SectionCard title="Comentários internos" icon={<ClipboardList size={13} />} className="flex min-h-[300px] flex-col overflow-hidden">
                       <LeadCommentsSection leadId={displayLead.id} currentUserId={currentUserId} />
                     </SectionCard>
-
-                    <SectionCard title="Linha do tempo" icon={<Activity size={13} />} className="hidden">
-                      <div className="grid grid-cols-2 gap-2">
-                        {[
-                          { label: 'Lead criado', value: formatDate(displayLead.created_at, 'dd/MM/yyyy HH:mm'), active: true },
-                          { label: 'Última mudança/atualização', value: formatDate(displayLead.updated_at, 'dd/MM/yyyy HH:mm'), active: true },
-                          { label: 'Último disparo', value: displayLead.last_reactivated_at ? formatDate(displayLead.last_reactivated_at, 'dd/MM/yyyy HH:mm') : 'Sem disparo', active: !!displayLead.last_reactivated_at },
-                          { label: 'Última resposta do lead', value: insight.lastInbound ? formatDate(insight.lastInbound.created_at, 'dd/MM/yyyy HH:mm') : 'Sem resposta', active: !!insight.lastInbound },
-                        ].map(item => (
-                          <div key={item.label} className="min-w-0 border-l border-black/[0.06] pl-2">
-                            <div>
-                              <p className="truncate text-2xs font-medium text-ink-muted">{item.label}</p>
-                              <p className="truncate text-2xs text-ink-subtle">{item.value}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                    <SectionCard title="Histórico do lead" icon={<Activity size={13} />} className="max-h-[420px] overflow-y-auto">
+                      <LeadActivitySection leadId={displayLead.id} />
                     </SectionCard>
+                  </div>
 
-                    <div className="flex-shrink-0 rounded-[var(--radius-panel)] border border-black/[0.06] bg-surface/88 p-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-                      {editMode ? (
-                        <div className="flex gap-2">
-                          <button onClick={handleSave} disabled={saveLoading}
-                            className="flex h-8 flex-1 items-center justify-center gap-2 rounded-lg bg-ink px-3 text-xs font-semibold text-white transition hover:bg-ink/88 disabled:opacity-60">
-                            {saveLoading && <Loader2 size={13} className="animate-spin" />}
-                            {saveLoading ? 'Salvando...' : 'Salvar alterações'}
-                          </button>
-                          <button onClick={() => setEditMode(false)} disabled={saveLoading}
-                            className="h-8 rounded-lg px-3 text-xs font-medium text-ink-muted transition hover:bg-surface-sunken disabled:opacity-60">
-                            Cancelar
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          <button onClick={handleCallLead} disabled={assumeLoading || !displayLead.phone}
-                            className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg bg-ink px-3 text-xs font-semibold text-white transition hover:bg-ink/88 disabled:opacity-60">
-                            {assumeLoading ? <Loader2 size={13} className="animate-spin" /> : <PhoneCall size={13} />}
-                            {assumeLoading ? 'Preparando...' : 'Ligar para o lead'}
-                          </button>
-                          <button onClick={() => setDeleteDialogOpen(true)}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-subtle transition hover:bg-[var(--danger-soft)] hover:text-[var(--danger-ink)]" aria-label="Excluir lead">
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </aside>
+                  <div className="flex justify-end gap-2">
+                    {editMode ? (
+                      <>
+                        <button onClick={() => setEditMode(false)} disabled={saveLoading}
+                          className="h-9 rounded-xl px-4 text-xs font-medium text-ink-muted transition hover:bg-surface disabled:opacity-60">
+                          Cancelar
+                        </button>
+                        <button onClick={handleSave} disabled={saveLoading}
+                          className="flex h-9 items-center justify-center gap-2 rounded-xl bg-ink px-4 text-xs font-semibold text-white transition hover:bg-ink/88 disabled:opacity-60">
+                          {saveLoading && <Loader2 size={13} className="animate-spin" />}
+                          {saveLoading ? 'Salvando...' : 'Salvar alterações'}
+                        </button>
+                      </>
+                    ) : (
+                      <button onClick={() => setDeleteDialogOpen(true)}
+                        className="flex h-9 items-center gap-2 rounded-xl px-3 text-xs font-medium text-ink-subtle transition hover:bg-[var(--danger-soft)] hover:text-[var(--danger-ink)]">
+                        <Trash2 size={13} />Excluir lead
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

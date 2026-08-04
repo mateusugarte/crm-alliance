@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { format, formatDistanceToNow, isToday, isTomorrow } from 'date-fns'
+import { differenceInCalendarDays, format, formatDistanceToNow, isToday, isTomorrow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { toast } from 'sonner'
 import {
@@ -15,7 +15,7 @@ import { createClient } from '@/lib/supabase/client'
 import { stageLabel, stageTokens } from '@/lib/stages'
 import { DURATION, EASE_OUT } from '@/lib/animations'
 import { LOSS_REASONS, OUTCOMES, outcomeConfig } from '@/lib/central-do-dia/outcomes'
-import type { DailyTaskItem, TaskOutcome } from '@/lib/central-do-dia/types'
+import type { DailyTaskItem, TaskCompletionResult, TaskOutcome } from '@/lib/central-do-dia/types'
 
 /* -------------------------------------------------------------------------
    Rótulos
@@ -38,10 +38,28 @@ function attemptLabel(task: DailyTaskItem) {
   return `sem contato há ${formatDistanceToNow(new Date(task.lastContactAt), { locale: ptBR })}`
 }
 
-const TIERS: Record<string, { label: string; tone: 'alta' | 'media' | 'baixa' }> = {
-  alta: { label: 'Alta', tone: 'alta' },
-  media: { label: 'Média', tone: 'media' },
-  longo_prazo: { label: 'Longo prazo', tone: 'baixa' },
+function daysWithoutContact(task: DailyTaskItem, now: number) {
+  const days = Math.max(0, differenceInCalendarDays(new Date(now), new Date(task.noContactSince)))
+  return `${days} D sem contato`
+}
+
+function durationLabel(milliseconds: number) {
+  const absoluteMinutes = Math.max(0, Math.floor(Math.abs(milliseconds) / 60_000))
+  const hours = Math.floor(absoluteMinutes / 60)
+  const minutes = absoluteMinutes % 60
+  if (hours === 0) return `${minutes}min`
+  return `${hours}h${minutes > 0 ? ` ${minutes}min` : ''}`
+}
+
+function qualificationLabels(task: DailyTaskItem, now: number) {
+  if (task.origin !== 'qualificacao' || !task.qualifiedAt) return null
+  const qualifiedAt = new Date(task.qualifiedAt).getTime()
+  const dueAt = new Date(task.dueAt).getTime()
+  return {
+    recent: dueAt >= now,
+    qualified: `Qualificou há ${durationLabel(now-qualifiedAt)}`,
+    timer: dueAt >= now ? `${durationLabel(dueAt-now)} restantes` : `Atrasado há ${durationLabel(now-dueAt)}`,
+  }
 }
 
 /* -------------------------------------------------------------------------
@@ -58,14 +76,13 @@ function fieldClass(extra?: string) {
 
 function TaskRegistration({ task, onDone, onCancel }: {
   task: DailyTaskItem
-  onDone: () => void
+  onDone: (result: TaskCompletionResult) => void
   onCancel: () => void
 }) {
   const [outcome, setOutcome] = useState<TaskOutcome | null>(null)
   const [note, setNote] = useState('')
   const [returnAt, setReturnAt] = useState('')
   const [meetingScheduled, setMeetingScheduled] = useState(false)
-  const [meetingAt, setMeetingAt] = useState('')
   const [lossReason, setLossReason] = useState('')
   const [lossDetail, setLossDetail] = useState('')
   const [saving, setSaving] = useState(false)
@@ -73,8 +90,8 @@ function TaskRegistration({ task, onDone, onCancel }: {
   async function submit() {
     if (!outcome) return toast.error('Escolha como foi a ligação')
     if (outcome === 'pediu_retorno' && !returnAt) return toast.error('Informe quando retornar')
+    if (outcome === 'atendeu' && !note.trim()) return toast.error('Informe o que foi conversado')
     if (outcome === 'sem_interesse' && !lossReason) return toast.error('Informe o motivo da perda')
-    if (meetingScheduled && !meetingAt) return toast.error('Informe a data da reunião')
 
     setSaving(true)
     try {
@@ -89,14 +106,14 @@ function TaskRegistration({ task, onDone, onCancel }: {
           note,
           returnAt: returnAt ? new Date(returnAt).toISOString() : null,
           meetingScheduled,
-          meetingAt: meetingAt ? new Date(meetingAt).toISOString() : null,
           lossReason: combinedReason,
         }),
       })
-      const json = await response.json() as { error?: string }
+      const json = await response.json() as { data?: TaskCompletionResult; error?: string }
       if (!response.ok) throw new Error(json.error || 'Erro ao registrar ligação')
+      if (!json.data) throw new Error('O servidor não devolveu o registro da ligação')
       toast.success('Ligação registrada')
-      onDone()
+      onDone(json.data)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao registrar ligação')
     } finally {
@@ -146,18 +163,18 @@ function TaskRegistration({ task, onDone, onCancel }: {
             className="overflow-hidden"
           >
             <div className="space-y-3 pt-3">
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-medium text-ink-muted">
-                  O que foi conversado? <span className="font-normal text-ink-subtle">(opcional)</span>
-                </span>
-                <textarea
-                  value={note}
-                  onChange={event => setNote(event.target.value)}
-                  placeholder="Anotações da conversa, próximos passos, o que ficou combinado…"
-                  rows={2}
-                  className={fieldClass('resize-none')}
-                />
-              </label>
+              {outcome === 'atendeu' && (
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-medium text-ink-muted">O que foi conversado?</span>
+                  <textarea
+                    value={note}
+                    onChange={event => setNote(event.target.value)}
+                    placeholder="Anote o contexto, a necessidade e o que ficou combinado."
+                    rows={2}
+                    className={fieldClass('resize-none')}
+                  />
+                </label>
+              )}
 
               {outcome === 'pediu_retorno' && (
                 <label className="block">
@@ -198,7 +215,7 @@ function TaskRegistration({ task, onDone, onCancel }: {
                 </div>
               )}
 
-              {outcomeConfig(outcome).isContact && outcome !== 'sem_interesse' && (
+              {outcome === 'atendeu' && (
                 <div className="rounded-lg bg-surface-sunken p-3">
                   <label className="flex cursor-pointer items-center gap-2.5 text-sm font-medium text-ink">
                     <input
@@ -209,15 +226,6 @@ function TaskRegistration({ task, onDone, onCancel }: {
                     />
                     Marquei reunião
                   </label>
-                  {meetingScheduled && (
-                    <input
-                      type="datetime-local"
-                      value={meetingAt}
-                      onChange={event => setMeetingAt(event.target.value)}
-                      aria-label="Data e hora da reunião"
-                      className={fieldClass('mt-2.5')}
-                    />
-                  )}
                 </div>
               )}
             </div>
@@ -251,25 +259,37 @@ function TaskRegistration({ task, onDone, onCancel }: {
    Linha da fila
    ---------------------------------------------------------------------- */
 
-function TaskRow({ task, onRefresh }: { task: DailyTaskItem; onRefresh: () => void }) {
+function TaskRow({ task, onRegistered, onUndone }: {
+  task: DailyTaskItem
+  onRegistered: (result: TaskCompletionResult) => void
+  onUndone: (result: TaskCompletionResult) => void
+}) {
   const [expanded, setExpanded] = useState(false)
   const [registering, setRegistering] = useState(false)
+  const [now, setNow] = useState(() => Date.now())
   const panelId = useId()
   const reduced = useReducedMotion()
 
   const tokens = stageTokens(task.stage)
-  const tier = task.tier ? TIERS[task.tier] : null
   const done = task.status === 'feita'
   const late = task.status === 'vencida'
   const call = task.call
   const outcome = call ? outcomeConfig(call.outcome) : null
+  const qualification = qualificationLabels(task, now)
+
+  useEffect(() => {
+    if (task.origin !== 'qualificacao' || done) return
+    const interval = window.setInterval(() => setNow(Date.now()), 60_000)
+    return () => window.clearInterval(interval)
+  }, [done, task.origin])
 
   async function undo() {
     if (!call || !window.confirm('Desfazer este registro de ligação?')) return
     const response = await fetch(`/api/tasks/${task.id}/complete?callId=${call.id}`, { method: 'DELETE' })
-    if (!response.ok) return toast.error('Não foi possível desfazer o registro')
+    const json = await response.json() as { data?: TaskCompletionResult; error?: string }
+    if (!response.ok || !json.data) return toast.error(json.error || 'Não foi possível desfazer o registro')
     toast.success('Registro desfeito')
-    onRefresh()
+    onUndone(json.data)
   }
 
   function startRegistration() {
@@ -278,7 +298,11 @@ function TaskRow({ task, onRefresh }: { task: DailyTaskItem; onRefresh: () => vo
   }
 
   return (
-    <article className={cn('border-t border-line first:border-t-0', done && 'bg-surface-sunken/40')}>
+    <article className={cn(
+      'relative border-t border-line first:border-t-0',
+      done && 'bg-surface-sunken/40',
+      qualification?.recent && !done && 'bg-brand-soft/55 before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-brand',
+    )}>
       {/* Linha colapsada — altura fixa, escaneável de uma passada.
           Tudo que era parágrafo solto na tela virou conteúdo do expandido. */}
       <div className="flex items-center gap-3 px-4 sm:px-5">
@@ -316,24 +340,21 @@ function TaskRow({ task, onRefresh }: { task: DailyTaskItem; onRefresh: () => vo
                 <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: tokens.solid }} />
                 {stageLabel(task.stage)}
               </span>
-              {tier && !done && (
-                <span
-                  className={cn(
-                    'inline-flex h-5 items-center rounded-md px-1.5 text-2xs font-medium leading-none',
-                    tier.tone === 'alta' && 'bg-[var(--stage-quente-soft)] text-[var(--stage-quente-ink)]',
-                    tier.tone === 'media' && 'bg-[var(--stage-morno-soft)] text-[var(--stage-morno-ink)]',
-                    tier.tone === 'baixa' && 'bg-surface-sunken text-ink-muted',
-                  )}
-                >
-                  {tier.label}
-                </span>
-              )}
               {task.attemptNumber > 1 && (
                 <span
                   title={`${task.attemptNumber}ª tentativa de contato`}
                   className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-surface-sunken px-1.5 text-2xs font-semibold tabular-nums leading-none text-ink-muted"
                 >
                   {task.attemptNumber}
+                </span>
+              )}
+              <span className="inline-flex h-5 items-center rounded-full bg-surface px-2 text-2xs font-semibold tabular-nums text-ink shadow-sm">
+                {task.score.toFixed(1).replace('.', ',')}
+              </span>
+              {qualification?.recent && !done && (
+                <span className="inline-flex h-5 items-center rounded-md bg-brand px-2 text-2xs font-semibold text-white">
+                  <span className="sm:hidden">Recente</span>
+                  <span className="hidden sm:inline">Qualificado recente</span>
                 </span>
               )}
             </span>
@@ -344,13 +365,21 @@ function TaskRow({ task, onRefresh }: { task: DailyTaskItem; onRefresh: () => vo
           <span className="hidden flex-shrink-0 items-center gap-3 text-xs md:flex">
             {done && outcome ? (
               <span className="font-medium" style={{ color: outcome.tone.ink }}>{outcome.pastLabel}</span>
-            ) : (
-              <span className="text-ink-subtle">{attemptLabel(task)}</span>
-            )}
+            ) : null}
             <span className={cn('flex items-center gap-1 tabular-nums', late ? 'font-medium text-[var(--warning-ink)]' : 'text-ink-subtle')}>
               {late && <AlertTriangle size={12} />}
               {done && call ? format(new Date(call.registeredAt), 'HH:mm') : dueLabel(task)}
             </span>
+            {qualification && !done && (
+              <span className={cn('font-medium tabular-nums', late ? 'text-[var(--warning-ink)]' : 'text-brand')}>
+                {qualification.timer}
+              </span>
+            )}
+            {!done && (
+              <span className="min-w-[7.5rem] text-right font-medium tabular-nums text-ink-muted">
+                {daysWithoutContact(task, now)}
+              </span>
+            )}
           </span>
 
           <motion.span
@@ -377,11 +406,12 @@ function TaskRow({ task, onRefresh }: { task: DailyTaskItem; onRefresh: () => vo
             <div className="space-y-3 px-4 pb-4 pl-16 sm:px-5 sm:pb-4 sm:pl-[4.25rem]">
               <p className="text-xs text-ink-muted">
                 {task.origin === 'qualificacao' && task.qualifiedAt
-                  ? `Qualificado ${formatDistanceToNow(new Date(task.qualifiedAt), { locale: ptBR, addSuffix: true })}`
+                  ? qualification?.qualified
                   : attemptLabel(task)}
                 {' · '}{task.interactionCount} interações
-                {' · '}responsável: {task.ownerName}
+                {' · '}{daysWithoutContact(task, now)}
                 <span className="md:hidden">{' · '}{done && call ? format(new Date(call.registeredAt), 'HH:mm') : dueLabel(task)}</span>
+                {qualification && !done && <span className="md:hidden">{' · '}{qualification.timer}</span>}
               </p>
 
               {done && call ? (
@@ -403,7 +433,7 @@ function TaskRow({ task, onRefresh }: { task: DailyTaskItem; onRefresh: () => vo
                 (task.briefing || task.summary) && (
                   <div className="space-y-2.5 rounded-[var(--radius-card)] bg-surface-sunken p-3.5">
                     <p className="max-w-[70ch] text-sm leading-relaxed text-ink">
-                      {task.briefing?.contexto || task.summary}
+                      {task.summary || task.briefing?.contexto}
                     </p>
                     {task.briefing?.abertura && (
                       <p className="text-sm leading-relaxed text-ink-muted">
@@ -425,7 +455,7 @@ function TaskRow({ task, onRefresh }: { task: DailyTaskItem; onRefresh: () => vo
                 <TaskRegistration
                   task={task}
                   onCancel={() => setRegistering(false)}
-                  onDone={() => { setRegistering(false); setExpanded(false); onRefresh() }}
+                  onDone={(result) => { setRegistering(false); setExpanded(false); onRegistered(result) }}
                 />
               ) : (
                 <div className="flex flex-wrap items-center gap-2">
@@ -464,18 +494,29 @@ export function DailyTaskCenter() {
   const [view, setView] = useState<'today' | 'week'>('today')
   const [tasks, setTasks] = useState<DailyTaskItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [showDone, setShowDone] = useState(false)
 
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true)
+    if (!quiet) setLoadError(null)
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 12_000)
     try {
-      const response = await fetch(`/api/tasks?view=${view}`, { cache: 'no-store' })
+      const response = await fetch(`/api/tasks?view=${view}`, { cache: 'no-store', signal: controller.signal })
       const json = await response.json() as { data?: DailyTaskItem[]; error?: string }
       if (!response.ok) throw new Error(json.error || 'Erro ao carregar a fila')
       setTasks(json.data ?? [])
     } catch (error) {
-      if (!quiet) toast.error(error instanceof Error ? error.message : 'Erro ao carregar a fila')
+      const message = error instanceof DOMException && error.name === 'AbortError'
+        ? 'A fila demorou para responder.'
+        : error instanceof Error ? error.message : 'Erro ao carregar a fila'
+      if (!quiet) {
+        setLoadError(message)
+        toast.error(message)
+      }
     } finally {
+      window.clearTimeout(timeout)
       if (!quiet) setLoading(false)
     }
   }, [view])
@@ -512,6 +553,34 @@ export function DailyTaskCenter() {
   const meetings = done.filter(task => task.call?.meetingScheduled).length
   const progress = tasks.length > 0 ? (done.length / tasks.length) * 100 : 0
 
+  const applyRegistered = useCallback((result: TaskCompletionResult) => {
+    setTasks(current => current.map(task => task.id === result.task.id ? {
+      ...task,
+      status: 'feita',
+      completedAt: result.task.completedAt,
+      stage: result.lead.stage,
+      attempts: result.lead.attempts,
+      firstCallAt: result.lead.firstCallAt,
+      lastContactAt: result.lead.lastContactAt,
+      call: result.call,
+    } : task))
+    void load(true)
+  }, [load])
+
+  const applyUndone = useCallback((result: TaskCompletionResult) => {
+    setTasks(current => current.map(task => task.id === result.task.id ? {
+      ...task,
+      status: 'pendente',
+      completedAt: null,
+      stage: result.lead.stage,
+      attempts: result.lead.attempts,
+      firstCallAt: result.lead.firstCallAt,
+      lastContactAt: result.lead.lastContactAt,
+      call: null,
+    } : task))
+    void load(true)
+  }, [load])
+
   return (
     <section className="overflow-hidden rounded-[var(--radius-panel)] border border-line bg-surface elev-sm">
       <header className="border-b border-line px-4 py-4 sm:px-5">
@@ -521,11 +590,11 @@ export function DailyTaskCenter() {
               <PhoneCall size={ICON.md} />
             </span>
             <div>
-              <h2 className="text-lg font-semibold tracking-tight text-ink">Ligações que pedem atenção</h2>
+              <h2 className="text-lg font-semibold tracking-tight text-ink">Follow Up do Dia: Ligações</h2>
               <p className="text-xs text-ink-muted">
                 {pending.length === 0
                   ? 'Fila do dia concluída'
-                  : `${pending.length} ${pending.length === 1 ? 'lead esperando' : 'leads esperando'} contato`}
+                  : `${pending.length} ${pending.length === 1 ? 'contato para follow up hoje' : 'contatos para follow up hoje'}`}
                 {late > 0 && <span className="text-[var(--warning-ink)]"> · {late} atrasada{late > 1 ? 's' : ''}</span>}
               </p>
             </div>
@@ -568,6 +637,15 @@ export function DailyTaskCenter() {
 
       {loading ? (
         <div className="flex min-h-40 items-center justify-center text-sm text-ink-muted">Carregando ligações…</div>
+      ) : loadError ? (
+        <div className="flex min-h-40 flex-col items-center justify-center px-5 text-center">
+          <AlertTriangle size={ICON.lg} className="text-[var(--warning-ink)]" />
+          <p className="mt-2 text-sm font-medium text-ink">Não foi possível carregar os follow ups.</p>
+          <p className="mt-1 text-xs text-ink-muted">{loadError}</p>
+          <button onClick={() => void load()} className="mt-3 rounded-lg border border-line-strong px-3 py-2 text-xs font-semibold text-ink hover:bg-surface-sunken">
+            Tentar novamente
+          </button>
+        </div>
       ) : tasks.length === 0 ? (
         <div className="flex min-h-40 flex-col items-center justify-center px-5 py-10 text-center">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--success-soft)] text-[var(--success-ink)]">
@@ -575,7 +653,7 @@ export function DailyTaskCenter() {
           </span>
           <p className="mt-3 text-sm font-medium text-ink">Nenhuma ligação pendente.</p>
           <p className="mt-1 max-w-[42ch] text-xs text-ink-muted">
-            A próxima fila é montada automaticamente às 8h30, com os leads que a Alice qualificou.
+            Leads qualificados entram aqui imediatamente. Os demais follow ups são organizados automaticamente.
           </p>
         </div>
       ) : displayed.length === 0 ? (
@@ -600,7 +678,9 @@ export function DailyTaskCenter() {
                   {group.label}
                 </p>
               )}
-              {group.tasks.map(task => <TaskRow key={task.id} task={task} onRefresh={() => void load(true)} />)}
+              {group.tasks.map(task => (
+                <TaskRow key={task.id} task={task} onRegistered={applyRegistered} onUndone={applyUndone} />
+              ))}
             </div>
           ))}
         </>

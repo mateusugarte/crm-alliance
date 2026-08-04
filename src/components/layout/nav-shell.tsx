@@ -120,11 +120,18 @@ function SectionHeading({ children, collapsed }: { children: string; collapsed: 
 export default function NavShell({ userInitial = 'C', userName = 'consultor', isAdm = false }: NavShellProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
+  const [compactViewport, setCompactViewport] = useState(false)
 
   useEffect(() => {
     try {
       setCollapsed(localStorage.getItem('sidebar-collapsed') === 'true')
     } catch { /* ignore */ }
+
+    const media = window.matchMedia('(max-width: 767px)')
+    const syncViewport = () => setCompactViewport(media.matches)
+    syncViewport()
+    media.addEventListener('change', syncViewport)
+    return () => media.removeEventListener('change', syncViewport)
   }, [])
 
   const toggleCollapse = () => {
@@ -134,10 +141,11 @@ export default function NavShell({ userInitial = 'C', userName = 'consultor', is
   }
 
   const isActive = (href: string) => pathname.startsWith(href)
+  const navigationCollapsed = collapsed || compactViewport
 
   return (
     <motion.aside
-      animate={{ width: collapsed ? 68 : 228 }}
+      animate={{ width: navigationCollapsed ? 68 : 228 }}
       initial={false}
       transition={{ duration: DURATION.slow, ease: EASE_OUT }}
       className="flex h-full flex-shrink-0 flex-col overflow-hidden"
@@ -150,7 +158,7 @@ export default function NavShell({ userInitial = 'C', userName = 'consultor', is
             <Image src={LOGO_URL} alt="Alliance" width={36} height={36} className="object-contain" />
           </div>
           <AnimatePresence initial={false}>
-            {!collapsed && (
+            {!navigationCollapsed && (
               <motion.div
                 initial={{ opacity: 0, x: -4 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -175,16 +183,16 @@ export default function NavShell({ userInitial = 'C', userName = 'consultor', is
       {/* Navegação principal */}
       <nav className="flex flex-1 flex-col gap-1 overflow-hidden px-2.5">
         {NAV_ITEMS.map(entry => (
-          <NavItem key={entry.href} entry={entry} collapsed={collapsed} active={isActive(entry.href)} />
+          <NavItem key={entry.href} entry={entry} collapsed={navigationCollapsed} active={isActive(entry.href)} />
         ))}
       </nav>
 
       {/* Disparos */}
       <div className="flex-shrink-0 px-2.5 pb-1">
-        <SectionHeading collapsed={collapsed}>Disparos</SectionHeading>
+        <SectionHeading collapsed={navigationCollapsed}>Disparos</SectionHeading>
         <div className="flex flex-col gap-1">
           {DISPARO_ITEMS.map(entry => (
-            <NavItem key={entry.href} entry={entry} collapsed={collapsed} active={isActive(entry.href)} />
+            <NavItem key={entry.href} entry={entry} collapsed={navigationCollapsed} active={isActive(entry.href)} />
           ))}
         </div>
       </div>
@@ -192,10 +200,10 @@ export default function NavShell({ userInitial = 'C', userName = 'consultor', is
       {/* Sistema */}
       {isAdm && (
         <div className="flex-shrink-0 px-2.5 pb-2">
-          <SectionHeading collapsed={collapsed}>Sistema</SectionHeading>
+          <SectionHeading collapsed={navigationCollapsed}>Sistema</SectionHeading>
           <div className="flex flex-col gap-1">
             {SYSTEM_ITEMS.map(entry => (
-              <NavItem key={entry.href} entry={entry} collapsed={collapsed} active={isActive(entry.href)} />
+              <NavItem key={entry.href} entry={entry} collapsed={navigationCollapsed} active={isActive(entry.href)} />
             ))}
           </div>
         </div>
@@ -207,10 +215,10 @@ export default function NavShell({ userInitial = 'C', userName = 'consultor', is
       <div
         className={cn(
           'flex flex-shrink-0 flex-col px-3 pb-4 pt-3',
-          collapsed ? 'items-center gap-2.5' : 'gap-2.5',
+          navigationCollapsed ? 'items-center gap-2.5' : 'gap-2.5',
         )}
       >
-        <div className={cn('flex items-center', collapsed ? 'justify-center' : 'gap-2.5')}>
+        <div className={cn('flex items-center', navigationCollapsed ? 'justify-center' : 'gap-2.5')}>
           <div className="relative flex-shrink-0">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-xs font-semibold text-white">
               {userInitial}
@@ -222,7 +230,7 @@ export default function NavShell({ userInitial = 'C', userName = 'consultor', is
             />
           </div>
           <AnimatePresence initial={false}>
-            {!collapsed && (
+            {!navigationCollapsed && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -239,15 +247,18 @@ export default function NavShell({ userInitial = 'C', userName = 'consultor', is
           </AnimatePresence>
         </div>
 
-        <div className={cn('flex items-center gap-1', collapsed && 'flex-col')}>
+        <div className={cn('flex items-center gap-1', navigationCollapsed && 'flex-col')}>
           <ThemeToggle />
           <button
             onClick={toggleCollapse}
-            title={collapsed ? 'Expandir menu' : 'Recolher menu'}
-            aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-white/55 transition-ui hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            title={navigationCollapsed ? 'Expandir menu' : 'Recolher menu'}
+            aria-label={navigationCollapsed ? 'Expandir menu' : 'Recolher menu'}
+            className={cn(
+              'h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-white/55 transition-ui hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60',
+              compactViewport ? 'hidden' : 'flex',
+            )}
           >
-            {collapsed ? <PanelLeftOpen size={ICON.sm} /> : <PanelLeftClose size={ICON.sm} />}
+            {navigationCollapsed ? <PanelLeftOpen size={ICON.sm} /> : <PanelLeftClose size={ICON.sm} />}
           </button>
         </div>
       </div>
