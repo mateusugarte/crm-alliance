@@ -3,7 +3,7 @@ import { sendTextMessage } from '@/lib/whatsapp/send'
 import { centralQuery } from './db'
 
 const DEFAULT_GROUP_JID = process.env.QUALIFICADO_ALERT_GROUP_JID || '120363429109259182@g.us'
-const DEFAULT_CRM_URL = 'https://crm.alliance.com.br'
+const DEFAULT_CRM_URL = 'https://crm-alliance.vercel.app'
 
 interface DailyContactRow {
   tarefa_id: string
