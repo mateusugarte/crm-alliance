@@ -54,7 +54,7 @@ export default function LoginPage() {
         className="absolute inset-0"
         style={{
           background:
-            'radial-gradient(ellipse 80% 70% at 50% 50%, oklch(0.16 0.05 264 / 0.72) 0%, oklch(0.13 0.04 264 / 0.92) 70%, oklch(0.11 0.035 264 / 0.96) 100%)',
+            'radial-gradient(ellipse 75% 65% at 50% 45%, oklch(0.16 0.05 264 / 0.42) 0%, oklch(0.13 0.04 264 / 0.80) 62%, oklch(0.11 0.035 264 / 0.93) 100%)',
         }}
       />
 
@@ -80,8 +80,10 @@ export default function LoginPage() {
           onSubmit={handleSubmit}
           className="flex flex-col gap-4 rounded-[var(--radius-panel)] border border-white/10 px-7 py-7"
           style={{
-            background: 'oklch(0.17 0.03 264 / 0.82)',
-            boxShadow: '0 24px 64px oklch(0 0 0 / 0.45)',
+            // Quase opaco de propósito: o véu de fundo é leve para a fachada
+            // aparecer, então a legibilidade do formulário tem de vir do card.
+            background: 'oklch(0.165 0.028 264 / 0.94)',
+            boxShadow: '0 24px 64px oklch(0 0 0 / 0.5)',
           }}
         >
           <div className="flex flex-col gap-1.5">
