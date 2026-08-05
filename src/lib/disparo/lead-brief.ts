@@ -141,24 +141,41 @@ function isUsefulInbound(value: string) {
  */
 const THIRD_PARTY_BOT = [
   /\bcanal de atendimento\b/i,
-  /\bdigite\s+["“]?\d|\bdigite\s+["“]?(?:sair|menu|voltar)/i,
-  /\bhor[aá]rio de (?:atendimento|almo[cç]o)\b/i,
+  /\bdigit(?:e|ar|ando)\s+["“]?(?:\d|sair|menu|voltar|op[cç][aã]o)/i,
+  /\bhor[aá]rio de (?:atendimento|almo[cç]o|funcionamento)\b/i,
   /\bprotocolo\b.{0,20}\d{4}/i,
   /\b(?:linktr\.ee|bit\.ly)\//i,
-  /\b(?:matr[ií]cula|inscri[cç][aã]o|bolsa|vestibular|faculdade|curso)s?\b.{0,60}\b(?:acesse|portal|link)\b/i,
+  /\b(?:matr[ií]cula|inscri[cç][aã]o|bolsa|vestibular|faculdade|curso)s?\b.{0,80}\b(?:acesse|portal|link|https?:)/i,
   /\bnosso time\b.{0,40}\b(?:dispon[ií]vel|atender)\b/i,
-  /\bseja bem[- ]vindo\(a\)\b/i,
+  /\bseja bem[- ]vindo(?:\(a\)|a)?\b.{0,40}\b(?:ao|nosso|mundo)\b/i,
+  /\bbem[- ]vindo\b.{0,20}\bao mundo\b/i,
+  /\b(?:um|nosso) (?:corretor|consultor|especialista|atendente)\b.{0,40}\b(?:ir[aá] lhe ligar|entrar[aá] em contato)\b/i,
 ]
 
+/**
+ * Uma broadcast de marketing de outra empresa não é lead.
+ *
+ * A amostra do banco trouxe dois casos reais recebendo campanha: o robô de
+ * matrículas da Estácio (dezenas de interações de dois bots conversando entre
+ * si) e o atendente automático de uma imobiliária concorrente.
+ */
 function looksLikeThirdPartyBot(name: string | null, inbound: string[]) {
   const text = inbound.join('\n')
   const hits = THIRD_PARTY_BOT.filter(pattern => pattern.test(text)).length
   if (hits >= 2) return true
   // Um marcador forte já basta quando o nome também é de empresa.
   if (hits >= 1 && BUSINESS_NAME.test(normalizeSpaces(name ?? ''))) return true
-  // Mensagens idênticas repetidas: assinatura de loop entre dois robôs.
+
+  // Repetição literal de mensagem longa: pessoa não reenvia o mesmo texto de
+  // 100+ caracteres várias vezes; robô em loop, sim. Sozinho já é conclusivo.
+  const longMessages = inbound.filter(item => item.length >= 100).map(item => item.slice(0, 120))
+  const repeats = new Map<string, number>()
+  for (const item of longMessages) repeats.set(item, (repeats.get(item) ?? 0) + 1)
+  if ([...repeats.values()].some(count => count >= 3)) return true
+
+  // Um marcador somado a conversa que nunca varia também fecha o diagnóstico.
   const unique = new Set(inbound.map(item => item.slice(0, 80)))
-  return inbound.length >= 6 && unique.size <= 2
+  return hits >= 1 && inbound.length >= 4 && unique.size <= 2
 }
 
 /**
@@ -178,13 +195,30 @@ export function exclusionReason(name: string | null, inbound: string[]): string 
   if (looksLikeThirdPartyBot(name, inbound)) {
     return 'O número é um atendimento automático de outra empresa, não um lead.'
   }
-  const text = inbound.join(' \n ')
-  if (/\b(n[aã]o tenho|sem|nenhum) interesse\b/i.test(text)) {
-    return 'O lead declarou que não tem interesse.'
+  const refusal = /\b(n[aã]o tenho|sem|nenhum) interesse\b/i
+  const purchased = /\bj[aá] (?:comprei|adquiri|fechei|escolhi)\b.{0,80}\b(outro|outra|apartamento|im[oó]vel)\b/i
+
+  /**
+   * A recusa só vale se for a última palavra do lead sobre o assunto.
+   *
+   * A auditoria contra o banco pegou um caso real: o Romário abriu com "no
+   * momento não tenho interesse" e, nas mensagens seguintes, perguntou sobre
+   * financiamento e disse que precisava de um apartamento entre 300 e 350 mil.
+   * Ele não é um lead perdido — é um lead com faixa de preço definida. Excluir
+   * pela mensagem mais antiga descarta quem voltou a conversar.
+   */
+  const lastRefusal = inbound.findLastIndex(message => refusal.test(message) || purchased.test(message))
+  if (lastRefusal >= 0) {
+    const reengaged = inbound
+      .slice(lastRefusal + 1)
+      .some(message => SIGNAL_RULES.some(rule => rule.pattern.test(message)))
+    if (!reengaged) {
+      return purchased.test(inbound[lastRefusal]!)
+        ? 'O lead informou que já comprou outro imóvel.'
+        : 'O lead declarou que não tem interesse.'
+    }
   }
-  if (/\bj[aá] (?:comprei|adquiri|fechei|escolhi)\b.{0,80}\b(outro|outra|apartamento|im[oó]vel)\b/i.test(text)) {
-    return 'O lead informou que já comprou outro imóvel.'
-  }
+
   return null
 }
 
@@ -270,12 +304,13 @@ export function buildLeadBrief(lead: BriefLead, interactions: BriefInteraction[]
     ? { quote: top.quote.slice(0, 260), score: top.score, angle: top.angle }
     : null
 
-  const signals = Array.from(new Set(scored.flatMap(item => item.labels))).slice(0, 5)
+  const collected = Array.from(new Set(scored.flatMap(item => item.labels)))
 
   // Intenção declarada no CRM entra como sinal quando a conversa não a revelou.
-  if (lead.intention && !signals.some(signal => signal.includes('intenção'))) {
-    signals.push(`intenção registrada no CRM: ${lead.intention}`)
+  if (lead.intention && !collected.some(signal => signal.includes('intenção'))) {
+    collected.push(`intenção registrada no CRM: ${lead.intention}`)
   }
+  const signals = collected.slice(0, 5)
 
   return {
     eligible: !exclusion,

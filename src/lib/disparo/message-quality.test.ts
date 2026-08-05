@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hasBlocker, inspectMessage, repairMessage } from './message-quality'
+import { fallbackMessage, hasBlocker, inspectMessage, repairMessage } from './message-quality'
 import { sanitizeCampaignTheme } from './reactivation-message'
 
 const TEMA = `As obras do La Reserva avançaram bastante desde o nosso último contato: a fundação já está praticamente concluída e, em breve, começamos a subir os andares.
@@ -86,5 +86,34 @@ describe('adaptação em vez de descarte', () => {
     const { message, repaired } = repairMessage(boa, 'conversation', 'Ana', 'Faz sentido?')
     expect(repaired).toHaveLength(0)
     expect(message).toBe(boa)
+  })
+
+  it('detecta problema mesmo quando chamado duas vezes seguidas', () => {
+    // Os padrões globais guardavam lastIndex entre chamadas de .test(), então a
+    // segunda verificação do mesmo texto dava negativo.
+    const ruim = 'Olá! Tem valorização garantida até a entrega. Faz sentido?'
+    expect(inspectMessage(ruim, 'conversation', null).map(i => i.code)).toContain('promessa_de_valorizacao')
+    expect(inspectMessage(ruim, 'conversation', null).map(i => i.code)).toContain('promessa_de_valorizacao')
+  })
+})
+
+describe('mensagem de segurança', () => {
+  it('respeita as próprias regras do sistema', () => {
+    // A primeira versão colava o tema cru depois da saudação, e o texto-base do
+    // corretor contém a frase proibida sobre "tomar a melhor decisão".
+    const message = fallbackMessage(
+      sanitizeCampaignTheme(`${TEMA}\n\nEstou aqui pra te ajudar a tomar a melhor decisão.`, 'no_history'),
+      null, 'no_history', 'Faz sentido pra você?',
+    )
+    expect(message).not.toMatch(/tomar a melhor decis/i)
+    expect(message).not.toMatch(/último contato/i)
+    expect(hasBlocker(inspectMessage(message, 'no_history', null))).toBe(false)
+    expect(message).toContain('?')
+  })
+
+  it('usa o nome quando ele é confiável e preserva os parágrafos', () => {
+    const message = fallbackMessage(sanitizeCampaignTheme(TEMA, 'sparse'), 'Ana', 'sparse', 'Faz sentido?')
+    expect(message.startsWith('Olá, Ana!')).toBe(true)
+    expect(message).toContain('\n\n')
   })
 })

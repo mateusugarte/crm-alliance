@@ -38,12 +38,50 @@ describe('exclusão de contatos', () => {
   })
 
   it('exclui bot que repete a mesma mensagem em loop', () => {
-    const repetida = 'Olá, Boa noite! Bem-vindo ao mundo Estácio! Curioso para começar a faculdade com desconto?'
-    expect(exclusionReason('Lead', Array.from({ length: 8 }, () => repetida))).toMatch(/atendimento autom/i)
+    // Texto real do banco: o robô de matrículas da Estácio conversando com a
+    // Alice. Repare que ele diz "digitar", não "digite", e que o nome
+    // cadastrado é só "Lead" — nenhum dos dois sinais isolados bastava.
+    const repetida = 'Olá, Boa noite! Bem-vindo ao mundo Estácio! Curioso para começar a faculdade com desconto e praticidade? Eu te mostro rapidinho! Tem desconto, tem bolsa, tem novidade! E se quiser dar uma pausa, é só digitar "sair", certo?'
+    expect(exclusionReason('Lead', Array.from({ length: 4 }, () => repetida))).toMatch(/atendimento autom/i)
+  })
+
+  it('exclui bot mesmo com poucas repetições, pelo texto', () => {
+    const inbound = [
+      'Olá! Bem-vindo ao mundo Estácio! Curioso para começar a faculdade com desconto? É só digitar "sair" para pausar.',
+      'Como fiquei sem resposta, vou encerrar nossa conversa aqui. Para mais informações sobre cursos e ainda fazer a sua inscrição acesse: https://www.estacio.br/selecao',
+    ]
+    expect(exclusionReason('Lead', inbound)).toMatch(/atendimento autom/i)
+  })
+
+  it('não confunde lead que manda mensagens curtas repetidas', () => {
+    // Duplicação de webhook é comum e não pode custar um lead real.
+    expect(exclusionReason('Gustavo', [
+      'Financia também?', 'Financia também?', 'Qual prazo pra ficar pronto?', 'Qual prazo pra ficar pronto?',
+    ])).toBeNull()
   })
 
   it('continua excluindo quem declarou não ter interesse', () => {
     expect(exclusionReason('Marcos', ['obrigado mas não tenho interesse'])).toMatch(/não tem interesse/i)
+  })
+
+  it('não exclui quem recusou e depois voltou a negociar', () => {
+    // Caso real do banco: o Romário abriu recusando e, nas mensagens seguintes,
+    // perguntou sobre financiamento e definiu a faixa de preço. Excluir pela
+    // mensagem mais antiga descartava um lead com orçamento declarado.
+    expect(exclusionReason('Romário', [
+      'Boa noite! No momento não tenho interesse, obrigado!',
+      'Financia?',
+      'Tá longe do meu orçamento, tem que ser um Ap de 300 a 350k',
+    ])).toBeNull()
+  })
+
+  it('exclui quando a recusa é a última palavra sobre o assunto', () => {
+    expect(exclusionReason('Samuel', [
+      'Olá! Tenho interesse e queria mais informações, por favor.',
+      'Qual o preço do imóvel?',
+      'Boa tarde. Agradeço o envio do PDF mas não tenho interesse. Boas vendas, forte abraço.',
+      'Pra vc tbm. Obrigado.',
+    ])).toMatch(/não tem interesse/i)
   })
 })
 

@@ -100,9 +100,11 @@ function parseModelMessage(value: string) {
  */
 export function sanitizeCampaignTheme(theme: string, mode: ContextMode) {
   if (mode === 'conversation') return theme.trim()
-  const cleaned = theme.replace(FALSE_CONTINUITY, '')
-  FALSE_CONTINUITY.lastIndex = 0
-  return cleaned.replace(/[ \t]{2,}/g, ' ').replace(/\s+([,.:;!?])/g, '$1').trim()
+  return theme
+    .replace(FALSE_CONTINUITY.all, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/[ \t]+([,.:;!?])/g, '$1')
+    .trim()
 }
 
 function buildPrompt(
@@ -199,8 +201,13 @@ async function callModel(
       { role: 'user', content: prompt },
     ],
     response_format: { type: 'json_object' },
-    // Folga suficiente para 520 caracteres + envelope JSON sem truncar.
-    max_completion_tokens: 700,
+    // A família gpt-5 gasta tokens de raciocínio do MESMO orçamento da
+    // resposta. Escrever uma mensagem de WhatsApp não precisa de raciocínio
+    // longo, e sem baixar o esforço o raciocínio come o teto e a mensagem
+    // volta truncada ou vazia. Com esforço mínimo, 900 tokens cobrem os 520
+    // caracteres pedidos mais o envelope JSON com folga.
+    reasoning_effort: 'minimal',
+    max_completion_tokens: 900,
   })
   return completion.choices[0]?.message?.content ?? ''
 }
@@ -233,47 +240,61 @@ export async function generateReactivationMessage(input: {
   }
 
   const closing = CLOSING_QUESTION[brief.angle]
+  const safeTheme = sanitizeCampaignTheme(input.campaignTheme, brief.mode)
   let corrections: string[] = []
-  let best: { message: string; issues: QualityIssue[]; repaired: string[] } | null = null
+  let best: { message: string; issues: QualityIssue[]; repaired: string[]; attempt: number } | null = null
+
+  /**
+   * Uma tentativa sem bloqueio sempre ganha de uma com bloqueio, mesmo que
+   * tenha mais avisos de estilo. Comparar só pela quantidade de problemas
+   * fazia a segunda tentativa — limpa, porém com dois ajustes cosméticos —
+   * perder para a primeira, que tinha um único problema mas era um bloqueio.
+   * O efeito era cair no fallback justamente quando a regeneração deu certo.
+   */
+  const isBetter = (
+    candidate: { issues: QualityIssue[] },
+    current: { issues: QualityIssue[] } | null,
+  ) => {
+    if (!current) return true
+    const candidateBlocked = hasBlocker(candidate.issues)
+    const currentBlocked = hasBlocker(current.issues)
+    if (candidateBlocked !== currentBlocked) return !candidateBlocked
+    return candidate.issues.length < current.issues.length
+  }
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const raw = await callModel(
-      input.openai,
-      buildPrompt(input.lead, input.campaignTheme, input.manualContext?.trim() ?? '', brief, corrections),
-    )
-    const generated = parseModelMessage(raw)
+    let generated = ''
+    try {
+      generated = parseModelMessage(await callModel(
+        input.openai,
+        buildPrompt(input.lead, input.campaignTheme, input.manualContext?.trim() ?? '', brief, corrections),
+      ))
+    } catch {
+      continue // rede ou API instável: tenta de novo, e o fallback cobre o resto
+    }
+    if (!generated) continue
 
     // Conserta o que tem solução textual antes de julgar. É o ponto central da
     // mudança: a mensagem é ADAPTADA para caber na regra, não descartada.
     const { message, repaired } = repairMessage(generated, brief.mode, brief.safeName, closing)
     const issues = inspectMessage(message, brief.mode, brief.safeName)
 
-    if (!best || issues.length < best.issues.length) best = { message, issues, repaired }
+    if (isBetter({ issues }, best)) best = { message, issues, repaired, attempt }
     if (!hasBlocker(issues)) break
 
     corrections = issues.filter(issue => issue.severity === 'bloqueio').map(issue => issue.correction)
   }
 
-  if (!best || !best.message) {
+  // Sem mensagem utilizável, ou com bloqueio que sobreviveu a duas tentativas e
+  // ao reparo: sai a mensagem de segurança em vez de string vazia. O corretor
+  // sempre recebe algo enviável — era o beco sem saída do fluxo antigo.
+  if (!best || !best.message || hasBlocker(best.issues)) {
     return {
       ...base,
-      message: fallbackMessage(sanitizeCampaignTheme(input.campaignTheme, brief.mode), brief.safeName),
+      message: fallbackMessage(safeTheme, brief.safeName, brief.mode, closing),
       eligible: true,
       exclusion_reason: null,
-      quality_flags: ['fallback_sem_personalizacao'],
-      resolution: 'fallback',
-    }
-  }
-
-  // Bloqueio que sobreviveu a duas tentativas e ao reparo: manda a mensagem de
-  // segurança em vez de string vazia. O corretor sempre recebe algo enviável.
-  if (hasBlocker(best.issues)) {
-    return {
-      ...base,
-      message: fallbackMessage(sanitizeCampaignTheme(input.campaignTheme, brief.mode), brief.safeName),
-      eligible: true,
-      exclusion_reason: null,
-      quality_flags: [...best.issues.map(issue => issue.code), 'fallback_sem_personalizacao'],
+      quality_flags: [...(best?.issues.map(issue => issue.code) ?? []), 'fallback_sem_personalizacao'],
       resolution: 'fallback',
     }
   }
@@ -284,6 +305,6 @@ export async function generateReactivationMessage(input: {
     eligible: true,
     exclusion_reason: null,
     quality_flags: [...best.repaired.map(code => `ajustado:${code}`), ...best.issues.map(issue => issue.code)],
-    resolution: best.repaired.length ? 'ajustada' : 'direta',
+    resolution: best.attempt > 0 ? 'regenerada' : best.repaired.length ? 'ajustada' : 'direta',
   }
 }
