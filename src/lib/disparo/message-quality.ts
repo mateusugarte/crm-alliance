@@ -77,6 +77,29 @@ const MEMORY_CHECK = /\b(?:lembra(?:-se)?\??|ainda (?:procura|busca|est[aá] pro
  *  uma conversa antiga quebra a confiança na hora em que o cliente confere. */
 const STALE_FIGURE = /R\$\s?\d|\b\d{1,3}(?:\.\d{3})+(?:,\d{2})?\b|\b\d+[,.]?\d*\s?m²|\b\d+\s+parcelas?\b/i
 
+/**
+ * Detalhes que afirmam algo sobre a vida do cliente.
+ *
+ * Existem porque o modelo copiou o exemplo do prompt para dentro de uma
+ * mensagem real: o exemplo falava de um lote dado como entrada e de um
+ * apartamento de 2 quartos, e isso apareceu na mensagem de um cliente cujo
+ * histórico não tinha nada disso. Cada termo só pode ser usado se estiver no
+ * contexto real do lead ou no texto da campanha.
+ */
+const GROUNDED_TERMS: Array<{ code: string; pattern: RegExp }> = [
+  { code: 'lote', pattern: /\blotes?\b/i },
+  { code: 'terreno', pattern: /\bterrenos?\b/i },
+  { code: 'permuta', pattern: /\bpermut(?:a|ar)\b/i },
+  { code: 'quartos', pattern: /\b\d+\s*quartos?\b/i },
+  { code: 'suíte', pattern: /\bsu[ií]tes?\b/i },
+  { code: 'cobertura', pattern: /\bcoberturas?\b/i },
+  { code: 'garagem', pattern: /\bvagas?\b.{0,12}\bgaragem\b/i },
+  { code: 'varanda', pattern: /\bvarandas?\b/i },
+  { code: 'closet', pattern: /\bclosets?\b/i },
+  { code: 'financiamento', pattern: /\bfinancia(?:mento|r)\b/i },
+  { code: 'investimento', pattern: /\binvestimento\b|\binvestir\b/i },
+]
+
 /* -------------------------------------------------------------------------
    Diagnóstico
    ---------------------------------------------------------------------- */
@@ -87,9 +110,28 @@ export function inspectMessage(
   safeName: string | null,
   /** Texto da campanha: números que vêm dele são atuais e podem ser repetidos. */
   campaignTheme = '',
+  /** Conversa real do lead: âncora e histórico, para checar se o que a
+   *  mensagem afirma sobre ele tem lastro. */
+  leadContext = '',
 ): QualityIssue[] {
   const issues: QualityIssue[] = []
   const questionCount = (message.match(/\?/g) ?? []).length
+  const grounding = `${leadContext}\n${campaignTheme}`
+
+  // Só verifica quando há contexto para comparar; sem lastro conhecido a
+  // checagem acusaria tudo.
+  if (leadContext) {
+    const invented = GROUNDED_TERMS
+      .filter(term => term.pattern.test(message) && !term.pattern.test(grounding))
+      .map(term => term.code)
+    if (invented.length) {
+      issues.push({
+        code: 'detalhe_nao_comprovado',
+        severity: 'bloqueio',
+        correction: `não afirme nada sobre ${invented.join(', ')} — o cliente nunca falou disso; use apenas o que está na seção O CLIENTE`,
+      })
+    }
+  }
 
   if (MEMORY_OPENER.test(message.slice(0, OPENING_WINDOW))) {
     issues.push({

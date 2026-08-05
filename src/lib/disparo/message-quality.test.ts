@@ -164,3 +164,36 @@ describe('mensagem de segurança', () => {
     expect(message).toContain('\n\n')
   })
 })
+
+describe('detalhe inventado sobre o cliente', () => {
+  const contextoAna = 'Seria de 2 quartos pode ser o mais basico\nEntão seria pra morar e eu possuo um lote avaliado em R$ 125.000'
+  const contextoGustavo = 'Financia também? Qual prazo pra ficar pronto?'
+
+  it('bloqueia lote e quartos num lead que nunca falou disso', () => {
+    // Falha real: o modelo copiou o exemplo do prompt — que falava de lote e
+    // de 2 quartos — para dentro da mensagem de um cliente sem nada disso.
+    const vazado = 'Oi, Gustavo! A obra do La Reserva avançou e a fundação está concluída.\n\nLembrei de você por causa dos 2 quartos, e se aquele lote ainda estiver de pé dá pra usar como entrada.\n\nQuer que eu levante as condições?'
+    const codes = inspectMessage(vazado, 'conversation', 'Gustavo', '', contextoGustavo).map(i => i.code)
+    expect(codes).toContain('detalhe_nao_comprovado')
+  })
+
+  it('aceita o mesmo detalhe quando o cliente realmente falou dele', () => {
+    const legitima = 'Oi, Ana! A obra do La Reserva avançou e a fundação está concluída.\n\nLembrei de você por causa dos 2 quartos — se aquele lote ainda estiver de pé, dá pra usar como parte da entrada.\n\nQuer que eu levante as condições?'
+    const codes = inspectMessage(legitima, 'conversation', 'Ana', '', contextoAna).map(i => i.code)
+    expect(codes).not.toContain('detalhe_nao_comprovado')
+  })
+
+  it('aceita detalhe que vem do texto da campanha', () => {
+    const tema = 'Ainda temos coberturas disponíveis no La Reserva.'
+    const codes = inspectMessage(
+      'Oi, Gustavo! A obra avançou e ainda temos coberturas disponíveis. Quer conhecer?',
+      'conversation', 'Gustavo', tema, contextoGustavo,
+    ).map(i => i.code)
+    expect(codes).not.toContain('detalhe_nao_comprovado')
+  })
+
+  it('não acusa nada quando não há contexto para comparar', () => {
+    const codes = inspectMessage('Olá! A obra avançou. Quer saber mais?', 'sparse', null).map(i => i.code)
+    expect(codes).not.toContain('detalhe_nao_comprovado')
+  })
+})

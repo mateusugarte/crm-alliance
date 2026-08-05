@@ -175,16 +175,18 @@ ${brief.mode !== 'conversation' ? '- "último contato", "como conversamos" ou eq
 ## FORMATO
 2 ou 3 parágrafos curtos, entre 220 e 520 caracteres no total, terminando com UMA pergunta.
 ${corrections.length ? `\n## CORRIJA DA TENTATIVA ANTERIOR\n${corrections.map(item => `- ${item}`).join('\n')}\n` : ''}
-## EXEMPLO DO PADRÃO ESPERADO
-Referência interna: o cliente tinha um lote para dar de entrada e buscava 2 quartos.
+## A ESTRUTURA — copie o formato, JAMAIS o conteúdo
 
-"Oi, Ana! Passando pra contar que a obra do La Reserva avançou: a fundação está concluída e em breve começamos a subir os andares.
+Parágrafo 1: saudação com o nome + a novidade da obra, em uma frase.
+Parágrafo 2: por que você lembrou DESTE cliente. Use o interesse da seção
+             "O CLIENTE" acima e trate-o como algo que PODE continuar valendo
+             ("se ainda fizer sentido", "caso ainda esteja procurando").
+Parágrafo 3: uma pergunta curta, fácil de responder.
 
-Lembrei de você por causa dos 2 quartos — ainda temos unidade, e se aquele lote ainda estiver de pé, dá pra usar como parte da entrada.
-
-Quer que eu levante as condições atualizadas?"
-
-Repare: abre pela obra, não pelo cliente. O lote aparece como possibilidade ("se ainda estiver de pé"), não como fato lembrado. Nenhum valor é repetido. Faça o mesmo.
+ATENÇÃO: o parágrafo 2 só pode falar do que está na seção "O CLIENTE" desta
+mensagem. Não existe lote, metragem, número de quartos, cidade ou orçamento
+além do que está escrito lá. Inventar um detalhe que o cliente nunca disse é
+o pior erro possível — ele percebe na hora e a conversa acaba.
 
 Responda em JSON válido: {"message":"texto final"}`
 }
@@ -317,7 +319,10 @@ export async function generateReactivationMessage(input: {
     // Conserta o que tem solução textual antes de julgar. É o ponto central da
     // mudança: a mensagem é ADAPTADA para caber na regra, não descartada.
     const { message, repaired } = repairMessage(generated, brief.mode, brief.safeName, closing)
-    const issues = inspectMessage(message, brief.mode, brief.safeName, safeTheme)
+    const issues = inspectMessage(
+      message, brief.mode, brief.safeName, safeTheme,
+      [anchor.quote, ...brief.signals, ...brief.transcript].join('\n'),
+    )
 
     if (isBetter({ issues }, best)) best = { message, issues, repaired, attempt }
     if (!hasBlocker(issues)) break
