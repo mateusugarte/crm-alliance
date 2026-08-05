@@ -72,6 +72,9 @@
   --color-stage-nao-respondeu: var(--stage-nao-respondeu);
   --color-stage-nao-respondeu-soft: var(--stage-nao-respondeu-soft);
   --color-stage-nao-respondeu-ink: var(--stage-nao-respondeu-ink);
+  --color-stage-fornecedores: var(--stage-fornecedores);
+  --color-stage-fornecedores-soft: var(--stage-fornecedores-soft);
+  --color-stage-fornecedores-ink: var(--stage-fornecedores-ink);
   --color-stage-frio: var(--stage-frio);
   --color-stage-frio-soft: var(--stage-frio-soft);
   --color-stage-frio-ink: var(--stage-frio-ink);
@@ -241,6 +244,10 @@
   --stage-nao-respondeu-soft: oklch(0.963 0.005 262);
   --stage-nao-respondeu-ink: oklch(0.455 0.016 262);
 
+  --stage-fornecedores: oklch(0.600 0.085 190);
+  --stage-fornecedores-soft: oklch(0.962 0.020 190);
+  --stage-fornecedores-ink: oklch(0.430 0.070 190);
+
   --stage-frio: oklch(0.620 0.155 250);
   --stage-frio-soft: oklch(0.962 0.026 250);
   --stage-frio-ink: oklch(0.445 0.135 252);
@@ -358,6 +365,10 @@
   --stage-nao-respondeu: oklch(0.655 0.018 262);
   --stage-nao-respondeu-soft: oklch(0.290 0.010 262);
   --stage-nao-respondeu-ink: oklch(0.795 0.014 262);
+
+  --stage-fornecedores: oklch(0.680 0.090 190);
+  --stage-fornecedores-soft: oklch(0.295 0.040 190);
+  --stage-fornecedores-ink: oklch(0.815 0.070 190);
 
   --stage-frio: oklch(0.688 0.145 250);
   --stage-frio-soft: oklch(0.298 0.060 250);

@@ -16,12 +16,13 @@
  */
 import type { IconComponent } from '@/lib/icons'
 import {
-  Ban, CalendarCheck, CheckCircle2, Crown, Flame,
+  Ban, Building2, CalendarCheck, CheckCircle2, Crown, Flame,
   MessageCircleOff, RefreshCw, Snowflake, Zap,
 } from '@/lib/icons'
 
 export type StageKey =
   | 'nao_respondeu'
+  | 'fornecedores'
   | 'lead_frio'
   | 'lead_morno'
   | 'lead_quente'
@@ -61,6 +62,13 @@ export const STAGES: Record<StageKey, StageConfig> = {
     shortLabel: 'Sem resposta',
     icon: MessageCircleOff,
     ...token('nao-respondeu'),
+  },
+  fornecedores: {
+    key: 'fornecedores',
+    label: 'Fornecedores',
+    shortLabel: 'Fornecedores',
+    icon: Building2,
+    ...token('fornecedores'),
   },
   lead_frio: {
     key: 'lead_frio',
@@ -123,6 +131,7 @@ export const STAGES: Record<StageKey, StageConfig> = {
 /** Ordem canônica do funil — do primeiro contato ao fechamento. */
 export const STAGE_ORDER: StageKey[] = [
   'nao_respondeu',
+  'fornecedores',
   'lead_frio',
   'lead_morno',
   'lead_quente',

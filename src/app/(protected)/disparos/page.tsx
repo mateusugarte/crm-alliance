@@ -39,6 +39,10 @@ const TABS = [
   { id: 'templates',  label: 'Templates',  icon: FileText },
 ] as const
 
+// Contatos não compradores permanecem consultáveis no CRM, mas nunca podem
+// ser selecionados para uma campanha por estágio.
+const CAMPAIGN_COLUMNS = KANBAN_COLUMNS.filter(column => column.id !== 'fornecedores')
+
 type TabId = typeof TABS[number]['id']
 
 const STATUS_STYLES: Record<string, string> = {
@@ -585,7 +589,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                       </div>
                     ) : (
                       <div className="flex gap-3 overflow-x-auto pb-2">
-                        {KANBAN_COLUMNS.map(col => {
+                        {CAMPAIGN_COLUMNS.map(col => {
                           const stageLeads = leadsByStage[col.id] ?? []
                           if (stageLeads.length === 0) return null
                           const selectedInStage = stageLeads.filter(l => selectedLeadIds.has(l.id)).length
@@ -1255,7 +1259,7 @@ function TabCampanhas({ router }: { router: ReturnType<typeof useRouter> }) {
                       </div>
                     ) : (
                       <div className="flex gap-3 overflow-x-auto pb-2">
-                        {KANBAN_COLUMNS.map(col => {
+                        {CAMPAIGN_COLUMNS.map(col => {
                           const stageLeads = leadsByStage[col.id] ?? []
                           if (stageLeads.length === 0) return null
                           const selectedInStage = stageLeads.filter(l => selectedLeadIds.has(l.id)).length

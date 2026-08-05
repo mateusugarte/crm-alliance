@@ -248,6 +248,7 @@ export interface Database {
           city: string | null
           stage:
             | 'nao_respondeu'
+            | 'fornecedores'
             | 'lead_frio'
             | 'lead_morno'
             | 'lead_quente'
@@ -298,6 +299,7 @@ export interface Database {
           city?: string | null
           stage?:
             | 'nao_respondeu'
+            | 'fornecedores'
             | 'lead_frio'
             | 'lead_morno'
             | 'lead_quente'

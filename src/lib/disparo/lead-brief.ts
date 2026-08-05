@@ -185,6 +185,17 @@ const THIRD_PARTY_BOT = [
   /\b(?:um|nosso) (?:corretor|consultor|especialista|atendente)\b.{0,40}\b(?:ir[aá] lhe ligar|entrar[aá] em contato)\b/i,
 ]
 
+/** Assinaturas de terceiros específicas o bastante para um único acerto bastar. */
+const STRONG_THIRD_PARTY_BOT = [
+  /\b(?:assistente virtual|intelig[eê]ncia artificial) da UNIASSELVI\b/i,
+  /\bassistente virtual da PUCRS\b/i,
+  /\bbem[- ]vindo ao mundo Est[aá]cio\b/i,
+  /\bA Decolar te aguarda\b/i,
+  /\bConcession[aá]ria Honda\b/i,
+  /\bempresa ProHair\b/i,
+  /\bWhatsApp (?:é )?utilizado exclusivamente para o envio de informa[cç][oõ]es\b/i,
+]
+
 /**
  * Uma broadcast de marketing de outra empresa não é lead.
  *
@@ -194,6 +205,7 @@ const THIRD_PARTY_BOT = [
  */
 function looksLikeThirdPartyBot(name: string | null, inbound: string[]) {
   const text = inbound.join('\n')
+  if (STRONG_THIRD_PARTY_BOT.some(pattern => pattern.test(text))) return true
   const hits = THIRD_PARTY_BOT.filter(pattern => pattern.test(text)).length
   if (hits >= 2) return true
   // Um marcador forte já basta quando o nome também é de empresa.
@@ -211,16 +223,6 @@ function looksLikeThirdPartyBot(name: string | null, inbound: string[]) {
   return hits >= 1 && inbound.length >= 4 && unique.size <= 2
 }
 
-/**
- * Motivos para tirar o contato da campanha.
- *
- * A regra de emprego saiu de propósito. Ela procurava `emprego|vaga|currículo`
- * e a simulação flagrou um comprador em negociação ativa sendo descartado como
- * candidato a vaga — a palavra que disparou foi "**vaga** de garagem". Filtrar
- * currículo não é trabalho do disparo: quem manda currículo não vira lead
- * qualificado, e se virar, o custo de uma mensagem é menor que o de perder um
- * comprador.
- */
 /**
  * Quem quer VENDER para a obra, não comprar nela.
  *
@@ -245,6 +247,21 @@ const SUPPLIER = [
   /\bloca[cç][aã]o d[eo]\b.{0,40}\b(?:equipamentos?|escoramento|andaimes?|m[aá]quinas?|containers?|f[oô]rmas?)\b/i,
 ]
 
+/** Intenções não comerciais com padrões estreitos para evitar "vaga de garagem". */
+const JOB_SEEKER = [
+  /\b(?:enviar|encaminhar|deixar)\b.{0,30}\b(?:meu )?(?:curr[ií]culo|curriculum)\b/i,
+  /\b(?:vaga|oportunidade) de emprego\b/i,
+  /\b(?:voc[eê]s|a empresa) (?:est[aã]o|est[aá]) contratando\b/i,
+  /\b(?:gostaria|quero|tenho interesse)\b.{0,50}\btrabalhar (?:na|com a|com voc[eê]s)\b/i,
+]
+
+const COMMERCIAL_PARTNER = [
+  /\b(?:proposta|oportunidade) de parceria\b|\bparceria comercial\b/i,
+  /\boferecer im[oó]veis para voc[eê]s constru[ií]rem\b/i,
+  /\bsetor de incorpora[cç][aã]o\b.{0,100}\b(?:ofertar|oportunidades?|terrenos?)\b/i,
+  /\b(?:imobili[aá]ria|sou corretor)\b.{0,100}\b(?:presta[cç][aã]o de servi[cç]os?|trabalhar com o empreendimento|vender o empreendimento)\b/i,
+]
+
 export function exclusionReason(name: string | null, inbound: string[]): string | null {
   if (/^teste\b/i.test(normalizeSpaces(name ?? ''))) {
     return 'Contato de teste, não deve receber campanha.'
@@ -254,6 +271,12 @@ export function exclusionReason(name: string | null, inbound: string[]): string 
   }
   if (SUPPLIER.some(rule => rule.test(inbound.join('\n')))) {
     return 'O contato quer prestar serviço para a obra, não comprar uma unidade.'
+  }
+  if (JOB_SEEKER.some(rule => rule.test(inbound.join('\n')))) {
+    return 'O contato procura emprego, não uma unidade do empreendimento.'
+  }
+  if (COMMERCIAL_PARTNER.some(rule => rule.test(inbound.join('\n')))) {
+    return 'O contato propõe parceria comercial, não a compra de uma unidade.'
   }
   const refusal = /\b(n[aã]o tenho|sem|nenhum) interesse\b/i
   const purchased = /\bj[aá] (?:comprei|adquiri|fechei|escolhi)\b.{0,80}\b(outro|outra|apartamento|im[oó]vel)\b/i

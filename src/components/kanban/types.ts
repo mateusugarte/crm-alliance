@@ -13,6 +13,7 @@ export interface KanbanColumnConfig extends StageTokens {
 /** Ordem das colunas do quadro. Cor, rótulo e ícone vêm de `@/lib/stages`. */
 const COLUMN_ORDER: KanbanStage[] = [
   'nao_respondeu',
+  'fornecedores',
   'lead_frio',
   'lead_morno',
   'lead_quente',

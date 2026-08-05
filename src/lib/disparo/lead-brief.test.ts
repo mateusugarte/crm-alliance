@@ -60,6 +60,24 @@ describe('exclusão de contatos', () => {
     ])).toBeNull()
   })
 
+  it('exclui bot identificado da UNIASSELVI mesmo com nome de pessoa', () => {
+    expect(exclusionReason('João Silva', [
+      'Olá! Sou a inteligência artificial da UNIASSELVI e posso ajudar com sua matrícula.',
+    ])).toMatch(/atendimento autom/i)
+  })
+
+  it('exclui candidato a emprego sem confundir vaga de garagem', () => {
+    expect(exclusionReason('Paulo', [
+      'Boa tarde, gostaria de encaminhar meu currículo para trabalhar com vocês.',
+    ])).toMatch(/procura emprego/i)
+  })
+
+  it('exclui corretor que quer parceria para vender o empreendimento', () => {
+    expect(exclusionReason('Dair', [
+      'Sou corretor e gostaria de trabalhar com o empreendimento e vender o La Reserva.',
+    ])).toMatch(/parceria comercial/i)
+  })
+
   it('continua excluindo quem declarou não ter interesse', () => {
     expect(exclusionReason('Marcos', ['obrigado mas não tenho interesse'])).toMatch(/não tem interesse/i)
   })

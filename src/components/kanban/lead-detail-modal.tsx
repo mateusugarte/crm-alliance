@@ -26,6 +26,7 @@ import { compactCommercialSummary } from '@/lib/lead-summary'
 
 const STAGE_LABELS: Record<Lead['stage'], string> = {
   nao_respondeu: 'Não Respondeu',
+  fornecedores: 'Fornecedores',
   lead_frio: 'Lead Frio',
   lead_morno: 'Lead Morno',
   lead_quente: 'Lead Quente',

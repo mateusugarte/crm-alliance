@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { deliverPendingGroupMessages } from '@/lib/central-do-dia/whatsapp'
 
-const VALID_STAGES = ['nao_respondeu', 'lead_frio', 'lead_morno', 'lead_quente', 'follow_up', 'sem_interesse', 'reuniao_agendada', 'visita_confirmada', 'cliente'] as const
+const VALID_STAGES = ['nao_respondeu', 'fornecedores', 'lead_frio', 'lead_morno', 'lead_quente', 'follow_up', 'sem_interesse', 'reuniao_agendada', 'visita_confirmada', 'cliente'] as const
 
 export async function PATCH(
   request: NextRequest,

@@ -13,6 +13,7 @@ import type { LeadWithLastInteraction } from './types'
 
 const STAGE_LABELS: Record<string, string> = {
   nao_respondeu: 'Não Respondeu',
+  fornecedores: 'Fornecedores',
   lead_frio: 'Lead Frio',
   lead_morno: 'Lead Morno',
   lead_quente: 'Lead Quente',

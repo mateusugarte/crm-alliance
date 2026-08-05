@@ -13,6 +13,7 @@ interface LeadCreateFormProps {
 }
 
 const STAGES = [
+  { value: 'fornecedores',       label: 'Fornecedores' },
   { value: 'lead_frio',          label: 'Lead Frio' },
   { value: 'lead_morno',         label: 'Lead Morno' },
   { value: 'lead_quente',        label: 'Lead Quente' },
