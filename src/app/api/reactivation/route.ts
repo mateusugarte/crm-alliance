@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { updateDisparoLabels } from '@/lib/disparo-labels'
 import { createReactivationSnapshots } from '@/lib/disparo/analytics'
+import type { Json } from '@/lib/supabase/types'
 
 interface ContactInput {
   id?: string | null
@@ -16,6 +17,8 @@ interface CreateReactivationBody {
   interval_min?: number
   interval_max?: number
   contacts: ContactInput[]
+  campaign_brief?: Json | null
+  generation_version?: string | null
 }
 
 export async function POST(req: NextRequest) {
@@ -33,6 +36,8 @@ export async function POST(req: NextRequest) {
     interval_min = 2,
     interval_max = 5,
     contacts,
+    campaign_brief = null,
+    generation_version = null,
   } = body
 
   if (!name?.trim()) return NextResponse.json({ error: 'name obrigatório' }, { status: 400 })
@@ -54,6 +59,8 @@ export async function POST(req: NextRequest) {
       interval_max,
       status: 'draft',
       total_leads: contacts.length,
+      campaign_brief,
+      generation_version,
     } as never)
     .select('id')
     .single()

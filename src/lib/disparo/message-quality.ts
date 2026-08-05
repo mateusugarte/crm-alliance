@@ -73,6 +73,14 @@ const OPENING_WINDOW = 110
 /** Cobra do cliente que ele confirme uma lembrança. */
 const MEMORY_CHECK = /\b(?:lembra(?:-se)?\??|ainda (?:procura|busca|est[aá] procurando)|continua (?:procurando|buscando)|isso ainda (?:vale|procede))\b|,\s*(?:certo|n[eé]|n[aã]o [eé])\s*\?/i
 
+/** O destinatário nunca deve enxergar a mecânica interna usada para gerar a mensagem. */
+const CRM_LEAKAGE = /\b(?:hist[oó]rico|cadastro|cadastrad[oa]|registro interno|ficha|banco de dados|nosso sistema|sistema do CRM)\b|\b(?:n[aã]o|ainda n[aã]o)\s+(?:tenho|temos|h[aá]|existe)\b.{0,45}\b(?:informa[cç][aã]o|registro|hist[oó]rico|cadastro)\b|\bnada (?:seu|sobre voc[eê])\b.{0,30}\b(?:registrado|cadastrado)\b/i
+
+const UNSUPPORTED_DEADLINE = /\b(?:entrega|previs[aã]o|fica pronto|conclus[aã]o)\b.{0,45}\b(?:20\d{2}|janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/i
+const UNSUPPORTED_LOCATION = /\b(?:em|no|na)\s+(?:Castelo|Vit[oó]ria|Vila Velha|Cachoeiro|Esp[ií]rito Santo)\b/i
+const UNSUPPORTED_AVAILABILITY = /\b(?:ainda temos|restam|[uú]ltimas?|poucas?)\s+(?:unidades?|apartamentos?|op[cç][oõ]es?)\b/i
+const OVERSTATED_FOUNDATION = /\bfunda[cç][aã]o\b.{0,20}\b(?:conclu[ií]da|pronta|finalizada)\b/i
+
 /** Valores em reais e metragens: mudam com o tempo, e repetir número velho de
  *  uma conversa antiga quebra a confiança na hora em que o cliente confere. */
 const STALE_FIGURE = /R\$\s?\d|\b\d{1,3}(?:\.\d{3})+(?:,\d{2})?\b|\b\d+[,.]?\d*\s?m²|\b\d+\s+parcelas?\b/i
@@ -118,6 +126,33 @@ export function inspectMessage(
   const questionCount = (message.match(/\?/g) ?? []).length
   const grounding = `${leadContext}\n${campaignTheme}`
 
+  if (CRM_LEAKAGE.test(message)) {
+    issues.push({
+      code: 'estado_interno_do_crm',
+      severity: 'bloqueio',
+      correction: 'não mencione histórico, cadastro, registro, sistema nem ausência de dados',
+    })
+  }
+
+  const unsupportedCurrentFact = [UNSUPPORTED_DEADLINE, UNSUPPORTED_LOCATION, UNSUPPORTED_AVAILABILITY]
+    .some(rule => rule.test(message) && !rule.test(grounding))
+  if (unsupportedCurrentFact) {
+    issues.push({
+      code: 'fato_atual_sem_fonte',
+      severity: 'bloqueio',
+      correction: 'não invente localização, disponibilidade ou previsão; use apenas os fatos atuais da campanha',
+    })
+  }
+  if (OVERSTATED_FOUNDATION.test(message)
+    && !/funda[cç][aã]o.{0,25}praticamente conclu[ií]da/i.test(message)
+    && /funda[cç][aã]o.{0,20}praticamente conclu[ií]da/i.test(campaignTheme)) {
+    issues.push({
+      code: 'fato_da_campanha_exagerado',
+      severity: 'bloqueio',
+      correction: 'preserve o grau exato do fato: a fundação está praticamente concluída, não concluída',
+    })
+  }
+
   // Só verifica quando há contexto para comparar; sem lastro conhecido a
   // checagem acusaria tudo.
   if (leadContext) {
@@ -162,11 +197,11 @@ export function inspectMessage(
       correction: 'nunca prometa valorização; fale sempre em potencial ou oportunidade',
     })
   }
-  if (mode !== 'conversation' && FALSE_CONTINUITY.test.test(message)) {
+  if (FALSE_CONTINUITY.test.test(message)) {
     issues.push({
       code: 'continuidade_sem_evidencia',
       severity: 'bloqueio',
-      correction: 'este lead nunca conversou com a gente; não cite contato ou conversa anterior',
+      correction: 'não use fórmula de continuidade; abra pela novidade atual da campanha',
     })
   }
   if (!safeName && INVALID_GREETING.test(message)) {
@@ -232,7 +267,7 @@ export function repairMessage(
   let output = message
   const repaired: string[] = []
 
-  if (mode !== 'conversation' && FALSE_CONTINUITY.test.test(output)) {
+  if (FALSE_CONTINUITY.test.test(output)) {
     // "avançaram bastante desde o nosso último contato:" → "avançaram bastante:"
     output = tidy(output.replace(FALSE_CONTINUITY.all, ''))
     repaired.push('continuidade_sem_evidencia')

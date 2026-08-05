@@ -33,6 +33,46 @@ export interface LeadFact {
   angle: LeadAngle
 }
 
+export type AudienceType =
+  | 'buyer'
+  | 'supplier'
+  | 'partner'
+  | 'job_seeker'
+  | 'third_party_bot'
+  | 'test'
+  | 'not_interested'
+  | 'unknown'
+
+export interface AudienceAssessment {
+  type: AudienceType
+  status: 'eligible' | 'review' | 'blocked'
+  confidence: number
+  reasons: string[]
+}
+
+export type CommercialFactKind =
+  | 'intent'
+  | 'unit'
+  | 'financing'
+  | 'budget'
+  | 'timeline'
+  | 'objection'
+  | 'human_contact'
+
+export interface CommercialFact {
+  id: string
+  kind: CommercialFactKind
+  /** Rótulo comercial controlado. Nunca contém a fala crua do lead. */
+  value: string
+  source: 'lead_message' | 'crm'
+  source_at: string | null
+  /** Evidência para auditoria humana. Este campo nunca vai para o prompt. */
+  quote: string | null
+  safe_for_copy: boolean
+  score: number
+  angle: LeadAngle
+}
+
 export interface LeadBrief {
   eligible: boolean
   exclusionReason: string | null
@@ -47,6 +87,8 @@ export interface LeadBrief {
   signals: string[]
   /** Últimas trocas, já limpas, para o modelo consultar. */
   transcript: string[]
+  audience: AudienceAssessment
+  facts: CommercialFact[]
 }
 
 export interface BriefLead {
@@ -316,30 +358,32 @@ interface SignalRule {
   score: number
   angle: LeadAngle
   label: string
+  kind: CommercialFactKind
+  safeForCopy: boolean
 }
 
 const SIGNAL_RULES: SignalRule[] = [
   // Ativos que o lead declarou possuir são o argumento mais forte que existe.
-  { pattern: /\b(?:lote|terreno|permuta|im[oó]vel)\b.{0,40}\b(?:avaliado|vale|no valor|R\$)/i, score: 10, angle: 'financiamento', label: 'tem um bem para dar em permuta ou entrada' },
-  { pattern: /\bR\$\s?[\d.]+/i, score: 8, angle: 'financiamento', label: 'falou de valores concretos' },
-  { pattern: /\b(?:entrada|financia(?:mento|r)?|parcel(?:a|ar|amento)|conseguiria pagar|or[cç]amento)\b/i, score: 7, angle: 'financiamento', label: 'perguntou sobre condição de pagamento' },
+  { pattern: /\b(?:lote|terreno|permuta|im[oó]vel)\b.{0,40}\b(?:avaliado|vale|no valor|R\$)/i, score: 10, angle: 'financiamento', label: 'considerou usar um bem como entrada ou permuta', kind: 'financing', safeForCopy: true },
+  { pattern: /\bR\$\s?[\d.]+/i, score: 8, angle: 'financiamento', label: 'conversou sobre uma faixa de investimento', kind: 'budget', safeForCopy: false },
+  { pattern: /\b(?:entrada|financia(?:mento|r)?|parcel(?:a|ar|amento)|conseguiria pagar|or[cç]amento)\b/i, score: 7, angle: 'financiamento', label: 'demonstrou interesse nas condições de pagamento', kind: 'financing', safeForCopy: true },
   // Pergunta de preço é o sinal comercial mais comum e não estava coberto:
   // "Qual o valor do apartamento?" caía como conversa sem sinal nenhum.
-  { pattern: /\b(?:qual|quanto)\b.{0,30}\b(?:valor|pre[cç]o|custa|fica|sai)\b|\bvalor(?:es)? d[oae]\b|\bpre[cç]o d[oae]\b|\btabela de pre[cç]os?\b/i, score: 6, angle: 'financiamento', label: 'perguntou o preço' },
+  { pattern: /\b(?:qual|quanto)\b.{0,30}\b(?:valor|pre[cç]o|custa|fica|sai)\b|\bvalor(?:es)? d[oae]\b|\bpre[cç]o d[oae]\b|\btabela de pre[cç]os?\b/i, score: 6, angle: 'financiamento', label: 'demonstrou interesse em valores e condições', kind: 'financing', safeForCopy: true },
 
   // Pediu atendimento humano: é o sinal de intenção mais avançado do funil.
-  { pattern: /\b(?:falar com|conversar com|contato d[oe])\b.{0,20}\b(?:consultor|corretor|algu[eé]m|voc[eê]s)\b|\bcomo posso ver com eles\b/i, score: 9, angle: 'consultor', label: 'pediu para falar com um consultor' },
+  { pattern: /\b(?:falar com|conversar com|contato d[oe])\b.{0,20}\b(?:consultor|corretor|algu[eé]m|voc[eê]s)\b|\bcomo posso ver com eles\b/i, score: 9, angle: 'consultor', label: 'demonstrou abertura para falar com um consultor', kind: 'human_contact', safeForCopy: true },
 
   // Unidade concreta: o lead já estava escolhendo.
-  { pattern: /\b(?:unidade|apto|apartamento)\s?\d+|\b(?:vaga de garagem|sol da manh[aã]|sol da tarde|planta|metragem|\d+\s?m²|\d+\s?quartos?|su[ií]te|varanda|andar)\b/i, score: 7, angle: 'unidade', label: 'discutia uma unidade específica' },
-  { pattern: /\b(?:morar|investir|moradia|investimento)\b/i, score: 4, angle: 'unidade', label: 'declarou a intenção de uso' },
+  { pattern: /\b(?:unidade|apto|apartamento)\s?\d+|\b(?:vaga de garagem|sol da manh[aã]|sol da tarde|planta|metragem|\d+\s?m²|\d+\s?quartos?|su[ií]te|varanda|andar)\b/i, score: 7, angle: 'unidade', label: 'avaliou características de uma unidade', kind: 'unit', safeForCopy: true },
+  { pattern: /\b(?:morar|investir|moradia|investimento)\b/i, score: 4, angle: 'unidade', label: 'indicou a finalidade do imóvel', kind: 'intent', safeForCopy: true },
 
   // Prazo e obra.
-  { pattern: /\b(?:prazo|entrega|ficar pronto|cronograma|quando fica|previs[aã]o)\b/i, score: 6, angle: 'prazo', label: 'perguntou sobre prazo de entrega' },
+  { pattern: /\b(?:prazo|entrega|ficar pronto|cronograma|quando fica|previs[aã]o)\b/i, score: 6, angle: 'prazo', label: 'demonstrou interesse no andamento e no prazo da obra', kind: 'timeline', safeForCopy: true },
 
   // Objeção: precisa ser reconhecida antes de qualquer oferta.
-  { pattern: /\b(?:mudar de ideia|deixar (?:mais )?pra frente|outra oportunidade|no momento n[aã]o|mais adiante|caro demais|acima do (?:meu )?or[cç]amento|n[aã]o consigo)\b/i, score: 9, angle: 'objecao', label: 'adiou a decisão ou trouxe objeção' },
-  { pattern: /\bj[aá] encontrei\b/i, score: 8, angle: 'objecao', label: 'disse que já encontrou outra opção' },
+  { pattern: /\b(?:mudar de ideia|deixar (?:mais )?pra frente|outra oportunidade|no momento n[aã]o|mais adiante|caro demais|acima do (?:meu )?or[cç]amento|n[aã]o consigo)\b/i, score: 9, angle: 'objecao', label: 'adiou a decisão ou apresentou uma objeção', kind: 'objection', safeForCopy: true },
+  { pattern: /\bj[aá] encontrei\b/i, score: 8, angle: 'objecao', label: 'indicou que avaliou outra opção', kind: 'objection', safeForCopy: true },
 ]
 
 function scoreQuote(quote: string): { score: number; angle: LeadAngle; labels: string[] } {
@@ -367,7 +411,11 @@ function scoreQuote(quote: string): { score: number; angle: LeadAngle; labels: s
 
 export function buildLeadBrief(lead: BriefLead, interactions: BriefInteraction[]): LeadBrief {
   const deduped = interactions
-    .map(interaction => ({ inbound: isInbound(interaction), text: readableContent(interaction.content) }))
+    .map(interaction => ({
+      inbound: isInbound(interaction),
+      text: readableContent(interaction.content),
+      createdAt: interaction.created_at,
+    }))
     .filter(item => item.text)
     .filter((item, index, all) => (
       index === 0 || item.text !== all[index - 1]?.text || item.inbound !== all[index - 1]?.inbound
@@ -400,14 +448,87 @@ export function buildLeadBrief(lead: BriefLead, interactions: BriefInteraction[]
 
   const collected = Array.from(new Set(scored.flatMap(item => item.labels)))
 
+  const facts: CommercialFact[] = []
+  for (const [messageIndex, item] of deduped.entries()) {
+    if (!item.inbound || !isUsefulInbound(item.text)) continue
+    for (const [ruleIndex, rule] of SIGNAL_RULES.entries()) {
+      if (!rule.pattern.test(item.text)) continue
+      facts.push({
+        id: `lead-${lead.id}-${messageIndex}-${ruleIndex}`,
+        kind: rule.kind,
+        value: rule.label,
+        source: 'lead_message',
+        source_at: item.createdAt,
+        quote: item.text.slice(0, 260),
+        safe_for_copy: rule.safeForCopy,
+        score: rule.score,
+        angle: rule.angle,
+      })
+    }
+  }
+
   // Intenção declarada no CRM entra como sinal quando a conversa não a revelou.
   if (lead.intention && !collected.some(signal => signal.includes('intenção'))) {
     collected.push(`intenção registrada no CRM: ${lead.intention}`)
+    facts.push({
+      id: `crm-${lead.id}-intention`,
+      kind: 'intent',
+      value: `finalidade registrada: ${normalizeSpaces(lead.intention).slice(0, 80)}`,
+      source: 'crm',
+      source_at: null,
+      quote: null,
+      safe_for_copy: !/\d|R\$/i.test(lead.intention),
+      score: 3,
+      angle: 'unidade',
+    })
   }
   const signals = collected.slice(0, 5)
 
+  const blockedType: AudienceType | null = lead.stage === 'fornecedores'
+    ? 'supplier'
+    : exclusion?.includes('atendimento automático') ? 'third_party_bot'
+      : exclusion?.includes('prestar serviço') ? 'supplier'
+        : exclusion?.includes('emprego') ? 'job_seeker'
+          : exclusion?.includes('parceria') ? 'partner'
+            : exclusion?.includes('teste') ? 'test'
+              : exclusion ? 'not_interested' : null
+
+  const hasBuyerSignal = facts.length > 0
+    || inbound.some(message => CANNED_INTEREST.test(message))
+    || ['lead_morno', 'lead_quente', 'reuniao_agendada', 'follow_up', 'venda_confirmada'].includes(lead.stage ?? '')
+
+  const audience: AudienceAssessment = blockedType
+    ? {
+        type: blockedType,
+        status: 'blocked',
+        confidence: lead.stage === 'fornecedores' ? 1 : 0.98,
+        reasons: [exclusion ?? 'Contato classificado fora do público comprador.'],
+      }
+    : hasBuyerSignal
+      ? {
+          type: 'buyer',
+          status: 'eligible',
+          confidence: facts.length > 0 ? 0.92 : 0.78,
+          reasons: [facts.length > 0
+            ? 'Há sinal comercial verificável na conversa ou no CRM.'
+            : 'O contato entrou pelo fluxo de interesse do empreendimento.'],
+        }
+      : {
+          type: 'unknown',
+          status: 'review',
+          confidence: 0.35,
+          reasons: ['Não há evidência comercial suficiente para confirmar que este contato é comprador.'],
+        }
+
+  const uniqueFacts = facts
+    .sort((a, b) => b.score - a.score)
+    .filter((fact, index, all) => all.findIndex(other => (
+      other.kind === fact.kind && other.value === fact.value
+    )) === index)
+    .slice(0, 8)
+
   return {
-    eligible: !exclusion,
+    eligible: audience.status !== 'blocked',
     exclusionReason: exclusion,
     mode,
     safeName: safeFirstName(lead.name),
@@ -415,5 +536,7 @@ export function buildLeadBrief(lead: BriefLead, interactions: BriefInteraction[]
     angle: anchor?.angle ?? 'novidade',
     signals,
     transcript: deduped.slice(-10).map(item => `${item.inbound ? 'Lead' : 'Alliance'}: ${item.text.slice(0, 320)}`),
+    audience,
+    facts: uniqueFacts,
   }
 }

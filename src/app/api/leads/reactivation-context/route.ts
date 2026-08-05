@@ -8,6 +8,8 @@ import {
   type ReactivationInteraction,
   type ReactivationLead,
 } from '@/lib/disparo/reactivation-message'
+import { buildCampaignBrief } from '@/lib/disparo/campaign-brief'
+import { applyBatchQuality } from '@/lib/disparo/batch-quality'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -40,6 +42,7 @@ export async function POST(req: NextRequest) {
 
   const service = createServiceClient()
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  const campaignBrief = buildCampaignBrief(campaignTheme)
   const { data: leadsRaw, error: leadsError } = await service
     .from('leads')
     .select('id,name,phone,stage,summary,intention')
@@ -70,7 +73,7 @@ export async function POST(req: NextRequest) {
     byLead.set(interaction.lead_id, [...(byLead.get(interaction.lead_id) ?? []), interaction])
   }
 
-  const results: ReactivationGeneration[] = []
+  const rawResults: ReactivationGeneration[] = []
   for (let index = 0; index < leads.length; index += 5) {
     const batch = leads.slice(index, index + 5)
     const generated = await Promise.all(batch.map(lead => generateReactivationMessage({
@@ -78,36 +81,13 @@ export async function POST(req: NextRequest) {
       lead,
       interactions: byLead.get(lead.id) ?? [],
       campaignTheme,
+      campaignBrief,
       manualContext: body.manual_contexts?.[lead.id],
-    }).catch((): ReactivationGeneration => ({
-      lead_id: lead.id,
-      name: lead.name ?? '',
-      phone: lead.phone ?? '',
-      message: '',
-      eligible: true,
-      exclusion_reason: null,
-      context_mode: 'no_history',
-      context_reference: null,
-      quality_flags: ['falha_na_geracao'],
-      resolution: 'fallback',
-      personalized: false,
-    }))))
-    results.push(...generated)
+    })))
+    rawResults.push(...generated)
   }
 
-  // Duplicata no lote passou a ser um aviso, não um descarte. Zerar a mensagem
-  // deixava o corretor sem nada para editar e travava o avanço do passo — que
-  // era exatamente o beco sem saída do "algumas mensagens não passaram".
-  const seenMessages = new Set<string>()
-  for (const result of results) {
-    if (!result.message) continue
-    const fingerprint = result.message.toLocaleLowerCase('pt-BR').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
-    if (seenMessages.has(fingerprint)) {
-      result.quality_flags.push('mensagem_duplicada_no_lote')
-    } else {
-      seenMessages.add(fingerprint)
-    }
-  }
+  const results = applyBatchQuality(rawResults)
 
   const excluded = results.filter(result => !result.eligible)
   return NextResponse.json({
@@ -129,6 +109,10 @@ export async function POST(req: NextRequest) {
       fallback: results.filter(result => result.resolution === 'fallback').length,
       personalized: results.filter(result => result.personalized).length,
       without_context: results.filter(result => result.resolution === 'sem_contexto').length,
+      ready: results.filter(result => result.approval_status === 'ready').length,
+      review: results.filter(result => result.approval_status === 'review').length,
+      blocked: results.filter(result => result.approval_status === 'blocked').length,
+      similar: results.filter(result => result.quality_flags.includes('mensagem_muito_parecida_no_lote')).length,
     },
   })
 }

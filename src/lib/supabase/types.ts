@@ -691,6 +691,8 @@ export interface Database {
           failed_count: number
           allowed_hours_start: number
           allowed_hours_end: number
+          campaign_brief: Json | null
+          generation_version: string | null
           created_at: string
         }
         Insert: {
@@ -706,6 +708,8 @@ export interface Database {
           failed_count?: number
           allowed_hours_start?: number
           allowed_hours_end?: number
+          campaign_brief?: Json | null
+          generation_version?: string | null
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['reactivation_campaigns']['Insert']>
@@ -740,6 +744,51 @@ export interface Database {
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['reactivation_dispatches']['Insert']>
+      }
+      reactivation_generation_snapshots: {
+        Row: {
+          id: string
+          reactivation_campaign_id: string
+          reactivation_dispatch_id: string
+          lead_id: string | null
+          original_message: string
+          approved_message: string
+          campaign_brief: Json
+          audience: Json
+          context_facts: Json
+          message_plan: Json
+          context_mode: string
+          context_summary: string
+          model: string | null
+          prompt_version: string
+          resolution: string
+          quality_flags: string[]
+          manually_edited: boolean
+          approved_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          reactivation_campaign_id: string
+          reactivation_dispatch_id: string
+          lead_id?: string | null
+          original_message: string
+          approved_message: string
+          campaign_brief: Json
+          audience: Json
+          context_facts?: Json
+          message_plan: Json
+          context_mode: string
+          context_summary: string
+          model?: string | null
+          prompt_version: string
+          resolution: string
+          quality_flags?: string[]
+          manually_edited?: boolean
+          approved_by?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['reactivation_generation_snapshots']['Insert']>
       }
       disparo_lead_snapshots: {
         Row: {
@@ -810,6 +859,17 @@ export interface Database {
       move_lead_stage_context: {
         Args: { lead_uuid: string; new_stage: string; p_motivo_perda?: string | null; p_origem?: string }
         Returns: undefined
+      }
+      inject_reactivation_message: {
+        Args: {
+          p_dispatch_id: string
+          p_message: string
+          p_typing_delay: number
+          p_interval_delay_ms: number
+          p_snapshot?: Json | null
+          p_approved_by?: string | null
+        }
+        Returns: boolean
       }
       registrar_ligacao: {
         Args: {

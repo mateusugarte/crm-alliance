@@ -17,8 +17,10 @@ describe('saneamento do tema da campanha', () => {
     expect(limpo).toContain('fundação já está praticamente concluída')
   })
 
-  it('mantém o tema intacto quando existe conversa real', () => {
-    expect(sanitizeCampaignTheme(TEMA, 'conversation')).toBe(TEMA.trim())
+  it('normaliza falsa continuidade mesmo quando existe conversa real', () => {
+    const limpo = sanitizeCampaignTheme(TEMA, 'conversation')
+    expect(limpo).not.toMatch(/último contato/i)
+    expect(limpo).not.toMatch(/pega uma valorização/i)
   })
 })
 
@@ -134,12 +136,12 @@ describe('reativação não pode cobrar memória do lead frio', () => {
   })
 
   it('aprova a mensagem que abre pela obra e trata o interesse como possibilidade', () => {
-    const boa = 'Oi, Ana! Passando pra contar que a obra do La Reserva avançou: a fundação está concluída e em breve começamos a subir os andares.\n\nLembrei de você por causa dos 2 quartos — ainda temos unidade, e se aquele lote ainda estiver de pé, dá pra usar como parte da entrada.\n\nQuer que eu levante as condições atualizadas?'
+    const boa = 'Oi, Ana! Passando pra contar que a obra do La Reserva avançou: a fundação está concluída e em breve começamos a subir os andares.\n\nSe a busca por 2 quartos ainda fizer sentido, posso levantar condições atualizadas.\n\nQuer que eu faça isso?'
     expect(bloqueios(boa)).toHaveLength(0)
   })
 
   it('não bloqueia referência leve no meio do texto', () => {
-    const boa = 'Oi, Ana! A obra do La Reserva avançou e a fundação está concluída.\n\nComo você buscava um 2 quartos, achei que valia avisar que ainda temos unidade disponível.\n\nQuer que eu levante as condições?'
+    const boa = 'Oi, Ana! A obra do La Reserva avançou e a fundação está concluída.\n\nComo você buscava um 2 quartos, achei que valia compartilhar a novidade.\n\nQuer que eu levante as condições?'
     expect(bloqueios(boa)).toHaveLength(0)
   })
 })
@@ -195,5 +197,31 @@ describe('detalhe inventado sobre o cliente', () => {
   it('não acusa nada quando não há contexto para comparar', () => {
     const codes = inspectMessage('Olá! A obra avançou. Quer saber mais?', 'sparse', null).map(i => i.code)
     expect(codes).not.toContain('detalhe_nao_comprovado')
+  })
+})
+
+describe('vazamento e fatos atuais sem fonte', () => {
+  it('bloqueia exposição do estado interno do CRM', () => {
+    const codes = inspectMessage(
+      'Oi, Ana! Não temos histórico seu cadastrado aqui, então falo direto. Quer conhecer o projeto?',
+      'no_history', 'Ana', 'O projeto está com a obra em andamento.',
+    ).map(issue => issue.code)
+    expect(codes).toContain('estado_interno_do_crm')
+  })
+
+  it('bloqueia prazo e localização que não vieram da campanha', () => {
+    const codes = inspectMessage(
+      'Oi, Ana! O La Reserva, em Castelo, tem entrega prevista para fevereiro de 2030. Quer saber mais?',
+      'conversation', 'Ana', 'A fundação está praticamente concluída.', 'demonstrou interesse em valores',
+    ).map(issue => issue.code)
+    expect(codes).toContain('fato_atual_sem_fonte')
+  })
+
+  it('bloqueia exagero de fundação quase concluída para concluída', () => {
+    const codes = inspectMessage(
+      'Oi, Ana! A fundação está concluída e logo começam os andares. Quer uma atualização?',
+      'conversation', 'Ana', 'A fundação está praticamente concluída.', 'demonstrou interesse em valores',
+    ).map(issue => issue.code)
+    expect(codes).toContain('fato_da_campanha_exagerado')
   })
 })

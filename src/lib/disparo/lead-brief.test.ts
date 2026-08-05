@@ -228,3 +228,33 @@ describe('fornecedores que se apresentam pelo próprio ramo', () => {
     ])).toBeNull()
   })
 })
+
+describe('público e fatos estruturados', () => {
+  it('manda contato sem evidência comercial para revisão humana', () => {
+    const brief = buildLeadBrief(lead({ stage: 'lead_frio' }), [msg('Oi, tudo bem por aí?')])
+    expect(brief.audience.type).toBe('unknown')
+    expect(brief.audience.status).toBe('review')
+  })
+
+  it('marca comprador quando existe sinal comercial verificável', () => {
+    const brief = buildLeadBrief(lead({ stage: 'lead_frio' }), [
+      msg('Queria entender as condições de financiamento e entrada.'),
+    ])
+    expect(brief.audience).toMatchObject({ type: 'buyer', status: 'eligible' })
+    expect(brief.facts.some(fact => fact.kind === 'financing' && fact.safe_for_copy)).toBe(true)
+  })
+
+  it('preserva valor antigo para auditoria, mas proíbe sua cópia', () => {
+    const brief = buildLeadBrief(lead(), [msg('Consigo dar R$ 125.000 de entrada')])
+    const budget = brief.facts.find(fact => fact.kind === 'budget')
+    expect(budget?.quote).toContain('125.000')
+    expect(budget?.safe_for_copy).toBe(false)
+    expect(budget?.source).toBe('lead_message')
+  })
+
+  it('bloqueia automaticamente a coluna fornecedores', () => {
+    const brief = buildLeadBrief(lead({ stage: 'fornecedores' }), [])
+    expect(brief.audience).toMatchObject({ type: 'supplier', status: 'blocked' })
+    expect(brief.eligible).toBe(false)
+  })
+})

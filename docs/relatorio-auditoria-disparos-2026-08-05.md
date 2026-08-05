@@ -241,3 +241,18 @@ A nova coluna `Fornecedores` fica imediatamente à esquerda de `Lead Frio`. Os c
 - A migração de banco é transacional.
 - O código será publicado em commit identificável e pode ser revertido por commit.
 - Nenhuma mensagem foi enviada durante esta auditoria.
+
+## Execução da correção
+
+Implementado em 05/08/2026:
+
+- público estruturado como `buyer`, `unknown` ou categoria bloqueada;
+- fatos comerciais com fonte, data, evidência e permissão de cópia;
+- briefing da campanha separado do texto final;
+- plano de mensagem com fatos e CTA autorizados;
+- prompt sem transcript, fala literal, observação livre ou valor antigo;
+- gate para vazamento do CRM, fato atual sem fonte, exagero, promessa e repetição no lote;
+- prévia com contexto, fatos usados, edição, remoção e aprovação obrigatória dos casos em revisão;
+- nova validação no servidor depois de qualquer edição manual;
+- snapshot de geração e aprovação gravado de forma transacional com a mensagem do dispatch;
+- regressão automatizada cobrindo 75 testes no projeto, dos quais 67 são específicos do motor de disparos.

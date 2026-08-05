@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { disparoFetch } from '@/lib/disparo-api'
 import type { Database, ReactivationCampaign, WaInstance, Campaign, Template } from '@/lib/supabase/types'
 import { KANBAN_COLUMNS } from '@/components/kanban/types'
+import type { ReactivationGeneration } from '@/lib/disparo/reactivation-message'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -177,6 +178,8 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
   const [mixError, setMixError] = useState<string | null>(null)
   const [campaignTheme, setCampaignTheme] = useState('')
   const [generatedMessages, setGeneratedMessages] = useState<Record<string, string>>({})
+  const [generationDetails, setGenerationDetails] = useState<Record<string, ReactivationGeneration>>({})
+  const [approvedReviewIds, setApprovedReviewIds] = useState<Set<string>>(new Set())
   const [generatingContext, setGeneratingContext] = useState(false)
   const [contextError, setContextError] = useState<string | null>(null)
   const [contextWarning, setContextWarning] = useState<string | null>(null)
@@ -213,8 +216,15 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
   const messagesReady = useMemo(() => {
     if (!mode || selectedLeadObjects.length === 0) return false
     const map = mode === 'template' ? mixedMessages : generatedMessages
-    return selectedLeadObjects.every(l => !!map[l.id])
-  }, [mode, selectedLeadObjects, mixedMessages, generatedMessages])
+    if (mode === 'template') return selectedLeadObjects.every(l => !!map[l.id])
+    return selectedLeadObjects.every(lead => {
+      const detail = generationDetails[lead.id]
+      return !!map[lead.id]
+        && !!detail
+        && detail.approval_status !== 'blocked'
+        && (detail.approval_status === 'ready' || approvedReviewIds.has(lead.id))
+    })
+  }, [mode, selectedLeadObjects, mixedMessages, generatedMessages, generationDetails, approvedReviewIds])
 
   const canGoStep2 = selectedLeadIds.size > 0
   const canGoStep3 = messagesReady
@@ -248,6 +258,8 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
     setMixError(null)
     setCampaignTheme('')
     setGeneratedMessages({})
+    setGenerationDetails({})
+    setApprovedReviewIds(new Set())
     setContextError(null)
     setContextWarning(null)
     setCreateError(null)
@@ -315,6 +327,8 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
     setMixedMessages({})
     setCampaignTheme('')
     setGeneratedMessages({})
+    setGenerationDetails({})
+    setApprovedReviewIds(new Set())
     setMixError(null)
     setContextError(null)
     setContextWarning(null)
@@ -369,12 +383,18 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
         setContextError(err.error ?? 'Erro ao gerar mensagens')
       } else {
         const data = await res.json() as {
-          results: { lead_id: string; message: string; eligible: boolean; quality_flags: string[]; personalized: boolean }[]
+          results: ReactivationGeneration[]
           excluded: { lead_id: string; name: string; reason: string | null }[]
         }
         const map: Record<string, string> = {}
-        for (const r of data.results) { if (r.message) map[r.lead_id] = r.message }
+        const details: Record<string, ReactivationGeneration> = {}
+        for (const result of data.results) {
+          details[result.lead_id] = result
+          if (result.message) map[result.lead_id] = result.message
+        }
         setGeneratedMessages(map)
+        setGenerationDetails(details)
+        setApprovedReviewIds(new Set())
         if (data.excluded.length > 0) {
           const excludedIds = new Set(data.excluded.map(item => item.lead_id))
           setSelectedLeadIds(previous => {
@@ -406,6 +426,13 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
             `${generic} ${generic === 1 ? 'contato não tem conversa suficiente' : 'contatos não têm conversa suficiente'} para personalizar; ${generic === 1 ? 'ele recebeu' : 'eles receberam'} o texto da campanha. Revise ou use o modo Template.`,
           ].filter(Boolean).join(' '))
         }
+        const reviews = data.results.filter(item => item.approval_status === 'review').length
+        if (reviews > 0) {
+          setContextWarning(previous => [
+            previous,
+            `${reviews} ${reviews === 1 ? 'mensagem precisa' : 'mensagens precisam'} de aprovação manual antes de continuar.`,
+          ].filter(Boolean).join(' '))
+        }
       }
     } catch { setContextError('Erro de conexão') }
     setGeneratingContext(false)
@@ -417,7 +444,31 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
     const opt = INTERVAL_OPTIONS[intervalOption]
     const msgMap = mode === 'template' ? mixedMessages : generatedMessages
     const msgEntries = selectedLeadObjects
-      .map(l => ({ lead_id: l.id, phone: l.phone, message: msgMap[l.id] ?? '' }))
+      .map(lead => {
+        const detail = generationDetails[lead.id]
+        const message = msgMap[lead.id] ?? ''
+        return {
+          lead_id: lead.id,
+          phone: lead.phone,
+          message,
+          generation: mode === 'context' && detail ? {
+            original_message: detail.message,
+            approved_message: message,
+            campaign_brief: detail.campaign_brief,
+            audience: detail.audience,
+            context_facts: detail.facts,
+            message_plan: detail.message_plan,
+            context_mode: detail.context_mode,
+            context_summary: detail.context_summary,
+            safe_name: detail.safe_name,
+            model: detail.model,
+            prompt_version: detail.prompt_version,
+            resolution: detail.resolution,
+            quality_flags: detail.quality_flags,
+            manually_edited: message.trim() !== detail.message.trim(),
+          } : undefined,
+        }
+      })
       .filter(e => !!e.message)
     const refMsgs = msgEntries.map(e => e.message).slice(0, 5)
     const base = refMsgs[0] ?? 'mensagem personalizada'
@@ -433,6 +484,8 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
           interval_min: opt.min,
           interval_max: opt.max,
           contacts: selectedLeadObjects.map(l => ({ id: l.id, phone: l.phone })),
+          campaign_brief: mode === 'context' ? Object.values(generationDetails)[0]?.campaign_brief ?? null : null,
+          generation_version: mode === 'context' ? 'reactivation-v3' : null,
         }),
       })
       if (!createRes.ok) {
@@ -527,7 +580,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
               exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.18 }}
               className={cn(
                 'bg-card border border-border rounded-[var(--radius-panel)] elev-lg w-full max-h-[90vh] flex flex-col overflow-hidden transition-all duration-200',
-                step === 1 ? 'max-w-5xl' : 'max-w-2xl',
+                step === 1 ? 'max-w-5xl' : step === 2 ? 'max-w-4xl' : 'max-w-2xl',
               )}
               onClick={e => e.stopPropagation()}
             >
@@ -693,7 +746,14 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                     {/* Mode selector */}
                     <div className="grid grid-cols-2 gap-4">
                       <button
-                        onClick={() => { setMode('template'); setGeneratedMessages({}); setContextError(null); setContextWarning(null) }}
+                        onClick={() => {
+                          setMode('template')
+                          setGeneratedMessages({})
+                          setGenerationDetails({})
+                          setApprovedReviewIds(new Set())
+                          setContextError(null)
+                          setContextWarning(null)
+                        }}
                         className={cn('flex flex-col items-start gap-3 p-5 rounded-[var(--radius-panel)] border-2 text-left transition-colors cursor-pointer',
                           mode === 'template' ? 'border-alliance-blue bg-alliance-blue/5' : 'border-border bg-card hover:bg-muted')}>
                         <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', mode === 'template' ? 'bg-alliance-blue/10' : 'bg-muted')}>
@@ -705,7 +765,13 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                         </div>
                       </button>
                       <button
-                        onClick={() => { setMode('context'); setMixedMessages({}); setSelectedTemplate(null); setContextError(null); setContextWarning(null) }}
+                        onClick={() => {
+                          setMode('context')
+                          setMixedMessages({})
+                          setSelectedTemplate(null)
+                          setContextError(null)
+                          setContextWarning(null)
+                        }}
                         className={cn('flex flex-col items-start gap-3 p-5 rounded-[var(--radius-panel)] border-2 text-left transition-colors cursor-pointer',
                           mode === 'context' ? 'border-alliance-blue bg-alliance-blue/5' : 'border-border bg-card hover:bg-muted')}>
                         <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', mode === 'context' ? 'bg-alliance-blue/10' : 'bg-muted')}>
@@ -713,7 +779,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                         </div>
                         <div>
                           <p className="font-semibold text-sm text-foreground">Criar com Contexto</p>
-                          <p className="text-xs text-ink-muted mt-0.5">IA analisa o histórico e cria mensagem personalizada para cada lead</p>
+                          <p className="text-xs text-ink-muted mt-0.5">IA usa apenas fatos comerciais verificados e mostra o contexto para revisão</p>
                         </div>
                       </button>
                     </div>
@@ -787,6 +853,8 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                               setContextError(null)
                               setContextWarning(null)
                               setGeneratedMessages({})
+                              setGenerationDetails({})
+                              setApprovedReviewIds(new Set())
                             }}
                             rows={4}
                             placeholder="Ex: Em agosto, queremos falar que uma fase importante da obra já foi executada e que restam poucas unidades do La Reserva."
@@ -812,17 +880,108 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
                         )}
                         {Object.keys(generatedMessages).length > 0 && (
                           <div className="flex flex-col gap-3">
-                            <div className="flex items-center gap-2 px-4 py-2.5 bg-green-500/10 border border-green-500/20 rounded-xl">
-                              <Check size={13} className="text-green-600" />
-                              <p className="text-xs font-semibold text-green-600">{Object.keys(generatedMessages).length} de {selectedLeadObjects.length} mensagens geradas</p>
+                            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <Check size={13} className="text-green-600" />
+                                <p className="text-xs font-semibold text-foreground">
+                                  {Object.keys(generatedMessages).length} de {selectedLeadObjects.length} mensagens geradas
+                                </p>
+                              </div>
+                              <p className="text-2xs text-ink-muted">Revise contexto e texto antes de continuar</p>
                             </div>
-                            <div className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
-                              {selectedLeadObjects.filter(l => generatedMessages[l.id]).map(lead => (
-                                <div key={lead.id} className="rounded-xl border border-border bg-muted/50 px-4 py-3">
-                                  <p className="mb-1 text-xs font-semibold text-ink-muted">{lead.name}</p>
-                                  <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">{generatedMessages[lead.id]}</p>
-                                </div>
-                              ))}
+                            <div className="max-h-[34rem] space-y-3 overflow-y-auto pr-1">
+                              {selectedLeadObjects.filter(lead => generatedMessages[lead.id]).map(lead => {
+                                const detail = generationDetails[lead.id]
+                                if (!detail) return null
+                                const reviewApproved = approvedReviewIds.has(lead.id)
+                                const selectedFacts = detail.facts.filter(fact => (
+                                  detail.message_plan.personalization_fact_ids.includes(fact.id)
+                                ))
+                                const status = detail.approval_status === 'ready'
+                                  ? { label: 'Pronta', className: 'bg-green-500/10 text-green-700 border-green-500/20' }
+                                  : reviewApproved
+                                    ? { label: 'Revisão aprovada', className: 'bg-blue-500/10 text-blue-700 border-blue-500/20' }
+                                    : { label: 'Revisar', className: 'bg-amber-500/10 text-amber-800 border-amber-500/20' }
+                                return (
+                                  <div key={lead.id} className="overflow-hidden rounded-xl border border-border bg-card">
+                                    <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+                                      <div className="min-w-0">
+                                        <p className="truncate text-sm font-semibold text-foreground">{lead.name || 'Lead sem nome'}</p>
+                                        <p className="mt-0.5 text-2xs text-ink-muted">
+                                          {detail.personalized ? 'Personalizada por contexto' : 'Baseada no tema da campanha'}
+                                          {' · '}{detail.resolution === 'fallback' ? 'Fallback seguro' : detail.resolution}
+                                        </p>
+                                      </div>
+                                      <span className={cn('flex-shrink-0 rounded-full border px-2 py-1 text-2xs font-semibold', status.className)}>
+                                        {status.label}
+                                      </span>
+                                    </div>
+
+                                    <div className="grid gap-0 md:grid-cols-[0.9fr_1.35fr]">
+                                      <div className="border-b border-border bg-muted/35 px-4 py-3 md:border-b-0 md:border-r">
+                                        <p className="text-2xs font-semibold text-ink-muted">CONTEXTO COMERCIAL</p>
+                                        <p className="mt-1.5 text-xs leading-relaxed text-foreground">{detail.context_summary}</p>
+                                        <p className="mt-3 text-2xs font-semibold text-ink-muted">FATOS AUTORIZADOS</p>
+                                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                          {selectedFacts.length ? selectedFacts.map(fact => (
+                                            <span key={fact.id} className="rounded-md border border-border bg-card px-2 py-1 text-2xs text-foreground">
+                                              {fact.value}
+                                            </span>
+                                          )) : (
+                                            <span className="text-2xs text-ink-muted">Somente fatos atuais da campanha</span>
+                                          )}
+                                        </div>
+                                        {detail.quality_flags.length > 0 && (
+                                          <div className="mt-3 flex flex-wrap gap-1">
+                                            {detail.quality_flags.map(flag => (
+                                              <span key={flag} className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-2xs text-amber-800">
+                                                {flag.replaceAll('_', ' ')}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      <div className="px-4 py-3">
+                                        <label className="text-2xs font-semibold text-ink-muted">MENSAGEM FINAL</label>
+                                        <textarea
+                                          value={generatedMessages[lead.id] ?? ''}
+                                          onChange={event => setGeneratedMessages(previous => ({
+                                            ...previous,
+                                            [lead.id]: event.target.value,
+                                          }))}
+                                          rows={5}
+                                          className="mt-1.5 w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 text-sm leading-relaxed text-foreground outline-none focus:ring-2 focus:ring-alliance-blue/25"
+                                        />
+                                        <div className="mt-2 flex items-center justify-between gap-2">
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setSelectedLeadIds(previous => {
+                                                const next = new Set(previous)
+                                                next.delete(lead.id)
+                                                return next
+                                              })
+                                            }}
+                                            className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-muted hover:text-[var(--danger-ink)]"
+                                          >
+                                            <Trash2 size={12} /> Remover
+                                          </button>
+                                          {detail.approval_status === 'review' && !reviewApproved && (
+                                            <button
+                                              type="button"
+                                              onClick={() => setApprovedReviewIds(previous => new Set(previous).add(lead.id))}
+                                              className="inline-flex items-center gap-1.5 rounded-lg bg-alliance-blue px-3 py-2 text-xs font-semibold text-white hover:bg-alliance-dark"
+                                            >
+                                              <Check size={12} /> Aprovar revisão
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )
+                              })}
                             </div>
                           </div>
                         )}
