@@ -259,4 +259,4 @@ Implementado em 05/08/2026:
 - bloqueio de condições comerciais qualificadas sem fonte atual e de chamadas para ação repetidas;
 - auditoria separada para IDs dos fatos atuais da campanha e dos fatos comerciais do lead.
 - saudação natural obrigatória quando há nome seguro, contexto em tom hipotético e CTA sem repetição.
-- matriz determinística de 25 combinações neutras, validada para permanecer abaixo do limite de similaridade do lote.
+- matriz determinística de 30 combinações neutras, distribuídas pela posição no lote e validadas abaixo do limite de similaridade.

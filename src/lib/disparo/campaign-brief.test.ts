@@ -19,11 +19,11 @@ describe('briefing estruturado da campanha', () => {
 
   it('gera mensagem neutra sem fingir contexto', () => {
     const brief = buildCampaignBrief(THEME)
-    const messages = Array.from({ length: 25 }, (_, variant) => (
+    const messages = Array.from({ length: 30 }, (_, variant) => (
       renderCampaignOnlyMessage(brief, 'Ana', variant)
     ))
 
-    expect(new Set(messages).size).toBe(25)
+    expect(new Set(messages).size).toBe(30)
     for (const message of messages) {
       expect(message).toMatch(/^Oi, Ana!/)
       expect(message).not.toMatch(/conversamos|histórico|cadastro/i)

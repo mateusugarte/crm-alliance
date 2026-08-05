@@ -209,12 +209,14 @@ export async function generateReactivationMessage(input: {
   interactions: ReactivationInteraction[]
   campaignTheme: string
   campaignBrief?: CampaignBrief
+  /** Posição no lote, usada para evitar colisão entre variações neutras. */
+  variant?: number
   /** Compatibilidade temporária: conteúdo livre não entra mais no prompt. */
   manualContext?: string
 }): Promise<ReactivationGeneration> {
   const brief = buildLeadBrief(input.lead, input.interactions)
   const campaign = input.campaignBrief ?? buildCampaignBrief(input.campaignTheme)
-  const plan = buildMessagePlan(input.lead.id, brief, campaign)
+  const plan = buildMessagePlan(input.lead.id, brief, campaign, input.variant)
   const base = {
     lead_id: input.lead.id,
     name: input.lead.name ?? '',

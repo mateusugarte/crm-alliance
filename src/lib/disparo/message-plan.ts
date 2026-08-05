@@ -26,7 +26,7 @@ const CTA_BY_ANGLE: Record<LeadAngle, string> = {
 function stableVariant(leadId: string) {
   let hash = 0
   for (const char of leadId) hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0
-  return Math.abs(hash) % 25
+  return Math.abs(hash) % 30
 }
 
 function chooseFacts(facts: CommercialFact[]) {
@@ -37,7 +37,12 @@ function chooseFacts(facts: CommercialFact[]) {
     .slice(0, 2)
 }
 
-export function buildMessagePlan(leadId: string, brief: LeadBrief, campaign: CampaignBrief): MessagePlan {
+export function buildMessagePlan(
+  leadId: string,
+  brief: LeadBrief,
+  campaign: CampaignBrief,
+  variantOverride?: number,
+): MessagePlan {
   const selected = chooseFacts(brief.facts)
   return {
     version: MESSAGE_PLAN_VERSION,
@@ -46,7 +51,7 @@ export function buildMessagePlan(leadId: string, brief: LeadBrief, campaign: Cam
     personalization_fact_ids: selected.map(fact => fact.id),
     personalization_facts: selected.map(fact => fact.value),
     cta: selected.length ? CTA_BY_ANGLE[selected[0]?.angle ?? brief.angle] : campaign.cta,
-    variant: stableVariant(leadId),
+    variant: variantOverride == null ? stableVariant(leadId) : Math.abs(variantOverride) % 30,
     must_not_mention: [
       'histórico, cadastro, ficha, sistema ou banco de dados',
       'fala literal do cliente',

@@ -49,7 +49,8 @@ export async function POST(req: NextRequest) {
     .in('id', leadIds)
 
   if (leadsError) return NextResponse.json({ error: leadsError.message }, { status: 500 })
-  const leads = (leadsRaw ?? []) as ReactivationLead[]
+  const leadById = new Map(((leadsRaw ?? []) as ReactivationLead[]).map(lead => [lead.id, lead]))
+  const leads = leadIds.map(id => leadById.get(id)).filter((lead): lead is ReactivationLead => Boolean(lead))
   if (!leads.length) {
     return NextResponse.json({ error: 'Nenhum lead encontrado' }, { status: 404 })
   }
@@ -76,12 +77,13 @@ export async function POST(req: NextRequest) {
   const rawResults: ReactivationGeneration[] = []
   for (let index = 0; index < leads.length; index += 5) {
     const batch = leads.slice(index, index + 5)
-    const generated = await Promise.all(batch.map(lead => generateReactivationMessage({
+    const generated = await Promise.all(batch.map((lead, batchIndex) => generateReactivationMessage({
       openai,
       lead,
       interactions: byLead.get(lead.id) ?? [],
       campaignTheme,
       campaignBrief,
+      variant: index + batchIndex,
       manualContext: body.manual_contexts?.[lead.id],
     })))
     rawResults.push(...generated)

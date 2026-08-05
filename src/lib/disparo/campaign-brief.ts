@@ -134,7 +134,7 @@ export function renderCampaignOnlyMessage(
     `${greeting(safeName)} A obra do La Reserva entrou em uma nova etapa: ${lowerFirst(workDetail)}.`,
     `${greeting(safeName)} Passando para contar que ${lowerFirst(primary)}.`,
     `${greeting(safeName)} Queria compartilhar uma atualização: ${lowerFirst(primary)}.`,
-    `${greeting(safeName)} O La Reserva avançou na obra: ${lowerFirst(workDetail)}.`,
+    `${greeting(safeName)} Um marco importante está próximo no canteiro do La Reserva: ${lowerFirst(workDetail)}.`,
     `${greeting(safeName)} A obra segue evoluindo no La Reserva: ${lowerFirst(workDetail)}.`,
     `${greeting(safeName)} Tem novidade no andamento do La Reserva: ${lowerFirst(workDetail)}.`,
     `${greeting(safeName)} Queria te atualizar sobre a obra do La Reserva: ${lowerFirst(workDetail)}.`,
