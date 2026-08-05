@@ -82,6 +82,9 @@ const UNSUPPORTED_AVAILABILITY = /\b(?:ainda temos|restam|[uú]ltimas?|poucas?)\
 const OVERSTATED_FOUNDATION = /\bfunda[cç][aã]o\b.{0,20}\b(?:conclu[ií]da|pronta|finalizada)\b/i
 const UNSUPPORTED_COMMERCIAL_TERM = /\bcondi[cç][oõ]es?(?:\s+de\s+pagamento)?\s+(?:mais\s+)?(?:flex[ií]ve(?:l|is)|facilitadas?|melhores?|especiais?|vantajosas?)\b/i
 const DUPLICATE_CTA = /\bposso\s+(?:te\s+|lhe\s+)?(?:enviar|mandar|passar|mostrar|apresentar)\b[\s\S]{0,240}\bquer\s+que\s+eu\s+(?:te\s+|lhe\s+)?(?:envie|mande|passe|mostre|apresente)\b/i
+const LABELED_OPENER = /^(?:a\s+)?(?:novidade|atualiza[cç][aã]o)(?:\s+(?:da|de)\s+obra)?\s*:/i
+const PROFILE_LANGUAGE = /\b(?:voc[eê]|vc)\s+(?:demonstrou|mostrou|manifestou)\s+(?:algum\s+)?interesse\b/i
+const UPDATED_CONDITIONS = /\bcondi[cç][oõ]es?(?:\s+de\s+pagamento)?\s+atualizadas?\b/gi
 
 /** Valores em reais e metragens: mudam com o tempo, e repetir número velho de
  *  uma conversa antiga quebra a confiança na hora em que o cliente confere. */
@@ -127,6 +130,9 @@ export function inspectMessage(
   const issues: QualityIssue[] = []
   const questionCount = (message.match(/\?/g) ?? []).length
   const grounding = `${leadContext}\n${campaignTheme}`
+  const safeGreeting = safeName
+    ? new RegExp(`^(?:oi|ol[aá]|bom dia|boa tarde|boa noite)[,!]?\\s+${safeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+    : null
 
   if (CRM_LEAKAGE.test(message)) {
     issues.push({
@@ -166,6 +172,34 @@ export function inspectMessage(
       code: 'cta_repetido',
       severity: 'bloqueio',
       correction: 'faça o convite uma única vez e encerre com apenas uma pergunta',
+    })
+  }
+  if ((message.match(UPDATED_CONDITIONS) ?? []).length > 1) {
+    issues.push({
+      code: 'cta_repetido',
+      severity: 'bloqueio',
+      correction: 'mencione as condições atualizadas apenas uma vez, de preferência na pergunta final',
+    })
+  }
+  if (safeGreeting && !safeGreeting.test(message)) {
+    issues.push({
+      code: 'saudacao_ausente',
+      severity: 'bloqueio',
+      correction: `comece naturalmente com "Oi, ${safeName}!"`,
+    })
+  }
+  if (LABELED_OPENER.test(message)) {
+    issues.push({
+      code: 'abertura_artificial',
+      severity: 'bloqueio',
+      correction: 'não use rótulos como "A novidade:"; escreva como uma conversa natural de WhatsApp',
+    })
+  }
+  if (PROFILE_LANGUAGE.test(message)) {
+    issues.push({
+      code: 'contexto_em_tom_de_ficha',
+      severity: 'bloqueio',
+      correction: 'não diga que o cliente demonstrou interesse; use o tema como hipótese natural, por exemplo "se financiamento ainda fizer sentido"',
     })
   }
 

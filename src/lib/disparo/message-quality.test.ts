@@ -41,7 +41,7 @@ describe('severidade dos problemas', () => {
 
   it('não bloqueia mensagem que fecha sem interrogação', () => {
     const issues = inspectMessage(
-      'Eduardo, a obra avançou e a fundação está concluída. Quem entra nesta fase acompanha o potencial de valorização. Me avisa se quiser a tabela atualizada e as plantas.',
+      'Oi, Eduardo! A obra avançou e a fundação está concluída. Quem entra nesta fase acompanha o potencial de valorização. Me avisa se quiser a tabela atualizada e as plantas.',
       'conversation', 'Eduardo',
     )
     expect(hasBlocker(issues)).toBe(false)
@@ -237,6 +237,28 @@ describe('vazamento e fatos atuais sem fonte', () => {
   it('bloqueia a mesma oferta feita duas vezes', () => {
     const codes = inspectMessage(
       'A obra avançou. Se quiser, posso te mandar as condições atualizadas. Quer que eu te mande?',
+      'conversation', 'João', 'A fundação está praticamente concluída.',
+      'demonstrou interesse em financiamento ou condições de pagamento',
+    ).map(issue => issue.code)
+    expect(codes).toContain('cta_repetido')
+  })
+
+  it('bloqueia abertura artificial, ausência de saudação e contexto em tom de ficha', () => {
+    const codes = inspectMessage(
+      'A novidade: a obra avançou. Como você demonstrou interesse em financiamento, quer receber as condições?',
+      'conversation', 'João', 'A fundação está praticamente concluída.',
+      'demonstrou interesse em financiamento ou condições de pagamento',
+    ).map(issue => issue.code)
+    expect(codes).toEqual(expect.arrayContaining([
+      'saudacao_ausente',
+      'abertura_artificial',
+      'contexto_em_tom_de_ficha',
+    ]))
+  })
+
+  it('bloqueia repetição das condições atualizadas', () => {
+    const codes = inspectMessage(
+      'Oi, João! A obra avançou. As condições de pagamento atualizadas podem ser úteis. Quer que eu te mande as condições atualizadas?',
       'conversation', 'João', 'A fundação está praticamente concluída.',
       'demonstrou interesse em financiamento ou condições de pagamento',
     ).map(issue => issue.code)

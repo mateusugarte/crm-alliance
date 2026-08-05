@@ -134,8 +134,10 @@ ${JSON.stringify({
   })}
 
 REGRAS OBRIGATÓRIAS
-- Abra pela novidade atual da campanha.
+- Se safe_name existir, comece exatamente com "Oi, safe_name!". Depois abra pela novidade atual da campanha.
+- Não use títulos ou rótulos como "A novidade:" ou "Atualização:".
 - Personalize somente com os rótulos em permitted_customer_facts. Não acrescente detalhes.
+- Não diga "você demonstrou interesse". Converta o fato em hipótese natural: "se financiamento ainda fizer sentido para você".
 - Trate qualquer interesse anterior como possibilidade atual, nunca como certeza.
 - Não mencione histórico, cadastro, ficha, sistema, banco de dados ou falta de informação.
 - Não invente localização, prazo, preço, unidade, metragem, disponibilidade, conversa ou preferência.
@@ -143,6 +145,7 @@ REGRAS OBRIGATÓRIAS
 - Não repita números antigos nem faça promessa de valorização.
 - Não cobre memória ou resposta. Sem emoji, pressão ou entusiasmo artificial.
 - Faça a oferta uma única vez. Não diga "posso enviar" e depois repita "quer que eu envie?".
+- Não repita "condições atualizadas" no corpo e no CTA; deixe a oferta para a pergunta final.
 - Produza 2 ou 3 parágrafos curtos, entre 180 e 520 caracteres, e termine com uma única pergunta.
 - Varie a construção conforme variant=${plan.variant}; não copie uma fórmula fixa.
 ${corrections.length ? `- Corrija também: ${corrections.join('; ')}.` : ''}
