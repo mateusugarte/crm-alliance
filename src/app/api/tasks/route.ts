@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { endOfDay, endOfWeek, startOfDay, startOfWeek } from 'date-fns'
 import { createClient } from '@/lib/supabase/server'
 import { loadTaskQueue } from '@/lib/central-do-dia/tasks'
+import { zonedDayRange } from '@/lib/timezone'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,12 +13,18 @@ export async function GET(request: NextRequest) {
   const { data: profileData } = await supabase.from('user_profiles').select('role').eq('id', user.id).single()
   const profile = profileData as { role?: string } | null
   const week = request.nextUrl.searchParams.get('view') === 'week'
-  const now = new Date()
-  const start = week ? startOfWeek(now, { weekStartsOn: 1 }) : startOfDay(now)
-  const end = week ? endOfWeek(now, { weekStartsOn: 1 }) : endOfDay(now)
+  const range = zonedDayRange(new Date(), week ? 'week' : 'day')
 
   try {
-    const data = await loadTaskQueue(supabase, user.id, profile?.role === 'adm', start.toISOString(), end.toISOString())
+    const data = await loadTaskQueue(
+      supabase,
+      user.id,
+      profile?.role === 'adm',
+      range.startIso,
+      range.endExclusiveIso,
+      range.startDate,
+      range.endExclusiveDate,
+    )
     return NextResponse.json({ data })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erro ao carregar tarefas'

@@ -1,6 +1,6 @@
 'use client'
 
-import { Bot, PauseCircle, Phone, Zap, ChevronRight } from '@/lib/icons'
+import { PauseCircle, Phone, Zap, ChevronRight } from '@/lib/icons'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatPhone } from '@/lib/format-phone'
 import type { LeadWithLastInteraction } from './types'

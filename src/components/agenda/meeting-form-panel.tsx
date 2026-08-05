@@ -15,8 +15,6 @@ import {
   subMonths,
   setHours,
   setMinutes,
-  getHours,
-  getMinutes,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { CalendarDays, ChevronLeft, ChevronRight, X, Loader2 } from '@/lib/icons'

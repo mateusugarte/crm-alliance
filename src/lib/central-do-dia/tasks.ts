@@ -19,13 +19,15 @@ export async function loadTaskQueue(
   userId: string,
   isAdm: boolean,
   startIso: string,
-  endIso: string,
+  endExclusiveIso: string,
+  startDate: string,
+  endExclusiveDate: string,
 ) {
   let queueQuery = supabase
     .from('fila_diaria')
     .select('data, tarefa_id, posicao, faixa')
-    .gte('data', startIso.slice(0, 10))
-    .lte('data', endIso.slice(0, 10))
+    .gte('data', startDate)
+    .lt('data', endExclusiveDate)
   if (!isAdm) queueQuery = queueQuery.eq('responsavel_id', userId)
 
   let activeQuery = supabase
@@ -39,7 +41,7 @@ export async function loadTaskQueue(
     .select('id')
     .eq('status', 'feita')
     .gte('concluida_em', startIso)
-    .lte('concluida_em', endIso)
+    .lt('concluida_em', endExclusiveIso)
   if (!isAdm) completedQuery = completedQuery.eq('responsavel_id', userId)
 
   const [queueResult, activeResult, completedResult] = await Promise.all([
@@ -54,7 +56,7 @@ export async function loadTaskQueue(
   const queueRows = queueResult.data
   const completedRows = completedResult.data
   const activeRows = (activeResult.data ?? []).filter(task =>
-    task.origem === 'qualificacao' || new Date(task.vence_em).getTime() <= new Date(endIso).getTime()
+    task.origem === 'qualificacao' || new Date(task.vence_em).getTime() < new Date(endExclusiveIso).getTime()
   )
 
   const ids = Array.from(new Set([
@@ -78,11 +80,13 @@ export async function loadTaskQueue(
   const leadIds = Array.from(new Set(tasks.map(task => task.lead_id)))
   const taskIds = tasks.map(task => task.id)
 
-  const [{ data: leads }, { data: recentInteractions }, { data: calls }] = await Promise.all([
+  const [{ data: leads }, latestInteractionsResult, { data: calls }] = await Promise.all([
     supabase.from('leads').select('id,name,phone,city,stage,intention,imovel_interesse,summary,summary_comercial_curto,interaction_count,qualificado_em,primeira_ligacao_em,ultimo_contato_em,tentativas_ligacao,lead_score,aceitou_consultor,created_at').in('id', leadIds),
-    supabase.from('interactions').select('lead_id,created_at').in('lead_id', leadIds).order('created_at', { ascending: false }),
+    supabase.rpc('central_ultimas_interacoes', { p_lead_ids: leadIds }),
     supabase.from('ligacoes').select('id,tarefa_id,desfecho,registrada_em,observacao,marcou_reuniao,retorno_em').in('tarefa_id', taskIds).is('excluida_em', null).order('registrada_em', { ascending: false }),
   ])
+  if (latestInteractionsResult.error) throw latestInteractionsResult.error
+  const recentInteractions = latestInteractionsResult.data
 
   const leadMap = new Map((leads ?? []).map(lead => [lead.id, lead]))
   const latestInteractionMap = new Map<string, string>()

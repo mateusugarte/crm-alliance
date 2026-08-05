@@ -1,5 +1,6 @@
 // Fallback para o endpoint real da UazAPI usado em produção — pode ser sobrescrito por env var.
 const BASE_URL = process.env.UAZAPI_BASE_URL || 'https://getmore.uazapi.com'
+const REQUEST_TIMEOUT_MS = 15_000
 
 interface SendTextResult {
   success: boolean
@@ -29,14 +30,15 @@ export async function sendTextMessage(
       token: instanceToken,
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   })
 
   if (!res.ok) {
-    const err = await res.text()
+    const err = (await res.text()).slice(0, 1_000)
     return { success: false, error: `${res.status} ${res.statusText}: ${err}` }
   }
 
-  const data = await res.json() as { id?: string; messageid?: string; key?: { id?: string } }
+  const data = await res.json().catch(() => ({})) as { id?: string; messageid?: string; key?: { id?: string } }
   return { success: true, wa_message_id: data.id ?? data.messageid ?? data.key?.id }
 }
 
@@ -67,13 +69,14 @@ export async function sendDocumentMessage(
       token: instanceToken,
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   })
 
   if (!res.ok) {
-    const err = await res.text()
+    const err = (await res.text()).slice(0, 1_000)
     return { success: false, error: `${res.status} ${res.statusText}: ${err}` }
   }
 
-  const data = await res.json() as { id?: string; messageid?: string; key?: { id?: string } }
+  const data = await res.json().catch(() => ({})) as { id?: string; messageid?: string; key?: { id?: string } }
   return { success: true, wa_message_id: data.id ?? data.messageid ?? data.key?.id }
 }

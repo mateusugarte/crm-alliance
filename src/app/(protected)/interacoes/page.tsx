@@ -28,8 +28,6 @@ async function getLeadsData(): Promise<{
     console.log('[interacoes] leads encontrados:', leads.length)
     if (leads.length === 0) return { conversations: [], contacts: [], messages: [], currentUserId, allLabels: [] }
 
-    const leadIds = leads.map(l => l.id)
-
     // DESC — mais recentes primeiro. Sem filtro .in() para evitar Bad Request com muitos leads.
     const { data: interactionsData, error: interactionsError } = await supabase
       .from('interactions')

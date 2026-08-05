@@ -17,8 +17,18 @@ const eslintConfig = [
       ".next/**",
       "out/**",
       "build/**",
+      "output/**",
+      "tmp/**",
+      ".claude/**",
+      "crm-alliance/**",
       "next-env.d.ts",
     ],
+  },
+  {
+    files: ["server.js"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
   },
 ];
 

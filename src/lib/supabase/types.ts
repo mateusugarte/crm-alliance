@@ -190,6 +190,9 @@ export interface Database {
           tentativas: number
           processando_em: string | null
           processando_por: string | null
+          proxima_tentativa_em: string | null
+          ultimo_erro_em: string | null
+          provider_message_id: string | null
         }
         Insert: {
           id?: string
@@ -203,6 +206,9 @@ export interface Database {
           tentativas?: number
           processando_em?: string | null
           processando_por?: string | null
+          proxima_tentativa_em?: string | null
+          ultimo_erro_em?: string | null
+          provider_message_id?: string | null
         }
         Update: Partial<Database['public']['Tables']['mensagens_saida']['Insert']>
       }
@@ -879,6 +885,10 @@ export interface Database {
       mark_lead_read: {
         Args: { lead_uuid: string }
         Returns: undefined
+      }
+      central_ultimas_interacoes: {
+        Args: { p_lead_ids: string[] }
+        Returns: { lead_id: string; created_at: string }[]
       }
     }
     Enums: Record<string, never>

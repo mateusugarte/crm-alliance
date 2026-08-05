@@ -125,9 +125,11 @@ export default function ReativarDetailPage() {
     setEditHoursEnd(campaign.allowed_hours_end ?? 23)
   }, [campaign])
 
+  const campaignStatus = campaign?.status
+
   // Socket.io — only connect when running
   useEffect(() => {
-    if (!campaign || campaign.status !== 'running') {
+    if (campaignStatus !== 'running') {
       if (socketRef.current) {
         socketRef.current.disconnect()
         socketRef.current = null
@@ -196,7 +198,7 @@ export default function ReativarDetailPage() {
         socketRef.current = null
       }
     }
-  }, [campaign?.status, id, loadData])
+  }, [campaignStatus, id, loadData])
 
   const handleAction = async (action: 'start' | 'pause' | 'stop') => {
     if (!campaign) return

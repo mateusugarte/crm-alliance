@@ -13,14 +13,12 @@ interface Props {
   isAdm: boolean
 }
 
-export function ImovelReservadosClient({ imoveis: initial, vendas: initialVendas, isAdm }: Props) {
+export function ImovelReservadosClient({ imoveis: initial, isAdm }: Props) {
   const [imoveis, setImoveis] = useState<Imovel[]>(initial)
-  const [vendas, setVendas] = useState<Venda[]>(initialVendas)
   const [vendaImovel, setVendaImovel] = useState<Imovel | null>(null)
 
   const handleVendaSaved = (venda: Venda, imovelId: string) => {
     setImoveis(prev => prev.filter(i => i.id !== imovelId))
-    setVendas(prev => [venda, ...prev])
     setVendaImovel(null)
     toast.success('Venda registrada! Imóvel movido para a seção de vendidos.')
   }

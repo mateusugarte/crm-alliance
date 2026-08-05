@@ -242,14 +242,6 @@ export function ImovelGrid({ imoveis: initialImoveis, vendas: initialVendas, isA
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
-  // ── Sync columns when imoveis change ──
-  const syncColumns = useCallback((newImoveis: Imovel[]) => {
-    setColumns(prev => {
-      const active = newImoveis.filter(i => !i.vendido)
-      return loadLayout(active)
-    })
-  }, [])
-
   // ── Drag handlers ──
 
   const handleDragStart = useCallback((event: DragStartEvent) => {

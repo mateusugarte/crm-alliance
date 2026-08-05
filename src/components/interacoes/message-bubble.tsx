@@ -6,11 +6,10 @@ import { extractMessageText } from '@/lib/whatsapp/extract-message-text'
 
 interface MessageBubbleProps {
   message: Interaction
-  isIA: boolean
   consultantName?: string
 }
 
-export function MessageBubble({ message, isIA, consultantName }: MessageBubbleProps) {
+export function MessageBubble({ message, consultantName }: MessageBubbleProps) {
   const time = format(new Date(message.created_at), 'HH:mm', { locale: ptBR })
   const isInbound = message.direction === 'inbound'
   const isBot = message.sender_type === 'bot'

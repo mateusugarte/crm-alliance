@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Send, Loader2, Zap, PauseCircle, PlusCircle, X, ChevronDown } from '@/lib/icons'
+import { Send, Loader2, Zap, PauseCircle, PlusCircle, X } from '@/lib/icons'
 import { AnimatePresence, motion } from 'framer-motion'
 import { format, isToday, isYesterday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -149,7 +149,7 @@ export function ChatArea({ messages, lead, onSend, onMessageAdded }: ChatAreaPro
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <MessageBubble message={msg} isIA={lead.assigned_to === null} />
+                  <MessageBubble message={msg} />
                 </motion.div>
               ))}
             </div>

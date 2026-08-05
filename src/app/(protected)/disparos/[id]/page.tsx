@@ -260,7 +260,12 @@ export default function DisparoDetailPage() {
   }
 
   const toggleExpand = (rowId: string) => {
-    setExpandedIds(prev => { const n = new Set(prev); n.has(rowId) ? n.delete(rowId) : n.add(rowId); return n })
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(rowId)) next.delete(rowId)
+      else next.add(rowId)
+      return next
+    })
   }
 
   // ── Delete dispatch ───────────────────────────────────────────────────────

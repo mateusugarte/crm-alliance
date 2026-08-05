@@ -45,3 +45,10 @@ next-env.d.ts
 .claude/skills/
 .claude/settings.json
 .claude/*.lock
+
+# Legacy nested scaffold retained locally only for reference
+/crm-alliance/
+
+# Local generated reports and previews
+/output/
+/tmp/
