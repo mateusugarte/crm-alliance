@@ -26,7 +26,7 @@ const CTA_BY_ANGLE: Record<LeadAngle, string> = {
 function stableVariant(leadId: string) {
   let hash = 0
   for (const char of leadId) hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0
-  return Math.abs(hash) % 5
+  return Math.abs(hash) % 25
 }
 
 function chooseFacts(facts: CommercialFact[]) {

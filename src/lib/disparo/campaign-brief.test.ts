@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { messageSimilarity } from './batch-quality'
 import { buildCampaignBrief, renderCampaignOnlyMessage } from './campaign-brief'
 
 const THEME = `As obras avançaram desde o nosso último contato: a fundação está praticamente concluída.
@@ -18,11 +19,11 @@ describe('briefing estruturado da campanha', () => {
 
   it('gera mensagem neutra sem fingir contexto', () => {
     const brief = buildCampaignBrief(THEME)
-    const messages = Array.from({ length: 5 }, (_, variant) => (
+    const messages = Array.from({ length: 25 }, (_, variant) => (
       renderCampaignOnlyMessage(brief, 'Ana', variant)
     ))
 
-    expect(new Set(messages).size).toBe(5)
+    expect(new Set(messages).size).toBe(25)
     for (const message of messages) {
       expect(message).toMatch(/^Oi, Ana!/)
       expect(message).not.toMatch(/conversamos|histórico|cadastro/i)
@@ -31,5 +32,10 @@ describe('briefing estruturado da campanha', () => {
       expect(message).not.toMatch(/fico à disposição/i)
       expect(message.endsWith('?')).toBe(true)
     }
+
+    const similarities = messages.flatMap((message, index) => (
+      messages.slice(0, index).map(previous => messageSimilarity(previous, message))
+    ))
+    expect(Math.max(...similarities)).toBeLessThan(0.86)
   })
 })

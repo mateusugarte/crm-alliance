@@ -105,6 +105,17 @@ function greeting(name: string | null) {
   return name ? `Oi, ${name}!` : 'Olá!'
 }
 
+function neutralCtas(cta: string) {
+  if (!/projeto\s+(?:ainda\s+)?faz\s+sentido/i.test(cta)) return [cta]
+  return [
+    cta,
+    'Quer receber mais informações sobre essa fase da obra?',
+    'Você gostaria de conhecer melhor o La Reserva?',
+    'Faz sentido eu te contar mais sobre o projeto?',
+    'Essa atualização despertou seu interesse?',
+  ]
+}
+
 export function renderCampaignOnlyMessage(
   brief: CampaignBrief,
   safeName: string | null,
@@ -123,10 +134,19 @@ export function renderCampaignOnlyMessage(
     `${greeting(safeName)} A obra do La Reserva entrou em uma nova etapa: ${lowerFirst(workDetail)}.`,
     `${greeting(safeName)} Passando para contar que ${lowerFirst(primary)}.`,
     `${greeting(safeName)} Queria compartilhar uma atualização: ${lowerFirst(primary)}.`,
+    `${greeting(safeName)} O La Reserva avançou na obra: ${lowerFirst(workDetail)}.`,
+    `${greeting(safeName)} A obra segue evoluindo no La Reserva: ${lowerFirst(workDetail)}.`,
+    `${greeting(safeName)} Tem novidade no andamento do La Reserva: ${lowerFirst(workDetail)}.`,
+    `${greeting(safeName)} Queria te atualizar sobre a obra do La Reserva: ${lowerFirst(workDetail)}.`,
+    `${greeting(safeName)} Passando com uma novidade sobre o La Reserva: ${lowerFirst(workDetail)}.`,
   ]
+  const ctas = neutralCtas(cta)
+  const normalizedVariant = Math.abs(variant)
+  const openingIndex = normalizedVariant % openings.length
+  const round = Math.floor(normalizedVariant / openings.length)
   return tidy([
-    openings[Math.abs(variant) % openings.length],
+    openings[openingIndex],
     secondary ? `${secondary}.` : '',
-    cta,
+    ctas[(openingIndex * 3 + round) % ctas.length],
   ].filter(Boolean).join('\n\n'))
 }
