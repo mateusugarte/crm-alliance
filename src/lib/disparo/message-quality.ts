@@ -80,6 +80,8 @@ const UNSUPPORTED_DEADLINE = /\b(?:entrega|previs[aã]o|fica pronto|conclus[aã]
 const UNSUPPORTED_LOCATION = /\b(?:em|no|na)\s+(?:Castelo|Vit[oó]ria|Vila Velha|Cachoeiro|Esp[ií]rito Santo)\b/i
 const UNSUPPORTED_AVAILABILITY = /\b(?:ainda temos|restam|[uú]ltimas?|poucas?)\s+(?:unidades?|apartamentos?|op[cç][oõ]es?)\b/i
 const OVERSTATED_FOUNDATION = /\bfunda[cç][aã]o\b.{0,20}\b(?:conclu[ií]da|pronta|finalizada)\b/i
+const UNSUPPORTED_COMMERCIAL_TERM = /\bcondi[cç][oõ]es?(?:\s+de\s+pagamento)?\s+(?:mais\s+)?(?:flex[ií]ve(?:l|is)|facilitadas?|melhores?|especiais?|vantajosas?)\b/i
+const DUPLICATE_CTA = /\bposso\s+(?:te\s+|lhe\s+)?(?:enviar|mandar|passar|mostrar|apresentar)\b[\s\S]{0,240}\bquer\s+que\s+eu\s+(?:te\s+|lhe\s+)?(?:envie|mande|passe|mostre|apresente)\b/i
 
 /** Valores em reais e metragens: mudam com o tempo, e repetir número velho de
  *  uma conversa antiga quebra a confiança na hora em que o cliente confere. */
@@ -150,6 +152,20 @@ export function inspectMessage(
       code: 'fato_da_campanha_exagerado',
       severity: 'bloqueio',
       correction: 'preserve o grau exato do fato: a fundação está praticamente concluída, não concluída',
+    })
+  }
+  if (UNSUPPORTED_COMMERCIAL_TERM.test(message) && !UNSUPPORTED_COMMERCIAL_TERM.test(campaignTheme)) {
+    issues.push({
+      code: 'condicao_comercial_sem_fonte',
+      severity: 'bloqueio',
+      correction: 'não qualifique condições como flexíveis, melhores, especiais ou vantajosas sem fonte atual na campanha',
+    })
+  }
+  if (DUPLICATE_CTA.test(message)) {
+    issues.push({
+      code: 'cta_repetido',
+      severity: 'bloqueio',
+      correction: 'faça o convite uma única vez e encerre com apenas uma pergunta',
     })
   }
 

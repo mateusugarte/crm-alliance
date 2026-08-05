@@ -255,4 +255,6 @@ Implementado em 05/08/2026:
 - prévia com contexto, fatos usados, edição, remoção e aprovação obrigatória dos casos em revisão;
 - nova validação no servidor depois de qualquer edição manual;
 - snapshot de geração e aprovação gravado de forma transacional com a mensagem do dispatch;
-- regressão automatizada cobrindo 75 testes no projeto, dos quais 67 são específicos do motor de disparos.
+- regressão automatizada cobrindo 79 testes no projeto, dos quais 71 são específicos do motor de disparos;
+- bloqueio de condições comerciais qualificadas sem fonte atual e de chamadas para ação repetidas;
+- auditoria separada para IDs dos fatos atuais da campanha e dos fatos comerciais do lead.

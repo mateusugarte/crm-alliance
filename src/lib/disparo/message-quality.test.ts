@@ -224,4 +224,22 @@ describe('vazamento e fatos atuais sem fonte', () => {
     ).map(issue => issue.code)
     expect(codes).toContain('fato_da_campanha_exagerado')
   })
+
+  it('bloqueia condição comercial qualificada sem fonte atual', () => {
+    const codes = inspectMessage(
+      'A obra avançou e pode ser um bom momento para avaliar condições de pagamento mais flexíveis. Quer receber?',
+      'conversation', 'João', 'A fundação está praticamente concluída.',
+      'demonstrou interesse em financiamento ou condições de pagamento',
+    ).map(issue => issue.code)
+    expect(codes).toContain('condicao_comercial_sem_fonte')
+  })
+
+  it('bloqueia a mesma oferta feita duas vezes', () => {
+    const codes = inspectMessage(
+      'A obra avançou. Se quiser, posso te mandar as condições atualizadas. Quer que eu te mande?',
+      'conversation', 'João', 'A fundação está praticamente concluída.',
+      'demonstrou interesse em financiamento ou condições de pagamento',
+    ).map(issue => issue.code)
+    expect(codes).toContain('cta_repetido')
+  })
 })

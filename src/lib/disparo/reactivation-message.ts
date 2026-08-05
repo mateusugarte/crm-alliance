@@ -139,8 +139,10 @@ REGRAS OBRIGATÓRIAS
 - Trate qualquer interesse anterior como possibilidade atual, nunca como certeza.
 - Não mencione histórico, cadastro, ficha, sistema, banco de dados ou falta de informação.
 - Não invente localização, prazo, preço, unidade, metragem, disponibilidade, conversa ou preferência.
+- Não qualifique condições como flexíveis, melhores, especiais ou vantajosas sem fonte atual.
 - Não repita números antigos nem faça promessa de valorização.
 - Não cobre memória ou resposta. Sem emoji, pressão ou entusiasmo artificial.
+- Faça a oferta uma única vez. Não diga "posso enviar" e depois repita "quer que eu envie?".
 - Produza 2 ou 3 parágrafos curtos, entre 180 e 520 caracteres, e termine com uma única pergunta.
 - Varie a construção conforme variant=${plan.variant}; não copie uma fórmula fixa.
 ${corrections.length ? `- Corrija também: ${corrections.join('; ')}.` : ''}
@@ -244,6 +246,10 @@ export async function generateReactivationMessage(input: {
   }
 
   const permittedIds = new Set(plan.personalization_fact_ids)
+  const auditableFactIds = new Set([
+    ...plan.personalization_fact_ids,
+    ...campaign.current_facts.map(fact => fact.id),
+  ])
   const grounding = [
     ...campaign.current_facts.map(fact => fact.value),
     ...brief.facts.filter(fact => permittedIds.has(fact.id)).map(fact => fact.value),
@@ -268,7 +274,7 @@ export async function generateReactivationMessage(input: {
     }
     if (!output.message) continue
 
-    const invalidFactIds = output.used_fact_ids.filter(id => !permittedIds.has(id))
+    const invalidFactIds = output.used_fact_ids.filter(id => !auditableFactIds.has(id))
     const { message, repaired } = repairMessage(output.message, brief.mode, brief.safeName, plan.cta)
     const issues = inspectMessage(message, brief.mode, brief.safeName, campaign.normalized_theme, grounding)
     if (invalidFactIds.length) {

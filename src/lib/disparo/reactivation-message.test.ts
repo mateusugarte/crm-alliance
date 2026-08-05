@@ -85,4 +85,16 @@ describe('geração controlada', () => {
     expect(result.resolution).not.toBe('fallback')
     expect(result.quality_flags).toContain('fato_fora_do_plano')
   })
+
+  it('aceita o ID de um fato atual da campanha na auditoria do modelo', async () => {
+    const result = await generateReactivationMessage({
+      openai: fakeOpenAI(undefined, ['campaign-1']),
+      lead: lead(),
+      interactions: [inbound('Como funciona o financiamento?')],
+      campaignTheme: theme,
+    })
+
+    expect(result.approval_status).toBe('ready')
+    expect(result.quality_flags).not.toContain('fato_fora_do_plano')
+  })
 })
