@@ -29,6 +29,8 @@ function tidy(value: string) {
     .replace(/[ \t]+([,.:;!?])/g, '$1')
     .replace(/\s+([.!?])/g, '$1')
     .replace(/^[,;: \t-]+/gm, '')
+    .replace(/,?\s+e\s*([.!?])/gi, '$1')
+    .replace(/,?\s+e\s*$/gi, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
@@ -36,7 +38,7 @@ function tidy(value: string) {
 export function normalizeCampaignTheme(theme: string) {
   return tidy(theme
     .replace(FALSE_CONTINUITY.all, '')
-    .replace(BANNED_DECISION_PHRASE, 'fico à disposição para tirar suas dúvidas')
+    .replace(BANNED_DECISION_PHRASE, '')
     .replace(RETURN_PROMISE, 'pode acompanhar o potencial de valorização')
     .replace(PRESSURE, '')
   )
@@ -53,6 +55,14 @@ function splitSentences(value: string) {
 function campaignFact(value: string) {
   const afterColon = value.match(/^estou (?:te|lhe) mandando (?:essa )?mensagem\b[^:]*:\s*(.+)$/i)?.[1]
   return tidy(afterColon ?? value)
+}
+
+function sentenceCase(value: string) {
+  return value ? `${value.charAt(0).toLocaleUpperCase('pt-BR')}${value.slice(1)}` : value
+}
+
+function lowerFirst(value: string) {
+  return value ? `${value.charAt(0).toLocaleLowerCase('pt-BR')}${value.slice(1)}` : value
 }
 
 function stripClosingQuestion(value: string) {
@@ -100,14 +110,21 @@ export function renderCampaignOnlyMessage(
   safeName: string | null,
   variant: number,
 ) {
-  const novelty = brief.novelty.replace(/[.!?]+$/g, '').trim()
+  const facts = brief.current_facts.map(fact => fact.value.replace(/[.!?]+$/g, '').trim()).filter(Boolean)
+  const primary = facts[0] ?? brief.novelty.replace(/[.!?]+$/g, '').trim()
+  const secondary = facts.slice(1).map(sentenceCase).join('. ')
+  const projectUpdate = primary.replace(/^As obras do La Reserva\s+/i, '')
   const cta = brief.cta.endsWith('?') ? brief.cta : `${brief.cta.replace(/[.!]+$/g, '')}?`
   const openings = [
-    `${greeting(safeName)} Passando para compartilhar uma atualização do La Reserva:`,
-    `${greeting(safeName)} Tenho uma novidade sobre o La Reserva:`,
-    `${greeting(safeName)} Uma atualização importante do La Reserva:`,
-    `${greeting(safeName)} Passando com uma novidade da obra do La Reserva:`,
-    `${greeting(safeName)} Queria te atualizar sobre o La Reserva:`,
+    `${greeting(safeName)} ${sentenceCase(primary)}.`,
+    `${greeting(safeName)} Tenho uma atualização do La Reserva: ${lowerFirst(projectUpdate)}.`,
+    `${greeting(safeName)} O La Reserva entrou em uma nova etapa: ${lowerFirst(projectUpdate)}.`,
+    `${greeting(safeName)} Passando com uma atualização da obra: ${lowerFirst(projectUpdate)}.`,
+    `${greeting(safeName)} Queria compartilhar uma novidade do La Reserva: ${lowerFirst(projectUpdate)}.`,
   ]
-  return tidy(`${openings[Math.abs(variant) % openings.length]} ${novelty}.\n\n${cta}`)
+  return tidy([
+    openings[Math.abs(variant) % openings.length],
+    secondary ? `${secondary}.` : '',
+    cta,
+  ].filter(Boolean).join('\n\n'))
 }

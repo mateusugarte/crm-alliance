@@ -20,6 +20,8 @@ describe('briefing estruturado da campanha', () => {
     const message = renderCampaignOnlyMessage(buildCampaignBrief(THEME), 'Ana', 2)
     expect(message).toMatch(/^Oi, Ana!/) 
     expect(message).not.toMatch(/conversamos|histórico|cadastro/i)
+    expect(message).not.toMatch(/La Reserva:\s*As obras do La Reserva/i)
+    expect(message).not.toMatch(/fico à disposição/i)
     expect(message.endsWith('?')).toBe(true)
   })
 })
