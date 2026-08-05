@@ -97,6 +97,53 @@ describe('adaptação em vez de descarte', () => {
   })
 })
 
+describe('reativação não pode cobrar memória do lead frio', () => {
+  const bloqueios = (message: string, tema = '') =>
+    inspectMessage(message, 'conversation', 'Ana', tema)
+      .filter(issue => issue.severity === 'bloqueio')
+      .map(issue => issue.code)
+
+  it('bloqueia abertura citando o que o cliente disse', () => {
+    // Saída real de produção. O lead é frio, não lembra da conversa, e abrir
+    // assim soa como quem consultou um dossiê.
+    expect(bloqueios('Oi, Ana. Você mencionou o lote avaliado e buscava um 2 quartos. A obra avançou. Faz sentido?'))
+      .toContain('abertura_cobrando_memoria')
+  })
+
+  it('bloqueia mesmo com travessão ou vírgula depois do nome', () => {
+    expect(bloqueios('Oi, Arthur — você comentou sobre os escopos de elétrica, certo? A obra avançou. Vamos falar?'))
+      .toContain('abertura_cobrando_memoria')
+  })
+
+  it('bloqueia pedido de confirmação de memória', () => {
+    expect(bloqueios('Oi, Ana! A obra avançou muito por aqui. Você ainda procura um 2 quartos?'))
+      .toContain('pede_confirmacao_de_memoria')
+  })
+
+  it('bloqueia número velho vindo do histórico', () => {
+    // Preço e parcela mudam; repetir o que foi dito meses atrás quebra a
+    // confiança na hora em que o cliente confere.
+    expect(bloqueios('Oi, Ana! A obra avançou. A prestação ficou em torno de R$ 9.449 em 56 parcelas. Vamos conversar?'))
+      .toContain('numero_velho_do_historico')
+  })
+
+  it('aceita número quando ele vem da própria campanha', () => {
+    const tema = 'A fundação está concluída e as unidades partem de R$ 535.000.'
+    expect(bloqueios('Oi, Ana! A obra avançou e as unidades partem de R$ 535.000. Quer ver as condições?', tema))
+      .not.toContain('numero_velho_do_historico')
+  })
+
+  it('aprova a mensagem que abre pela obra e trata o interesse como possibilidade', () => {
+    const boa = 'Oi, Ana! Passando pra contar que a obra do La Reserva avançou: a fundação está concluída e em breve começamos a subir os andares.\n\nLembrei de você por causa dos 2 quartos — ainda temos unidade, e se aquele lote ainda estiver de pé, dá pra usar como parte da entrada.\n\nQuer que eu levante as condições atualizadas?'
+    expect(bloqueios(boa)).toHaveLength(0)
+  })
+
+  it('não bloqueia referência leve no meio do texto', () => {
+    const boa = 'Oi, Ana! A obra do La Reserva avançou e a fundação está concluída.\n\nComo você buscava um 2 quartos, achei que valia avisar que ainda temos unidade disponível.\n\nQuer que eu levante as condições?'
+    expect(bloqueios(boa)).toHaveLength(0)
+  })
+})
+
 describe('mensagem de segurança', () => {
   it('respeita as próprias regras do sistema', () => {
     // A primeira versão colava o tema cru depois da saudação, e o texto-base do

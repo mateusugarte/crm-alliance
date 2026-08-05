@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildLeadBrief, exclusionReason, safeFirstName, type BriefInteraction } from './lead-brief'
+import { buildLeadBrief, exclusionReason, readableContent, safeFirstName, type BriefInteraction } from './lead-brief'
 
 const lead = (over: Partial<Parameters<typeof buildLeadBrief>[0]> = {}) => ({
   id: 'lead-1', name: 'Ana Paula', phone: '5527999999999',
@@ -142,5 +142,59 @@ describe('escolha da âncora', () => {
     expect(brief.mode).toBe('sparse')
     expect(brief.anchor).toBeNull()
     expect(brief.safeName).toBeNull()
+  })
+})
+
+describe('fornecedores e payloads crus', () => {
+  it('exclui quem quer prestar serviço para a obra', () => {
+    // Caso real: Arthur Franco estava como lead_quente e receberia campanha
+    // perguntando se queria agendar visita ao apartamento.
+    expect(exclusionReason('Arthur Franco', [
+      'Bom dia. Gostaria de tratar sobre o La Reserva',
+      'Quero participar das cotações para execução de serviços específicos na obra',
+      'Me refiro ao escopo de: Elétrica; automação; monitoramento, TI, SDAI e afins.',
+    ])).toMatch(/prestar servi/i)
+  })
+
+  it('não exclui comprador que fala de acabamento', () => {
+    expect(exclusionReason('Raqueli', [
+      'Closet, banheiro com banheira e varanda gourmet seriam essenciais pra mim',
+    ])).toBeNull()
+  })
+
+  it('lê texto de payloads JSON concatenados', () => {
+    // O webhook às vezes grava dois objetos na mesma linha; JSON.parse falhava
+    // no conjunto e as chaves iam parar dentro da mensagem enviada ao cliente.
+    const cru = '{"text":"Bom dia","previewType":0} {"text":"Gostaria de tratar sobre o La Reserva"}'
+    expect(readableContent(cru)).toBe('Bom dia Gostaria de tratar sobre o La Reserva')
+  })
+
+  it('lê payload JSON simples', () => {
+    expect(readableContent('{"text":"Financia também?"}')).toBe('Financia também?')
+  })
+
+  it('devolve texto puro sem alteração', () => {
+    expect(readableContent('  Qual   o prazo? ')).toBe('Qual o prazo?')
+  })
+})
+
+describe('fornecedores que se apresentam pelo próprio ramo', () => {
+  it('exclui locador de escoramento metálico', () => {
+    expect(exclusionReason('Marcos Pashal', [
+      'Boa tarde. Me chamo Marcos, sou consultor técnico comercial da Pashal Alugadora',
+      'Então. Eu trabalho com locação de escoramento metálico, o motivo do meu contato é exatamente esse',
+    ])).toMatch(/prestar servi/i)
+  })
+
+  it('exclui prestador de imagens aéreas', () => {
+    expect(exclusionReason('Lead', [
+      'Tudo certo. Já conheço. Gostaria de apresentar meu trabalho. Trabalho com imagens aéreas com drone, se caso tiverem interesse, posso mandar a tabela de serviços',
+    ])).toMatch(/prestar servi/i)
+  })
+
+  it('não exclui comprador que trabalha em algum ramo sem oferecer nada', () => {
+    expect(exclusionReason('Carla', [
+      'Trabalho em Vitória mas quero morar em Castelo. Qual o valor do apartamento de 2 quartos?',
+    ])).toBeNull()
   })
 })

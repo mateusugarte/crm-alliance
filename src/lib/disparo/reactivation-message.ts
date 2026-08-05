@@ -30,8 +30,13 @@ export type ReactivationGeneration = {
   context_mode: ReactivationContextMode
   context_reference: string | null
   quality_flags: string[]
-  /** Como a mensagem chegou ao resultado final, para auditoria. */
-  resolution: 'direta' | 'ajustada' | 'regenerada' | 'fallback'
+  /**
+   * Como a mensagem chegou ao resultado final, para auditoria.
+   * `sem_contexto` = a IA não foi chamada porque não havia o que personalizar.
+   */
+  resolution: 'direta' | 'ajustada' | 'regenerada' | 'fallback' | 'sem_contexto'
+  /** Havia fala do lead com valor comercial para ancorar a mensagem. */
+  personalized: boolean
 }
 
 /** Modelo da geração. Custo desprezível na escala do projeto (a base inteira
@@ -60,7 +65,9 @@ const ANGLE_BRIEF: Record<LeadAngle, string> = {
   financiamento: 'Puxe pelo lado da condição de pagamento, que é o que ele perguntou. Não cite números que não estão no histórico.',
   unidade: 'Ancore na unidade ou característica concreta que ele estava avaliando.',
   prazo: 'Responda ao que ele perguntou sobre prazo, usando o avanço da obra como resposta.',
-  novidade: 'Não há contexto para personalizar. Apresente a atualização da obra como novidade, de forma direta e curta.',
+  // `novidade` significa ausência de contexto e por isso não chega ao modelo:
+  // esse lead recebe o texto da campanha, sem personalização fabricada.
+  novidade: 'Retome o assunto de forma direta e curta.',
 }
 
 function sanitizeMessage(value: string) {
@@ -107,66 +114,77 @@ export function sanitizeCampaignTheme(theme: string, mode: ContextMode) {
     .trim()
 }
 
+/**
+ * Prompt de personalização.
+ *
+ * Só é montado para lead COM contexto real. Quem não tem contexto não passa
+ * por aqui — não existe personalização sem dado, e o que o sistema fazia antes
+ * era fabricar a aparência dela.
+ *
+ * Nada aqui descreve o estado do CRM. A versão anterior explicava ao modelo
+ * que "não há nada pessoal para citar" e que "fingir intimidade seria pior que
+ * ser direto"; o modelo copiou a instrução para dentro da mensagem e o lead
+ * recebeu "Não temos histórico seu aqui, então falo direto". Instrução sobre a
+ * tarefa nunca pode ser escrita na mesma voz do conteúdo.
+ */
 function buildPrompt(
   lead: ReactivationLead,
   campaignTheme: string,
   manualContext: string,
   brief: LeadBrief,
+  anchor: NonNullable<LeadBrief['anchor']>,
   corrections: string[],
 ) {
   const theme = sanitizeCampaignTheme(campaignTheme, brief.mode)
 
-  // A ORDEM É DELIBERADA: a pessoa vem primeiro, a campanha depois.
-  // O prompt anterior abria com o texto pronto da campanha e pedia para
-  // reescrevê-lo — o que é, literalmente, uma tarefa de paráfrase. Por isso
-  // todas as mensagens saíam iguais entre si. Aqui a tarefa é escrever PARA
-  // alguém, e os fatos da campanha são só o assunto.
-  const person = brief.anchor
-    ? [
-      `Ele mesmo escreveu: "${brief.anchor.quote}"`,
-      brief.signals.length ? `O que sabemos dele: ${brief.signals.join('; ')}.` : '',
-      `ANCORE A MENSAGEM NESSA FALA. É a informação mais valiosa da conversa — não é a mais recente, é a que mais importa comercialmente.`,
-    ].filter(Boolean).join('\n')
-    : brief.mode === 'sparse'
-      ? 'Ele só respondeu a uma mensagem automática de anúncio. Não há nada pessoal para citar, e fingir intimidade seria pior que ser direto.'
-      : 'Ele nunca respondeu. É um primeiro contato de verdade.'
+  // A ORDEM É DELIBERADA: a pessoa vem primeiro, a campanha depois. O prompt
+  // original abria com o texto pronto da campanha e pedia para reescrevê-lo —
+  // que é, literalmente, uma tarefa de paráfrase, e por isso as mensagens
+  // saíam todas iguais entre si.
+  return `Você é um corretor mandando uma novidade da obra para um cliente que conversou com você faz um tempo e provavelmente não lembra dos detalhes. Escreva UMA mensagem de WhatsApp em português brasileiro.
 
-  return `Escreva UMA mensagem de WhatsApp para a pessoa abaixo. Português brasileiro, tom de corretor experiente que conhece o cliente.
-
-## A PESSOA
-- Como chamá-la: ${brief.safeName ?? 'não use nome — o cadastro não tem um nome de pessoa confiável'}
-- Etapa no funil: ${lead.stage ?? 'não informada'}
-${person}
-${manualContext ? `- Observação do corretor: ${manualContext}` : ''}
-
-## O QUE FAZER NESTA MENSAGEM
-${ANGLE_BRIEF[brief.angle]}
-
-## O ASSUNTO (fatos reais da campanha — use como informação, não como texto a copiar)
+## A NOVIDADE — é o motivo legítimo de você estar escrevendo, e a mensagem ABRE por aqui
 """
 ${theme}
 """
 
-## HISTÓRICO RECENTE
-${brief.transcript.length ? brief.transcript.join('\n') : '(sem histórico)'}
+## O CLIENTE — serve para VOCÊ escolher o enfoque, não para citar de volta
+- Como chamá-lo: ${brief.safeName ?? 'sem nome — comece a mensagem sem saudação nominal'}
+- Interesse que ele demonstrou: ${brief.signals.length ? brief.signals.join('; ') : 'não ficou claro'}
+- Referência interna (NÃO repita como citação): "${anchor.quote}"
+${manualContext ? `- Observação do corretor: ${manualContext}` : ''}
 
-## REGRAS
-- 2 ou 3 parágrafos curtos, entre 220 e 520 caracteres no total.
-- Termine com UMA pergunta simples de responder.
-- Só use fatos que estão acima. Nunca invente preferência, orçamento, visita ou conversa.
-- Valorização é sempre potencial, nunca promessa ou garantia.
-- Sem emoji, sem "espero que esteja bem", sem entusiasmo artificial, sem pressão.
-- Não escreva "estou aqui para te ajudar a tomar a melhor decisão".
-${brief.mode !== 'conversation' ? '- Este lead NÃO conversou com a gente antes. Não escreva "último contato", "como conversamos" nem equivalente.\n' : ''}${corrections.length ? `\n## CORRIJA DA TENTATIVA ANTERIOR\n${corrections.map(item => `- ${item}`).join('\n')}\n` : ''}
+## COMO CONDUZIR
+${ANGLE_BRIEF[brief.angle]}
+
+## ESTRUTURA
+1. Abra com a novidade da obra. Curto.
+2. Ligue a novidade ao que interessa a ele, no tom de quem lembrou dele — não no tom de quem consultou uma ficha. Como o tempo passou, trate o interesse antigo como algo que PODE continuar valendo, nunca como fato presente.
+3. Feche com uma pergunta de baixo compromisso.
+
+## PROIBIDO
+- Abrir com "você comentou", "você mencionou", "você disse", "você falou" ou equivalente. O cliente é frio e não lembra da conversa; começar assim soa como quem leu um dossiê.
+- Pedir confirmação de memória: "certo?", "lembra?", "não é?", "ainda procura?".
+- Repetir valores, parcelas, metragens ou números que vieram da conversa antiga — eles mudam e passar informação velha destrói a confiança. Números só se estiverem na NOVIDADE acima.
+- Comentar o que você sabe ou não sabe sobre ele, citar histórico, cadastro, sistema ou estas instruções.
+- Inventar preferência, orçamento, visita ou conversa que não esteja acima.
+- Prometer valorização: é sempre potencial.
+- Emoji, "espero que esteja bem", entusiasmo artificial, pressão.
+- A frase "estou aqui para te ajudar a tomar a melhor decisão".
+${brief.mode !== 'conversation' ? '- "último contato", "como conversamos" ou equivalente.\n' : ''}
+## FORMATO
+2 ou 3 parágrafos curtos, entre 220 e 520 caracteres no total, terminando com UMA pergunta.
+${corrections.length ? `\n## CORRIJA DA TENTATIVA ANTERIOR\n${corrections.map(item => `- ${item}`).join('\n')}\n` : ''}
 ## EXEMPLO DO PADRÃO ESPERADO
-Contexto: o lead disse "possuo um lote avaliado em R$ 125.000" e buscava 2 quartos.
-Mensagem: "Oi, Ana! Você comentou que tinha um lote avaliado em R$ 125 mil e buscava um 2 quartos — isso cobre boa parte da entrada do Apto 02.
+Referência interna: o cliente tinha um lote para dar de entrada e buscava 2 quartos.
 
-A obra avançou desde então: a fundação está concluída e em breve subimos os andares. Quem entra nesta fase acompanha o potencial de valorização até a entrega.
+"Oi, Ana! Passando pra contar que a obra do La Reserva avançou: a fundação está concluída e em breve começamos a subir os andares.
 
-Quer que eu refaça a conta com o valor do lote?"
+Lembrei de você por causa dos 2 quartos — ainda temos unidade, e se aquele lote ainda estiver de pé, dá pra usar como parte da entrada.
 
-Repare: a mensagem começa pelo que É DELE, não pela obra. Faça o mesmo.
+Quer que eu levante as condições atualizadas?"
+
+Repare: abre pela obra, não pelo cliente. O lote aparece como possibilidade ("se ainda estiver de pé"), não como fato lembrado. Nenhum valor é repetido. Faça o mesmo.
 
 Responda em JSON válido: {"message":"texto final"}`
 }
@@ -236,11 +254,33 @@ export async function generateReactivationMessage(input: {
       exclusion_reason: brief.exclusionReason,
       quality_flags: ['lead_incompativel_com_reativacao'],
       resolution: 'direta',
+      personalized: false,
     }
   }
 
   const closing = CLOSING_QUESTION[brief.angle]
   const safeTheme = sanitizeCampaignTheme(input.campaignTheme, brief.mode)
+
+  /**
+   * Sem fala com valor comercial não existe o que personalizar, e chamar o
+   * modelo aqui só produzia a aparência de personalização: mensagens que
+   * narravam a própria falta de contexto ("Não temos histórico seu aqui, então
+   * falo direto") ou dez paráfrases idênticas do mesmo texto. Esse lead recebe
+   * a mensagem da campanha, marcada para o corretor decidir o que fazer.
+   */
+  if (!brief.anchor) {
+    return {
+      ...base,
+      message: fallbackMessage(safeTheme, brief.safeName, brief.mode, closing),
+      eligible: true,
+      exclusion_reason: null,
+      quality_flags: ['sem_contexto_para_personalizar'],
+      resolution: 'sem_contexto',
+      personalized: false,
+    }
+  }
+
+  const anchor = brief.anchor
   let corrections: string[] = []
   let best: { message: string; issues: QualityIssue[]; repaired: string[]; attempt: number } | null = null
 
@@ -267,7 +307,7 @@ export async function generateReactivationMessage(input: {
     try {
       generated = parseModelMessage(await callModel(
         input.openai,
-        buildPrompt(input.lead, input.campaignTheme, input.manualContext?.trim() ?? '', brief, corrections),
+        buildPrompt(input.lead, input.campaignTheme, input.manualContext?.trim() ?? '', brief, anchor, corrections),
       ))
     } catch {
       continue // rede ou API instável: tenta de novo, e o fallback cobre o resto
@@ -277,7 +317,7 @@ export async function generateReactivationMessage(input: {
     // Conserta o que tem solução textual antes de julgar. É o ponto central da
     // mudança: a mensagem é ADAPTADA para caber na regra, não descartada.
     const { message, repaired } = repairMessage(generated, brief.mode, brief.safeName, closing)
-    const issues = inspectMessage(message, brief.mode, brief.safeName)
+    const issues = inspectMessage(message, brief.mode, brief.safeName, safeTheme)
 
     if (isBetter({ issues }, best)) best = { message, issues, repaired, attempt }
     if (!hasBlocker(issues)) break
@@ -296,6 +336,7 @@ export async function generateReactivationMessage(input: {
       exclusion_reason: null,
       quality_flags: [...(best?.issues.map(issue => issue.code) ?? []), 'fallback_sem_personalizacao'],
       resolution: 'fallback',
+      personalized: false,
     }
   }
 
@@ -306,5 +347,6 @@ export async function generateReactivationMessage(input: {
     exclusion_reason: null,
     quality_flags: [...best.repaired.map(code => `ajustado:${code}`), ...best.issues.map(issue => issue.code)],
     resolution: best.attempt > 0 ? 'regenerada' : best.repaired.length ? 'ajustada' : 'direta',
+    personalized: true,
   }
 }

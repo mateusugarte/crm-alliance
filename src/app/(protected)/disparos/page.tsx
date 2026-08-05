@@ -365,7 +365,7 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
         setContextError(err.error ?? 'Erro ao gerar mensagens')
       } else {
         const data = await res.json() as {
-          results: { lead_id: string; message: string; eligible: boolean; quality_flags: string[] }[]
+          results: { lead_id: string; message: string; eligible: boolean; quality_flags: string[]; personalized: boolean }[]
           excluded: { lead_id: string; name: string; reason: string | null }[]
         }
         const map: Record<string, string> = {}
@@ -392,11 +392,14 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
           setContextError(`${missing} ${missing === 1 ? 'mensagem não foi gerada' : 'mensagens não foram geradas'} por falha de conexão com a IA. Gere novamente.`)
         }
 
-        const genericCount = data.results.filter(item => item.quality_flags.includes('fallback_sem_personalizacao')).length
-        if (genericCount > 0) {
+        // Personalizar exige conversa com conteúdo comercial. Quem não tem
+        // recebe o texto da campanha, e o corretor precisa saber disso: forjar
+        // personalização em cima de nada foi o que gerou as aberrações.
+        const generic = data.results.filter(item => item.eligible && !item.personalized).length
+        if (generic > 0) {
           setContextWarning(previous => [
             previous,
-            `${genericCount} ${genericCount === 1 ? 'mensagem ficou' : 'mensagens ficaram'} sem personalização — revise antes de enviar.`,
+            `${generic} ${generic === 1 ? 'contato não tem conversa suficiente' : 'contatos não têm conversa suficiente'} para personalizar; ${generic === 1 ? 'ele recebeu' : 'eles receberam'} o texto da campanha. Revise ou use o modo Template.`,
           ].filter(Boolean).join(' '))
         }
       }

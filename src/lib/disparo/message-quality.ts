@@ -50,6 +50,33 @@ const BANNED_PHRASE = pattern('estou aqui (?:para|pra) te ajudar a tomar a melho
 
 const INVALID_GREETING = /^((?:oi|ol[aá]|bom dia|boa tarde|boa noite)[,!]?\s+)(lead|n[aã]o|teste|rh|contato|cliente|vc)\b[,!]?\s*/i
 
+/**
+ * Abertura que cobra memória do cliente.
+ *
+ * Numa reativação o lead é frio e quase nunca lembra da conversa. Abrir com
+ * "você comentou que…" soa como quem consultou um dossiê e coloca a pessoa na
+ * defensiva. O contexto serve para o corretor escolher o enfoque, não para
+ * provar que guardou o que foi dito.
+ *
+ * Só vale como problema quando acontece na ABERTURA — no meio do texto, uma
+ * referência leve é natural ("como você buscava um 2 quartos…").
+ *
+ * A verificação olha uma janela de caracteres iniciais em vez de tentar
+ * recortar a saudação: "Oi, Ana." e "Oi, Arthur —" têm pontuação diferente e
+ * qualquer regex de recorte quebra em um dos dois.
+ */
+const MEMORY_OPENER = /\b(?:voc[eê]|vc)\s+(?:me\s+)?(?:comentou|mencionou|disse|falou|contou|relatou|havia dito|tinha (?:dito|comentado|mencionado|falado))\b/i
+
+/** Quantos caracteres iniciais contam como "abertura". */
+const OPENING_WINDOW = 110
+
+/** Cobra do cliente que ele confirme uma lembrança. */
+const MEMORY_CHECK = /\b(?:lembra(?:-se)?\??|ainda (?:procura|busca|est[aá] procurando)|continua (?:procurando|buscando)|isso ainda (?:vale|procede))\b|,\s*(?:certo|n[eé]|n[aã]o [eé])\s*\?/i
+
+/** Valores em reais e metragens: mudam com o tempo, e repetir número velho de
+ *  uma conversa antiga quebra a confiança na hora em que o cliente confere. */
+const STALE_FIGURE = /R\$\s?\d|\b\d{1,3}(?:\.\d{3})+(?:,\d{2})?\b|\b\d+[,.]?\d*\s?m²|\b\d+\s+parcelas?\b/i
+
 /* -------------------------------------------------------------------------
    Diagnóstico
    ---------------------------------------------------------------------- */
@@ -58,9 +85,33 @@ export function inspectMessage(
   message: string,
   mode: ContextMode,
   safeName: string | null,
+  /** Texto da campanha: números que vêm dele são atuais e podem ser repetidos. */
+  campaignTheme = '',
 ): QualityIssue[] {
   const issues: QualityIssue[] = []
   const questionCount = (message.match(/\?/g) ?? []).length
+
+  if (MEMORY_OPENER.test(message.slice(0, OPENING_WINDOW))) {
+    issues.push({
+      code: 'abertura_cobrando_memoria',
+      severity: 'bloqueio',
+      correction: 'não abra citando o que o cliente disse; comece pela novidade da obra e só depois ligue ao interesse dele',
+    })
+  }
+  if (MEMORY_CHECK.test(message)) {
+    issues.push({
+      code: 'pede_confirmacao_de_memoria',
+      severity: 'bloqueio',
+      correction: 'não peça que ele confirme lembrar de algo; trate o interesse antigo como possibilidade, não como fato',
+    })
+  }
+  if (STALE_FIGURE.test(message) && !STALE_FIGURE.test(campaignTheme)) {
+    issues.push({
+      code: 'numero_velho_do_historico',
+      severity: 'bloqueio',
+      correction: 'não repita valores, parcelas ou metragens vindos da conversa antiga; eles mudam',
+    })
+  }
 
   if (GUARANTEED_RETURN.test.test(message)) {
     issues.push({

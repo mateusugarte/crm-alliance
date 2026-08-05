@@ -90,6 +90,7 @@ export async function POST(req: NextRequest) {
       context_reference: null,
       quality_flags: ['falha_na_geracao'],
       resolution: 'fallback',
+      personalized: false,
     }))))
     results.push(...generated)
   }
@@ -126,6 +127,8 @@ export async function POST(req: NextRequest) {
       flagged: results.filter(result => result.quality_flags.length > 0 && result.eligible).length,
       adjusted: results.filter(result => result.resolution === 'ajustada').length,
       fallback: results.filter(result => result.resolution === 'fallback').length,
+      personalized: results.filter(result => result.personalized).length,
+      without_context: results.filter(result => result.resolution === 'sem_contexto').length,
     },
   })
 }

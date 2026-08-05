@@ -87,12 +87,7 @@ export function normalizeSpaces(value: string) {
   return value.replace(/\s+/g, ' ').trim()
 }
 
-/** Extrai o texto legível de uma interação, incluindo os payloads crus do
- *  WhatsApp que chegam como JSON pelo webhook. */
-export function readableContent(value: string | null) {
-  const raw = value?.trim() ?? ''
-  if (!raw) return ''
-  if (!raw.startsWith('{')) return normalizeSpaces(raw)
+function textFromPayload(raw: string) {
   try {
     const parsed = JSON.parse(raw) as Record<string, unknown>
     const candidates = [
@@ -102,10 +97,48 @@ export function readableContent(value: string | null) {
       (parsed.message as Record<string, unknown> | undefined)?.conversation,
     ]
     const text = candidates.find(candidate => typeof candidate === 'string')
-    return normalizeSpaces(typeof text === 'string' ? text : raw)
+    return typeof text === 'string' ? text : null
   } catch {
-    return normalizeSpaces(raw)
+    return null
   }
+}
+
+/**
+ * Extrai o texto legível de uma interação.
+ *
+ * O webhook grava o payload cru do WhatsApp, e às vezes grava DOIS objetos JSON
+ * concatenados na mesma linha. `JSON.parse` falha no conjunto e o texto inteiro
+ * — chaves, `previewType`, `contextInfo` — ia parar dentro do prompt e, de lá,
+ * dentro da mensagem enviada ao cliente. Agora cada objeto é lido em separado.
+ */
+export function readableContent(value: string | null) {
+  const raw = value?.trim() ?? ''
+  if (!raw) return ''
+  if (!raw.startsWith('{')) return normalizeSpaces(raw)
+
+  const direct = textFromPayload(raw)
+  if (direct !== null) return normalizeSpaces(direct)
+
+  // Varre objetos JSON balanceados grudados na mesma string.
+  const parts: string[] = []
+  let depth = 0
+  let start = -1
+  for (let index = 0; index < raw.length; index += 1) {
+    const char = raw[index]
+    if (char === '{') {
+      if (depth === 0) start = index
+      depth += 1
+    } else if (char === '}') {
+      depth -= 1
+      if (depth === 0 && start >= 0) {
+        const text = textFromPayload(raw.slice(start, index + 1))
+        if (text) parts.push(text)
+        start = -1
+      }
+    }
+  }
+
+  return normalizeSpaces(parts.length ? parts.join(' ') : raw)
 }
 
 export function isInbound(interaction: BriefInteraction) {
@@ -188,12 +221,39 @@ function looksLikeThirdPartyBot(name: string | null, inbound: string[]) {
  * qualificado, e se virar, o custo de uma mensagem é menor que o de perder um
  * comprador.
  */
+/**
+ * Quem quer VENDER para a obra, não comprar nela.
+ *
+ * Caso real do banco: Arthur Franco pediu "participar das cotações para
+ * execução de serviços" e listou escopo de elétrica, automação, SPDA e
+ * fotovoltaica. Estava marcado como lead_quente e receberia uma campanha
+ * perguntando se quer agendar visita ao apartamento.
+ */
+const SUPPLIER = [
+  /\b(?:cota[cç][aã]o|cota[cç][oõ]es|or[cç]amento)\b.{0,60}\b(?:servi[cç]os?|obra|execu[cç][aã]o|fornecimento)\b/i,
+  /\bescopo\b.{0,80}\b(?:el[eé]trica|automa[cç][aã]o|hidr[aá]ulica|estrutural|alvenaria|instala[cç][oõ]es)\b/i,
+  /\b(?:sou|somos)\b.{0,50}\b(?:fornecedor|representante|empreiteir[ao]|prestador(?:a)? de servi[cç]o|consultor(?:a)? t[eé]cnico|t[eé]cnico comercial|vendedor(?:a)?)\b/i,
+  /\b(?:prestar|executar|fornecer)\b.{0,40}\b(?:servi[cç]os?|material|materiais)\b.{0,30}\b(?:na |para a |da )?obra\b/i,
+  /\b(?:parceria comercial|portf[oó]lio de servi[cç]os|apresentar (?:nossa )?empresa)\b/i,
+  // "Trabalho com locação de escoramento metálico" e "trabalho com imagens
+  // aéreas com drone": quem se apresenta pelo próprio ramo está oferecendo,
+  // não comprando.
+  /\btrabalho com\b.{0,50}\b(?:loca[cç][aã]o|servi[cç]os?|equipamentos?|materiais|imagens|drone|escoramento|andaimes?|constru[cç][aã]o)\b/i,
+  /\bapresentar\b.{0,40}\b(?:meu trabalho|meus servi[cç]os|nossos servi[cç]os|nossa empresa|portf[oó]lio)\b/i,
+  /\btabela de (?:servi[cç]os|pre[cç]os de servi[cç]o)\b/i,
+  /\bproposta de (?:valores|pre[cç]os)\b.{0,50}\b(?:loca[cç][aã]o|servi[cç]o|fornecimento|aluguel)\b/i,
+  /\bloca[cç][aã]o d[eo]\b.{0,40}\b(?:equipamentos?|escoramento|andaimes?|m[aá]quinas?|containers?|f[oô]rmas?)\b/i,
+]
+
 export function exclusionReason(name: string | null, inbound: string[]): string | null {
   if (/^teste\b/i.test(normalizeSpaces(name ?? ''))) {
     return 'Contato de teste, não deve receber campanha.'
   }
   if (looksLikeThirdPartyBot(name, inbound)) {
     return 'O número é um atendimento automático de outra empresa, não um lead.'
+  }
+  if (SUPPLIER.some(rule => rule.test(inbound.join('\n')))) {
+    return 'O contato quer prestar serviço para a obra, não comprar uma unidade.'
   }
   const refusal = /\b(n[aã]o tenho|sem|nenhum) interesse\b/i
   const purchased = /\bj[aá] (?:comprei|adquiri|fechei|escolhi)\b.{0,80}\b(outro|outra|apartamento|im[oó]vel)\b/i
@@ -238,6 +298,9 @@ const SIGNAL_RULES: SignalRule[] = [
   { pattern: /\b(?:lote|terreno|permuta|im[oó]vel)\b.{0,40}\b(?:avaliado|vale|no valor|R\$)/i, score: 10, angle: 'financiamento', label: 'tem um bem para dar em permuta ou entrada' },
   { pattern: /\bR\$\s?[\d.]+/i, score: 8, angle: 'financiamento', label: 'falou de valores concretos' },
   { pattern: /\b(?:entrada|financia(?:mento|r)?|parcel(?:a|ar|amento)|conseguiria pagar|or[cç]amento)\b/i, score: 7, angle: 'financiamento', label: 'perguntou sobre condição de pagamento' },
+  // Pergunta de preço é o sinal comercial mais comum e não estava coberto:
+  // "Qual o valor do apartamento?" caía como conversa sem sinal nenhum.
+  { pattern: /\b(?:qual|quanto)\b.{0,30}\b(?:valor|pre[cç]o|custa|fica|sai)\b|\bvalor(?:es)? d[oae]\b|\bpre[cç]o d[oae]\b|\btabela de pre[cç]os?\b/i, score: 6, angle: 'financiamento', label: 'perguntou o preço' },
 
   // Pediu atendimento humano: é o sinal de intenção mais avançado do funil.
   { pattern: /\b(?:falar com|conversar com|contato d[oe])\b.{0,20}\b(?:consultor|corretor|algu[eé]m|voc[eê]s)\b|\bcomo posso ver com eles\b/i, score: 9, angle: 'consultor', label: 'pediu para falar com um consultor' },
@@ -294,9 +357,15 @@ export function buildLeadBrief(lead: BriefLead, interactions: BriefInteraction[]
     : inbound.length > 0 ? 'sparse' : 'no_history'
 
   // O melhor fato, não o mais recente. Em empate, o mais recente vence.
+  //
+  // Exige pelo menos UM sinal comercial reconhecido (`labels`), não só a
+  // pontuação: uma frase ganha +2 só por ter interrogação, e "Para moradia
+  // mesmo?" não é contexto suficiente para personalizar coisa alguma. Sem
+  // sinal, o lead segue para o texto da campanha em vez de virar uma
+  // personalização fabricada.
   const scored = usefulInbound
     .map((quote, index) => ({ quote, index, ...scoreQuote(quote) }))
-    .filter(item => item.score > 0)
+    .filter(item => item.score > 0 && item.labels.length > 0)
     .sort((a, b) => (b.score - a.score) || (b.index - a.index))
 
   const top = scored[0]
