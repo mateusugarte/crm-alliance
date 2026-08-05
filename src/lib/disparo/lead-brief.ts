@@ -27,7 +27,7 @@ export type LeadAngle =
   | 'novidade'       // sem contexto: a obra é a notícia
 
 export interface LeadFact {
-  /** Fala literal do lead, para a IA usar como evidência. */
+  /** Fala literal preservada apenas para auditoria; nunca entra no prompt. */
   quote: string
   score: number
   angle: LeadAngle
@@ -79,13 +79,13 @@ export interface LeadBrief {
   mode: ContextMode
   /** Primeiro nome, quando é seguro usar na saudação. */
   safeName: string | null
-  /** Melhor fala do lead — a evidência que a mensagem deve ancorar. */
+  /** Melhor evidência comercial para orientar a extração de fatos controlados. */
   anchor: LeadFact | null
   /** Ângulo a seguir, derivado do contexto e não de sorteio. */
   angle: LeadAngle
   /** Fatos estruturados extraídos da conversa, em linguagem natural. */
   signals: string[]
-  /** Últimas trocas, já limpas, para o modelo consultar. */
+  /** Últimas trocas limpas, mantidas somente para auditoria interna. */
   transcript: string[]
   audience: AudienceAssessment
   facts: CommercialFact[]
@@ -366,10 +366,10 @@ const SIGNAL_RULES: SignalRule[] = [
   // Ativos que o lead declarou possuir são o argumento mais forte que existe.
   { pattern: /\b(?:lote|terreno|permuta|im[oó]vel)\b.{0,40}\b(?:avaliado|vale|no valor|R\$)/i, score: 10, angle: 'financiamento', label: 'considerou usar um bem como entrada ou permuta', kind: 'financing', safeForCopy: true },
   { pattern: /\bR\$\s?[\d.]+/i, score: 8, angle: 'financiamento', label: 'conversou sobre uma faixa de investimento', kind: 'budget', safeForCopy: false },
-  { pattern: /\b(?:entrada|financia(?:mento|r)?|parcel(?:a|ar|amento)|conseguiria pagar|or[cç]amento)\b/i, score: 7, angle: 'financiamento', label: 'demonstrou interesse nas condições de pagamento', kind: 'financing', safeForCopy: true },
+  { pattern: /\b(?:entrada|financia(?:mento|r)?|parcel(?:a|ar|amento)|conseguiria pagar|or[cç]amento)\b/i, score: 7, angle: 'financiamento', label: 'demonstrou interesse em financiamento ou condições de pagamento', kind: 'financing', safeForCopy: true },
   // Pergunta de preço é o sinal comercial mais comum e não estava coberto:
   // "Qual o valor do apartamento?" caía como conversa sem sinal nenhum.
-  { pattern: /\b(?:qual|quanto)\b.{0,30}\b(?:valor|pre[cç]o|custa|fica|sai)\b|\bvalor(?:es)? d[oae]\b|\bpre[cç]o d[oae]\b|\btabela de pre[cç]os?\b/i, score: 6, angle: 'financiamento', label: 'demonstrou interesse em valores e condições', kind: 'financing', safeForCopy: true },
+  { pattern: /\b(?:qual|quanto)\b.{0,30}\b(?:valor|pre[cç]o|custa|fica|sai)\b|\bvalor(?:es)? d[oae]\b|\bpre[cç]o d[oae]\b|\btabela de pre[cç]os?\b/i, score: 6, angle: 'financiamento', label: 'demonstrou interesse em valores e condições de pagamento', kind: 'financing', safeForCopy: true },
 
   // Pediu atendimento humano: é o sinal de intenção mais avançado do funil.
   { pattern: /\b(?:falar com|conversar com|contato d[oe])\b.{0,20}\b(?:consultor|corretor|algu[eé]m|voc[eê]s)\b|\bcomo posso ver com eles\b/i, score: 9, angle: 'consultor', label: 'demonstrou abertura para falar com um consultor', kind: 'human_contact', safeForCopy: true },

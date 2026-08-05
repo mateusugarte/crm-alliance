@@ -113,14 +113,16 @@ export function renderCampaignOnlyMessage(
   const facts = brief.current_facts.map(fact => fact.value.replace(/[.!?]+$/g, '').trim()).filter(Boolean)
   const primary = facts[0] ?? brief.novelty.replace(/[.!?]+$/g, '').trim()
   const secondary = facts.slice(1).map(sentenceCase).join('. ')
-  const projectUpdate = primary.replace(/^As obras do La Reserva avançaram/i, 'a obra avançou')
+  const workDetail = primary.includes(':')
+    ? primary.slice(primary.indexOf(':') + 1).trim()
+    : primary.replace(/^As obras do La Reserva avançaram/i, 'a obra avançou')
   const cta = brief.cta.endsWith('?') ? brief.cta : `${brief.cta.replace(/[.!]+$/g, '')}?`
   const openings = [
     `${greeting(safeName)} ${sentenceCase(primary)}.`,
-    `${greeting(safeName)} Tenho uma atualização do La Reserva: ${lowerFirst(projectUpdate)}.`,
-    `${greeting(safeName)} O La Reserva entrou em uma nova etapa: ${lowerFirst(projectUpdate)}.`,
-    `${greeting(safeName)} Passando com uma atualização da obra: ${lowerFirst(projectUpdate)}.`,
-    `${greeting(safeName)} Queria compartilhar uma novidade do La Reserva: ${lowerFirst(projectUpdate)}.`,
+    `${greeting(safeName)} Tenho uma atualização da obra do La Reserva: ${lowerFirst(workDetail)}.`,
+    `${greeting(safeName)} A obra do La Reserva entrou em uma nova etapa: ${lowerFirst(workDetail)}.`,
+    `${greeting(safeName)} Passando para contar que ${lowerFirst(primary)}.`,
+    `${greeting(safeName)} Queria compartilhar uma atualização: ${lowerFirst(primary)}.`,
   ]
   return tidy([
     openings[Math.abs(variant) % openings.length],

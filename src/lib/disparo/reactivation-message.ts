@@ -274,8 +274,8 @@ export async function generateReactivationMessage(input: {
     if (invalidFactIds.length) {
       issues.push({
         code: 'fato_fora_do_plano',
-        severity: 'bloqueio',
-        correction: 'use somente os IDs de fatos autorizados no plano',
+        severity: 'ajuste',
+        correction: 'retorne somente os IDs de fatos autorizados no plano',
       })
     }
 

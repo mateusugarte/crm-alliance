@@ -17,12 +17,19 @@ describe('briefing estruturado da campanha', () => {
   })
 
   it('gera mensagem neutra sem fingir contexto', () => {
-    const message = renderCampaignOnlyMessage(buildCampaignBrief(THEME), 'Ana', 2)
-    expect(message).toMatch(/^Oi, Ana!/) 
-    expect(message).not.toMatch(/conversamos|histórico|cadastro/i)
-    expect(message).not.toMatch(/La Reserva:\s*As obras do La Reserva/i)
-    expect(message).not.toMatch(/:\s*avançaram/i)
-    expect(message).not.toMatch(/fico à disposição/i)
-    expect(message.endsWith('?')).toBe(true)
+    const brief = buildCampaignBrief(THEME)
+    const messages = Array.from({ length: 5 }, (_, variant) => (
+      renderCampaignOnlyMessage(brief, 'Ana', variant)
+    ))
+
+    expect(new Set(messages).size).toBe(5)
+    for (const message of messages) {
+      expect(message).toMatch(/^Oi, Ana!/)
+      expect(message).not.toMatch(/conversamos|histórico|cadastro/i)
+      expect(message).not.toMatch(/La Reserva:\s*As obras do La Reserva/i)
+      expect(message).not.toMatch(/:\s*avançaram/i)
+      expect(message).not.toMatch(/fico à disposição/i)
+      expect(message.endsWith('?')).toBe(true)
+    }
   })
 })

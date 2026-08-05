@@ -13,7 +13,10 @@ const inbound = (content: string): BriefInteraction => ({
   created_at: '2026-01-10T12:00:00.000Z',
 })
 
-function fakeOpenAI(onPrompt?: (prompt: string) => void) {
+function fakeOpenAI(
+  onPrompt?: (prompt: string) => void,
+  usedFactIds: string[] = [],
+) {
   return {
     chat: {
       completions: {
@@ -22,7 +25,7 @@ function fakeOpenAI(onPrompt?: (prompt: string) => void) {
           return {
             choices: [{ message: { content: JSON.stringify({
               message: 'Oi, Ana! A fundação do La Reserva está praticamente concluída e, em breve, começam os andares. Se as condições de pagamento ainda forem relevantes, posso trazer uma atualização. Quer que eu envie?',
-              used_fact_ids: [],
+              used_fact_ids: usedFactIds,
             }) } }],
           }
         },
@@ -53,7 +56,7 @@ describe('geração controlada', () => {
     })
     expect(prompt).not.toContain('125.000')
     expect(prompt).not.toContain('Tenho um lote')
-    expect(prompt).toContain('demonstrou interesse nas condições de pagamento')
+    expect(prompt).toContain('demonstrou interesse em financiamento ou condições de pagamento')
     expect(result.approval_status).toBe('ready')
     expect(result.personalized).toBe(true)
   })
@@ -67,5 +70,19 @@ describe('geração controlada', () => {
     expect(called).toBe(false)
     expect(result.approval_status).toBe('blocked')
     expect(result.message).toBe('')
+  })
+
+  it('não descarta texto seguro quando o modelo erra apenas o ID do fato', async () => {
+    const result = await generateReactivationMessage({
+      openai: fakeOpenAI(undefined, ['fato-inexistente']),
+      lead: lead(),
+      interactions: [inbound('Como funciona o financiamento?')],
+      campaignTheme: theme,
+    })
+
+    expect(result.approval_status).toBe('ready')
+    expect(result.personalized).toBe(true)
+    expect(result.resolution).not.toBe('fallback')
+    expect(result.quality_flags).toContain('fato_fora_do_plano')
   })
 })
