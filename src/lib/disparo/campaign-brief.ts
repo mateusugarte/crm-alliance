@@ -132,13 +132,13 @@ export function renderCampaignOnlyMessage(
     `${greeting(safeName)} ${sentenceCase(primary)}.`,
     `${greeting(safeName)} Tenho uma atualização da obra do La Reserva: ${lowerFirst(workDetail)}.`,
     `${greeting(safeName)} A obra do La Reserva entrou em uma nova etapa: ${lowerFirst(workDetail)}.`,
-    `${greeting(safeName)} Passando para contar que ${lowerFirst(primary)}.`,
-    `${greeting(safeName)} Queria compartilhar uma atualização: ${lowerFirst(primary)}.`,
-    `${greeting(safeName)} Um marco importante está próximo no canteiro do La Reserva: ${lowerFirst(workDetail)}.`,
-    `${greeting(safeName)} A obra segue evoluindo no La Reserva: ${lowerFirst(workDetail)}.`,
+    `${greeting(safeName)} Passando com uma atualização sobre a próxima etapa da obra: ${lowerFirst(workDetail)}.`,
+    `${greeting(safeName)} Queria te contar como está a construção do La Reserva: ${lowerFirst(workDetail)}.`,
+    `${greeting(safeName)} A construção do La Reserva está perto de mudar de fase: ${lowerFirst(workDetail)}.`,
+    `${greeting(safeName)} A construção está prestes a ganhar novos andares no La Reserva: ${lowerFirst(workDetail)}.`,
     `${greeting(safeName)} Tem novidade no andamento do La Reserva: ${lowerFirst(workDetail)}.`,
     `${greeting(safeName)} Queria te atualizar sobre a obra do La Reserva: ${lowerFirst(workDetail)}.`,
-    `${greeting(safeName)} Passando com uma novidade sobre o La Reserva: ${lowerFirst(workDetail)}.`,
+    `${greeting(safeName)} O La Reserva se aproxima da fase dos andares: ${lowerFirst(workDetail)}.`,
   ]
   const ctas = neutralCtas(cta)
   const normalizedVariant = Math.abs(variant)

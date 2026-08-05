@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { messageSimilarity } from './batch-quality'
 import { buildCampaignBrief, renderCampaignOnlyMessage } from './campaign-brief'
 
-const THEME = `As obras avançaram desde o nosso último contato: a fundação está praticamente concluída.
+const THEME = `As obras do La Reserva avançaram bastante desde o nosso último contato: a fundação está praticamente concluída e, em breve, começamos a subir os andares.
 
 Quem entra agora ainda pega uma valorização interessante até o fim da obra, e estou aqui pra te ajudar a tomar a melhor decisão.
 
