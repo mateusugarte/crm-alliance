@@ -832,6 +832,17 @@ export interface Database {
         }
         Returns: Json
       }
+      registrar_ligacao_lead_v1: {
+        Args: {
+          p_lead_id: string
+          p_desfecho: 'atendeu' | 'nao_atendeu' | 'caixa_postal' | 'numero_errado' | 'pediu_retorno' | 'sem_interesse'
+          p_observacao?: string | null
+          p_retorno_em?: string | null
+          p_marcou_reuniao?: boolean
+          p_motivo_perda?: string | null
+        }
+        Returns: Json
+      }
       desfazer_ligacao: {
         Args: { p_ligacao_id: string }
         Returns: undefined

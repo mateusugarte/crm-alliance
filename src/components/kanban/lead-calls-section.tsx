@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CalendarCheck, ChevronDown, Clock, Loader2, ICON } from '@/lib/icons'
+import { CalendarCheck, ChevronDown, Clock, Loader2, PhoneCall, ICON } from '@/lib/icons'
 import { outcomeConfig } from '@/lib/central-do-dia/outcomes'
 import type { LeadCall } from '@/app/api/leads/[id]/calls/route'
+import type { CallRegistrationInput } from '@/lib/central-do-dia/call-registration'
+import type { TaskCompletionResult } from '@/lib/central-do-dia/types'
+import { CallRegistrationForm } from '@/components/central-do-dia/call-registration-form'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
@@ -32,6 +35,7 @@ export function LeadCallsSection({ leadId }: { leadId: string }) {
   const [calls, setCalls] = useState<LeadCall[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [registering, setRegistering] = useState(false)
 
   const load = useCallback((quiet = false) => {
     let active = true
@@ -53,28 +57,49 @@ export function LeadCallsSection({ leadId }: { leadId: string }) {
     return () => { void supabase.removeChannel(channel) }
   }, [leadId, load])
 
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2 py-3 text-xs text-ink-subtle">
-        <Loader2 size={ICON.xs} className="animate-spin" />
-        Carregando ligações…
-      </div>
-    )
-  }
-
-  if (calls.length === 0) {
-    return (
-      <p className="py-3 text-xs leading-relaxed text-ink-subtle">
-        Nenhuma ligação registrada ainda. Quando você registrar uma pela Central do Dia,
-        o desfecho e as anotações aparecem aqui.
-      </p>
-    )
+  async function register(input: CallRegistrationInput) {
+    const response = await fetch(`/api/leads/${leadId}/calls`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    const json = await response.json() as { data?: TaskCompletionResult; error?: string }
+    if (!response.ok || !json.data) throw new Error(json.error || 'Erro ao registrar ligação')
+    setRegistering(false)
+    load(true)
   }
 
   const nextReturn = calls.find(call => call.returnAt && new Date(call.returnAt) > new Date())
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setRegistering(value => !value)}
+          aria-expanded={registering}
+          className="inline-flex h-7 items-center gap-1.5 rounded-md border border-line-strong px-2.5 text-2xs font-medium text-ink-muted transition-ui hover:border-brand hover:bg-brand-soft hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <PhoneCall size={12} />
+          {registering ? 'Fechar' : 'Registrar ligação'}
+        </button>
+      </div>
+
+      {registering && (
+        <CallRegistrationForm onSubmit={register} onCancel={() => setRegistering(false)} compact />
+      )}
+
+      {loading ? (
+        <div className="flex items-center gap-2 py-3 text-xs text-ink-subtle">
+          <Loader2 size={ICON.xs} className="animate-spin" />
+          Carregando ligações…
+        </div>
+      ) : calls.length === 0 ? (
+        <p className="py-3 text-xs leading-relaxed text-ink-subtle">
+          Nenhuma ligação registrada ainda. Use o botão acima ou registre pela Central do Dia;
+          o horário, o desfecho e as anotações aparecerão aqui.
+        </p>
+      ) : <>
       {nextReturn?.returnAt && (
         <p className="flex items-center gap-1.5 rounded-lg bg-[var(--stage-frio-soft)] px-2.5 py-2 text-2xs font-medium text-[var(--stage-frio-ink)]">
           <Clock size={ICON.xs} className="flex-shrink-0" />
@@ -129,6 +154,7 @@ export function LeadCallsSection({ leadId }: { leadId: string }) {
           )
         })}
       </ol>
+      </>}
     </div>
   )
 }

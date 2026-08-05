@@ -7,6 +7,7 @@ import { DisparosSection } from '@/components/dashboard/disparos-section'
 import { DashboardHero } from '@/components/dashboard/dashboard-hero'
 import { DailyTaskCenter } from '@/components/dashboard/daily-task-center'
 import { BusinessOperationsSection } from '@/components/dashboard/business-operations-section'
+import { canViewCommercialResults } from '@/lib/auth/commercial-results'
 import { STAGES, STAGE_ORDER } from '@/lib/stages'
 import {
   format, subDays, eachDayOfInterval, addDays, addBusinessDays,
@@ -91,26 +92,26 @@ function getDateRange(period: string, from?: string, to?: string): { start: Date
   }
 }
 
-async function getUserName(): Promise<string> {
+async function getDashboardUser(): Promise<{ name: string; canViewCommercialResults: boolean }> {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return 'Corretor'
+    if (!user) return { name: 'Corretor', canViewCommercialResults: false }
 
     const { data } = await supabase
       .from('user_profiles')
-      .select('full_name')
+      .select('full_name,role')
       .eq('id', user.id)
       .single()
 
-    const profile = data as Pick<UserProfile, 'full_name'> | null
-    if (profile?.full_name) {
-      const firstName = profile.full_name.split(' ')[0]
-      return firstName!.charAt(0).toUpperCase() + firstName!.slice(1).toLowerCase()
+    const profile = data as Pick<UserProfile, 'full_name' | 'role'> | null
+    const rawName = profile?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Corretor'
+    return {
+      name: rawName.charAt(0).toUpperCase() + rawName.slice(1).toLowerCase(),
+      canViewCommercialResults: canViewCommercialResults(profile?.role, user.email),
     }
-    return user.email?.split('@')[0] ?? 'Corretor'
   } catch {
-    return 'Corretor'
+    return { name: 'Corretor', canViewCommercialResults: false }
   }
 }
 
@@ -208,7 +209,7 @@ function saleValue(sale: {
     + Number(sale.parcelas_direto ?? 0) * Number(sale.valor_parcela_direto ?? 0)
 }
 
-async function getBusinessOperationsData(): Promise<BusinessOperationsData> {
+async function getBusinessOperationsData(includeCommercialResults: boolean): Promise<BusinessOperationsData> {
   const empty: BusinessOperationsData = {
     unitsTotal: 34, postCrmUnitsSold: 0, postCrmVgv: 0, preCrmUnitsSold: 0, preCrmVgv: 0,
     totalUnitsSold: 0, totalSoldVgv: 0, commercialBaselineDate: null,
@@ -228,11 +229,17 @@ async function getBusinessOperationsData(): Promise<BusinessOperationsData> {
     const [leadsResult, meetingsResult, unitsResult, salesResult, callsResult, pausesResult, baselineResult] = await Promise.all([
       db.from('leads').select('id,name,phone,stage,via_disparo,qualificado_em,primeira_ligacao_em,resgate_status,motivo_perda,ultimo_desfecho'),
       db.from('meetings').select('id,lead_id,datetime,status').order('datetime', { ascending: true }),
-      db.from('imoveis').select('id,vendido,valor_min,valor_max'),
-      db.from('vendas').select('id,imovel_id,comprador_telefone,valor_entrada,valor_financiado,parcelas_direto,valor_parcela_direto'),
+      includeCommercialResults
+        ? db.from('imoveis').select('id,vendido,valor_min,valor_max')
+        : Promise.resolve({ data: [] }),
+      includeCommercialResults
+        ? db.from('vendas').select('id,imovel_id,comprador_telefone,valor_entrada,valor_financiado,parcelas_direto,valor_parcela_direto')
+        : Promise.resolve({ data: [] }),
       db.from('ligacoes').select('desfecho,registrada_em').is('excluida_em', null).gte('registrada_em', weekStart),
       db.from('lead_automation_events').select('id').eq('paused', true).gte('changed_at', weekStart),
-      db.from('configuracoes_sistema').select('valor').eq('chave', 'resultado_comercial').maybeSingle(),
+      includeCommercialResults
+        ? db.from('configuracoes_sistema').select('valor').eq('chave', 'resultado_comercial').maybeSingle()
+        : Promise.resolve({ data: null }),
     ])
 
     type LeadOps = {
@@ -491,14 +498,14 @@ export default async function DashboardPage({
 }) {
   const params = await searchParams
   const dateRange = getDateRange(params.period ?? 'tudo', params.from, params.to)
+  const dashboardUser = await getDashboardUser()
 
-  const [userName, metrics, leadChartData, pipeline, disparos, businessOperations] = await Promise.all([
-    getUserName(),
+  const [metrics, leadChartData, pipeline, disparos, businessOperations] = await Promise.all([
     getMetrics(dateRange),
     getChartData(dateRange),
     getPipelineDistribution(dateRange),
     getDisparoDashboardData(dateRange),
-    getBusinessOperationsData(),
+    getBusinessOperationsData(dashboardUser.canViewCommercialResults),
   ])
 
   const greeting = getGreeting()
@@ -508,7 +515,7 @@ export default async function DashboardPage({
     <div className="flex min-h-full flex-col gap-5 px-6 py-6 lg:px-8">
       <DashboardHero
         greeting={greeting}
-        userName={userName}
+        userName={dashboardUser.name}
         dateLabel={dateLabel}
         totalLeads={metrics.total_leads}
       />
@@ -521,7 +528,10 @@ export default async function DashboardPage({
         pipeline={pipeline}
       />
       <DisparosSection data={disparos} />
-      <BusinessOperationsSection data={businessOperations} />
+      <BusinessOperationsSection
+        data={businessOperations}
+        showCommercialResults={dashboardUser.canViewCommercialResults}
+      />
     </div>
   )
 }

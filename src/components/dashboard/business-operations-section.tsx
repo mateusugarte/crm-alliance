@@ -18,12 +18,15 @@ function hours(value: number | null) {
   return `${value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} h`
 }
 
-export function BusinessOperationsSection({ data }: { data: BusinessOperationsData }) {
+export function BusinessOperationsSection({ data, showCommercialResults }: {
+  data: BusinessOperationsData
+  showCommercialResults: boolean
+}) {
   const sellThrough = data.unitsTotal ? (data.totalUnitsSold / data.unitsTotal) * 100 : 0
 
   return (
     <div className="space-y-4">
-      <section className="rounded-[var(--radius-card)] border border-line bg-surface elev-sm">
+      {showCommercialResults && <section className="rounded-[var(--radius-card)] border border-line bg-surface elev-sm">
         <header className="flex items-center justify-between border-b border-line px-5 py-4">
           <div>
             <p className="text-2xs font-semibold uppercase text-ink-subtle">Negócio</p>
@@ -56,7 +59,7 @@ export function BusinessOperationsSection({ data }: { data: BusinessOperationsDa
             last
           />
         </div>
-      </section>
+      </section>}
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
         <div className="rounded-[var(--radius-card)] border border-line bg-surface p-5 elev-sm">
