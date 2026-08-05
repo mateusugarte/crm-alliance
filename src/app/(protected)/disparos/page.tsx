@@ -383,9 +383,21 @@ function TabReativar({ router }: { router: ReturnType<typeof useRouter> }) {
             .join(' · ')
           setContextWarning(`${data.excluded.length} ${data.excluded.length === 1 ? 'contato foi removido' : 'contatos foram removidos'} por risco de mensagem inadequada. ${details}`)
         }
+        // Toda mensagem elegível volta preenchida — na pior hipótese com o
+        // texto de segurança da campanha. Se ainda assim vier vazia, é falha de
+        // rede ou da API, e aí sim o corretor precisa gerar de novo.
         const eligibleCount = data.results.filter(item => item.eligible).length
-        if (Object.keys(map).length < eligibleCount) {
-          setContextError('Algumas mensagens não passaram pela geração. Gere novamente antes de avançar.')
+        const missing = eligibleCount - Object.keys(map).length
+        if (missing > 0) {
+          setContextError(`${missing} ${missing === 1 ? 'mensagem não foi gerada' : 'mensagens não foram geradas'} por falha de conexão com a IA. Gere novamente.`)
+        }
+
+        const genericCount = data.results.filter(item => item.quality_flags.includes('fallback_sem_personalizacao')).length
+        if (genericCount > 0) {
+          setContextWarning(previous => [
+            previous,
+            `${genericCount} ${genericCount === 1 ? 'mensagem ficou' : 'mensagens ficaram'} sem personalização — revise antes de enviar.`,
+          ].filter(Boolean).join(' '))
         }
       }
     } catch { setContextError('Erro de conexão') }

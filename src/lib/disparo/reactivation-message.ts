@@ -1,23 +1,24 @@
 import type OpenAI from 'openai'
+import {
+  buildLeadBrief,
+  type BriefInteraction,
+  type BriefLead,
+  type ContextMode,
+  type LeadAngle,
+  type LeadBrief,
+} from './lead-brief'
+import {
+  FALSE_CONTINUITY,
+  fallbackMessage,
+  hasBlocker,
+  inspectMessage,
+  repairMessage,
+  type QualityIssue,
+} from './message-quality'
 
-export type ReactivationLead = {
-  id: string
-  name: string | null
-  phone: string | null
-  stage: string | null
-  summary: string | null
-  intention: string | null
-}
-
-export type ReactivationInteraction = {
-  lead_id: string
-  direction: string | null
-  sender_type: string | null
-  content: string | null
-  created_at: string | null
-}
-
-export type ReactivationContextMode = 'conversation' | 'sparse' | 'no_history'
+export type ReactivationLead = BriefLead
+export type ReactivationInteraction = BriefInteraction
+export type ReactivationContextMode = ContextMode
 
 export type ReactivationGeneration = {
   lead_id: string
@@ -29,88 +30,37 @@ export type ReactivationGeneration = {
   context_mode: ReactivationContextMode
   context_reference: string | null
   quality_flags: string[]
+  /** Como a mensagem chegou ao resultado final, para auditoria. */
+  resolution: 'direta' | 'ajustada' | 'regenerada' | 'fallback'
 }
 
-const GENERIC_NAME = /^(lead|n[aã]o|teste(?: probe)?|rh|contato|cliente|sem nome|desconhecido)$/i
-const BUSINESS_NAME = /\b(im[oó]veis|imobili[aá]ria|corretor|construtora|incorporadora|registro|vidros|rh)\b/i
-const CANNED_INTEREST = /^ol[aá][!.]? tenho interesse e queria mais informa[cç][oõ]es,? por favor[.!]?$/i
-const LOW_SIGNAL = /^(oi|ol[aá]|bom dia|boa tarde|boa noite|sim|n[aã]o|ok|okay|obrigad[oa]|valeu|combinado|entendi|beleza|👍|🙏|🤝)[.! ]*$/i
-const FALSE_CONTINUITY = /(desde (?:o )?nosso [uú]ltimo contato|na nossa [uú]ltima conversa|como conversamos|quando falamos|lembrei da nossa conversa)/i
+/** Modelo da geração. Custo desprezível na escala do projeto (a base inteira
+ *  sai por menos de US$ 1), então a escolha é por qualidade de escrita. */
+const MODEL = 'gpt-5-mini'
 
-const VARIATION_ANGLES = [
-  'Abra com a atualização objetiva da obra e feche com uma pergunta simples.',
-  'Use um tom consultivo, ligando o momento do projeto à decisão do lead.',
-  'Destaque primeiro o avanço físico da obra; trate valorização como potencial, nunca promessa.',
-  'Faça uma retomada curta e humana, com uma única pergunta no final.',
-  'Dê protagonismo ao contexto real do lead e use o tema como novidade relevante.',
-]
-
-function stableIndex(value: string, modulo: number) {
-  let hash = 0
-  for (const char of value) hash = ((hash * 31) + char.charCodeAt(0)) >>> 0
-  return hash % modulo
+/**
+ * Perguntas de fechamento por ângulo.
+ *
+ * Existem em código porque são também o conserto determinístico quando o
+ * modelo esquece a pergunta final — assim o reparo não inventa contexto.
+ */
+const CLOSING_QUESTION: Record<LeadAngle, string> = {
+  objecao: 'Faz sentido eu te procurar mais pra frente?',
+  consultor: 'Quer que eu agende essa conversa?',
+  financiamento: 'Quer que eu te mande os valores atualizados?',
+  unidade: 'Ainda faz sentido pra você?',
+  prazo: 'Quer que eu te passe o cronograma atualizado?',
+  novidade: 'O projeto ainda faz sentido pra você?',
 }
 
-function normalizeSpaces(value: string) {
-  return value.replace(/\s+/g, ' ').trim()
-}
-
-function readableContent(value: string | null) {
-  const raw = value?.trim() ?? ''
-  if (!raw) return ''
-  if (!raw.startsWith('{')) return normalizeSpaces(raw)
-  try {
-    const parsed = JSON.parse(raw) as Record<string, unknown>
-    const candidates = [
-      parsed.text,
-      parsed.conversation,
-      (parsed.extendedTextMessage as Record<string, unknown> | undefined)?.text,
-      (parsed.message as Record<string, unknown> | undefined)?.conversation,
-    ]
-    const text = candidates.find(candidate => typeof candidate === 'string')
-    return normalizeSpaces(typeof text === 'string' ? text : raw)
-  } catch {
-    return normalizeSpaces(raw)
-  }
-}
-
-function isInbound(interaction: ReactivationInteraction) {
-  if (interaction.direction === 'inbound') return true
-  if (interaction.direction === 'outbound') return false
-  return interaction.sender_type === 'lead'
-}
-
-function safeFirstName(value: string | null) {
-  const name = normalizeSpaces(value ?? '')
-  if (!name || GENERIC_NAME.test(name) || BUSINESS_NAME.test(name) || /\d|@/.test(name)) return null
-  const first = name.split(' ')[0]?.replace(/[^\p{L}'-]/gu, '') ?? ''
-  return first.length >= 2 ? first : null
-}
-
-function isUsefulInbound(value: string) {
-  if (!value || CANNED_INTEREST.test(value) || LOW_SIGNAL.test(value)) return false
-  if (/^(pode repetir|como posso te chamar|qual (?:e|é) seu nome)/i.test(value)) return false
-  return value.replace(/[^\p{L}\p{N}]/gu, '').length >= 12
-}
-
-function exclusionReason(name: string | null, inboundMessages: string[]) {
-  if (/^teste\b/i.test(normalizeSpaces(name ?? ''))) return 'Contato de teste, não deve receber campanha.'
-  const text = inboundMessages.join(' \n ')
-  if (/\b(n[aã]o tenho|sem) interesse\b/i.test(text)) return 'O lead declarou que não tem interesse.'
-  if (/\bj[aá] (?:comprei|adquiri).{0,80}\b(outro|outra)\b/i.test(text)) return 'O lead informou que já comprou outro imóvel.'
-  if (/\bfornecedor\b|\bentrega\b.{0,100}\bendere[cç]o\b/i.test(text)) return 'O contato é fornecedor ou tratava de uma entrega.'
-  if (/\b(emprego|vaga|curr[ií]culo)\b/i.test(text) && !/\b(im[oó]vel|apartamento|reserva)\b/i.test(text)) {
-    return 'A conversa tratava de emprego, não de compra de imóvel.'
-  }
-  return null
-}
-
-function compactSummary(value: string | null) {
-  if (!value) return ''
-  return normalizeSpaces(value)
-    .replace(/^Resumo:\s*/i, '')
-    .replace(/Lead classificado como [^.]+\.\s*/i, '')
-    .slice(0, 600)
+/** O que fazer com cada ângulo — instrução concreta, não estilo genérico. */
+const ANGLE_BRIEF: Record<LeadAngle, string> = {
+  objecao: 'Reconheça a objeção ou o adiamento ANTES de qualquer oferta. Não insista; ofereça retomar quando fizer sentido.',
+  consultor: 'O lead pediu atendimento humano e não foi atendido. Assuma isso com naturalidade e ofereça marcar a conversa.',
+  financiamento: 'Puxe pelo lado da condição de pagamento, que é o que ele perguntou. Não cite números que não estão no histórico.',
+  unidade: 'Ancore na unidade ou característica concreta que ele estava avaliando.',
+  prazo: 'Responda ao que ele perguntou sobre prazo, usando o avanço da obra como resposta.',
+  novidade: 'Não há contexto para personalizar. Apresente a atualização da obra como novidade, de forma direta e curta.',
 }
 
 function sanitizeMessage(value: string) {
@@ -130,114 +80,129 @@ function parseModelMessage(value: string) {
     const parsed = JSON.parse(raw) as { message?: unknown }
     if (typeof parsed.message === 'string') return sanitizeMessage(parsed.message)
   } catch {
-    // Some providers can ignore JSON mode during transient fallbacks.
+    // JSON truncado quando a resposta bate no teto de tokens. Resgata o campo
+    // `message` a mão em vez de devolver o JSON quebrado como se fosse texto —
+    // era assim que chaves e aspas vazavam para a mensagem do lead.
+    const salvaged = /"message"\s*:\s*"((?:[^"\\]|\\.)*)/.exec(raw)
+    if (salvaged?.[1]) {
+      try { return sanitizeMessage(JSON.parse(`"${salvaged[1]}"`) as string) } catch { /* segue */ }
+    }
   }
   return sanitizeMessage(raw)
 }
 
-function qualityFlags(message: string, mode: ReactivationContextMode, safeName: string | null) {
-  const flags: string[] = []
-  if (message.length < 120) flags.push('mensagem_curta_demais')
-  if (message.length > 650) flags.push('mensagem_longa_demais')
-  if (mode !== 'conversation' && FALSE_CONTINUITY.test(message)) flags.push('continuidade_sem_evidencia')
-  if (/valorização (?:garantida|certa)|garantia de valorização/i.test(message)) flags.push('promessa_de_valorizacao')
-  if (!safeName && /^(oi|ol[aá]),?\s+(lead|n[aã]o|teste|rh)\b/i.test(message)) flags.push('saudacao_com_nome_invalido')
-  if ((message.match(/\?/g) ?? []).length > 1) flags.push('perguntas_em_excesso')
-  if (!message.endsWith('?')) flags.push('sem_cta_claro')
-  return flags
-}
-
-function buildContext(lead: ReactivationLead, interactions: ReactivationInteraction[]) {
-  const deduped = interactions
-    .map(interaction => ({ ...interaction, readable: readableContent(interaction.content) }))
-    .filter(interaction => interaction.readable)
-    .filter((interaction, index, all) => (
-      index === 0
-      || interaction.readable !== all[index - 1]?.readable
-      || isInbound(interaction) !== isInbound(all[index - 1]!)
-    ))
-
-  const inbound = deduped.filter(isInbound).map(interaction => interaction.readable)
-  const usefulInbound = inbound.filter(isUsefulInbound)
-  const exclusion = exclusionReason(lead.name, inbound.slice(-5))
-  const mode: ReactivationContextMode = usefulInbound.length > 0
-    ? 'conversation'
-    : inbound.length > 0
-      ? 'sparse'
-      : 'no_history'
-  const reference = usefulInbound.at(-1) ?? null
-  const safeName = safeFirstName(lead.name)
-  const conversation = deduped.slice(-12).map(interaction => (
-    `${isInbound(interaction) ? 'Lead' : 'Alliance'}: ${interaction.readable.slice(0, 500)}`
-  )).join('\n')
-
-  return { exclusion, mode, reference, safeName, conversation }
-}
-
-export function analyzeReactivationContext(
-  lead: ReactivationLead,
-  interactions: ReactivationInteraction[],
-) {
-  const context = buildContext(lead, interactions)
-  return {
-    eligible: !context.exclusion,
-    exclusionReason: context.exclusion,
-    mode: context.mode,
-    reference: context.reference,
-    safeName: context.safeName,
-  }
+/**
+ * Remove do tema as frases que fingem contato anterior, quando o lead não teve
+ * contato. É a correção da causa raiz: o texto-base do corretor costuma abrir
+ * com "desde o nosso último contato", que é exatamente a frase que o gate
+ * proíbe. O modelo copiava a abertura do tema, tropeçava na própria regra e a
+ * mensagem era descartada. Agora a frase nunca chega ao modelo.
+ */
+export function sanitizeCampaignTheme(theme: string, mode: ContextMode) {
+  if (mode === 'conversation') return theme.trim()
+  const cleaned = theme.replace(FALSE_CONTINUITY, '')
+  FALSE_CONTINUITY.lastIndex = 0
+  return cleaned.replace(/[ \t]{2,}/g, ' ').replace(/\s+([,.:;!?])/g, '$1').trim()
 }
 
 function buildPrompt(
   lead: ReactivationLead,
   campaignTheme: string,
   manualContext: string,
-  context: ReturnType<typeof buildContext>,
-  corrections: string[] = [],
+  brief: LeadBrief,
+  corrections: string[],
 ) {
-  const modeGuidance = context.mode === 'conversation'
-    ? `Existe conversa comercial útil. Use no máximo UM fato real dela como ponte, sem repetir falas literalmente. A última fala útil foi: "${context.reference}".`
-    : context.mode === 'sparse'
-      ? 'Houve apenas saudação, resposta automática ou fala sem valor comercial. Não finja intimidade nem cite uma conversa anterior.'
-      : 'Não existe conversa recebida do lead. Apresente a atualização como um novo contato e não use "último contato", "como conversamos" ou equivalentes.'
+  const theme = sanitizeCampaignTheme(campaignTheme, brief.mode)
 
-  return `Crie uma mensagem individual de reativação para WhatsApp em português brasileiro.
+  // A ORDEM É DELIBERADA: a pessoa vem primeiro, a campanha depois.
+  // O prompt anterior abria com o texto pronto da campanha e pedia para
+  // reescrevê-lo — o que é, literalmente, uma tarefa de paráfrase. Por isso
+  // todas as mensagens saíam iguais entre si. Aqui a tarefa é escrever PARA
+  // alguém, e os fatos da campanha são só o assunto.
+  const person = brief.anchor
+    ? [
+      `Ele mesmo escreveu: "${brief.anchor.quote}"`,
+      brief.signals.length ? `O que sabemos dele: ${brief.signals.join('; ')}.` : '',
+      `ANCORE A MENSAGEM NESSA FALA. É a informação mais valiosa da conversa — não é a mais recente, é a que mais importa comercialmente.`,
+    ].filter(Boolean).join('\n')
+    : brief.mode === 'sparse'
+      ? 'Ele só respondeu a uma mensagem automática de anúncio. Não há nada pessoal para citar, e fingir intimidade seria pior que ser direto.'
+      : 'Ele nunca respondeu. É um primeiro contato de verdade.'
 
-TEMA E FATOS DA CAMPANHA (direção, não texto para copiar):
+  return `Escreva UMA mensagem de WhatsApp para a pessoa abaixo. Português brasileiro, tom de corretor experiente que conhece o cliente.
+
+## A PESSOA
+- Como chamá-la: ${brief.safeName ?? 'não use nome — o cadastro não tem um nome de pessoa confiável'}
+- Etapa no funil: ${lead.stage ?? 'não informada'}
+${person}
+${manualContext ? `- Observação do corretor: ${manualContext}` : ''}
+
+## O QUE FAZER NESTA MENSAGEM
+${ANGLE_BRIEF[brief.angle]}
+
+## O ASSUNTO (fatos reais da campanha — use como informação, não como texto a copiar)
 """
-${campaignTheme}
+${theme}
 """
 
-DADOS CONFIÁVEIS:
-- Nome permitido na saudação: ${context.safeName ?? '(não usar nome na saudação)'}
-- Etapa atual: ${lead.stage ?? 'não informada'}
-- Intenção declarada: ${lead.intention ?? 'não informada'}
-- Modo de contexto: ${context.mode}
-- Resumo do CRM, apenas como evidência secundária: ${compactSummary(lead.summary) || '(sem resumo confiável)'}
-- Contexto manual do corretor: ${manualContext || '(nenhum)'}
+## HISTÓRICO RECENTE
+${brief.transcript.length ? brief.transcript.join('\n') : '(sem histórico)'}
 
-HISTÓRICO, EM ORDEM:
-${context.conversation || '(sem histórico de conversa)'}
+## REGRAS
+- 2 ou 3 parágrafos curtos, entre 220 e 520 caracteres no total.
+- Termine com UMA pergunta simples de responder.
+- Só use fatos que estão acima. Nunca invente preferência, orçamento, visita ou conversa.
+- Valorização é sempre potencial, nunca promessa ou garantia.
+- Sem emoji, sem "espero que esteja bem", sem entusiasmo artificial, sem pressão.
+- Não escreva "estou aqui para te ajudar a tomar a melhor decisão".
+${brief.mode !== 'conversation' ? '- Este lead NÃO conversou com a gente antes. Não escreva "último contato", "como conversamos" nem equivalente.\n' : ''}${corrections.length ? `\n## CORRIJA DA TENTATIVA ANTERIOR\n${corrections.map(item => `- ${item}`).join('\n')}\n` : ''}
+## EXEMPLO DO PADRÃO ESPERADO
+Contexto: o lead disse "possuo um lote avaliado em R$ 125.000" e buscava 2 quartos.
+Mensagem: "Oi, Ana! Você comentou que tinha um lote avaliado em R$ 125 mil e buscava um 2 quartos — isso cobre boa parte da entrada do Apto 02.
 
-REGRA DE CONTEXTO:
-${modeGuidance}
+A obra avançou desde então: a fundação está concluída e em breve subimos os andares. Quem entra nesta fase acompanha o potencial de valorização até a entrega.
 
-VARIAÇÃO DE ESTILO DESTA PESSOA:
-${VARIATION_ANGLES[stableIndex(lead.id, VARIATION_ANGLES.length)]}
+Quer que eu refaça a conta com o valor do lote?"
 
-REGRAS OBRIGATÓRIAS:
-- Preserve os fatos do tema, mas reescreva com naturalidade.
-- Use de 2 a 3 blocos curtos e aproximadamente 220 a 520 caracteres.
-- Termine com UMA pergunta fácil de responder.
-- Se houver contexto comercial útil, personalize com apenas um fato comprovado.
-- Não invente preferência, orçamento, relacionamento ou conversa.
-- Não prometa valorização; fale em potencial ou oportunidade.
-- Não use emoji, linguagem de robô, excesso de entusiasmo ou pressão.
-- Não diga "estou aqui para te ajudar a tomar a melhor decisão".
-- Não use o nome quando ele estiver marcado como inválido.
-${corrections.length ? `- Corrija obrigatoriamente estes problemas da tentativa anterior: ${corrections.join(', ')}.` : ''}
+Repare: a mensagem começa pelo que É DELE, não pela obra. Faça o mesmo.
 
-Responda em JSON válido no formato {"message":"texto final"}.`
+Responda em JSON válido: {"message":"texto final"}`
+}
+
+export function analyzeReactivationContext(
+  lead: ReactivationLead,
+  interactions: ReactivationInteraction[],
+) {
+  const brief = buildLeadBrief(lead, interactions)
+  return {
+    eligible: brief.eligible,
+    exclusionReason: brief.exclusionReason,
+    mode: brief.mode,
+    reference: brief.anchor?.quote ?? null,
+    safeName: brief.safeName,
+    angle: brief.angle,
+    signals: brief.signals,
+  }
+}
+
+async function callModel(
+  openai: OpenAI,
+  prompt: string,
+): Promise<string> {
+  const completion = await openai.chat.completions.create({
+    model: MODEL,
+    messages: [
+      {
+        role: 'system',
+        content: 'Você é um corretor de imóveis experiente escrevendo no WhatsApp. Escreve curto, humano e específico. Nunca inventa fatos sobre o cliente. Responde sempre no JSON pedido.',
+      },
+      { role: 'user', content: prompt },
+    ],
+    response_format: { type: 'json_object' },
+    // Folga suficiente para 520 caracteres + envelope JSON sem truncar.
+    max_completion_tokens: 700,
+  })
+  return completion.choices[0]?.message?.content ?? ''
 }
 
 export async function generateReactivationMessage(input: {
@@ -247,54 +212,78 @@ export async function generateReactivationMessage(input: {
   campaignTheme: string
   manualContext?: string
 }): Promise<ReactivationGeneration> {
-  const context = buildContext(input.lead, input.interactions)
+  const brief = buildLeadBrief(input.lead, input.interactions)
   const base = {
     lead_id: input.lead.id,
     name: input.lead.name ?? '',
     phone: input.lead.phone ?? '',
-    context_mode: context.mode,
-    context_reference: context.reference,
+    context_mode: brief.mode,
+    context_reference: brief.anchor?.quote ?? null,
   }
 
-  if (context.exclusion) {
+  if (!brief.eligible) {
     return {
       ...base,
       message: '',
       eligible: false,
-      exclusion_reason: context.exclusion,
+      exclusion_reason: brief.exclusionReason,
       quality_flags: ['lead_incompativel_com_reativacao'],
+      resolution: 'direta',
     }
   }
 
-  let message = ''
-  let flags: string[] = []
+  const closing = CLOSING_QUESTION[brief.angle]
+  let corrections: string[] = []
+  let best: { message: string; issues: QualityIssue[]; repaired: string[] } | null = null
+
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const completion = await input.openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'Você escreve mensagens comerciais humanas, factuais e breves. Nunca invente contexto. Cumpra o JSON solicitado.',
-        },
-        {
-          role: 'user',
-          content: buildPrompt(input.lead, input.campaignTheme, input.manualContext?.trim() ?? '', context, flags),
-        },
-      ],
-      response_format: { type: 'json_object' },
-      max_tokens: 300,
-      temperature: 0.72,
-    })
-    message = parseModelMessage(completion.choices[0]?.message?.content ?? '')
-    flags = qualityFlags(message, context.mode, context.safeName)
-    if (!flags.length) break
+    const raw = await callModel(
+      input.openai,
+      buildPrompt(input.lead, input.campaignTheme, input.manualContext?.trim() ?? '', brief, corrections),
+    )
+    const generated = parseModelMessage(raw)
+
+    // Conserta o que tem solução textual antes de julgar. É o ponto central da
+    // mudança: a mensagem é ADAPTADA para caber na regra, não descartada.
+    const { message, repaired } = repairMessage(generated, brief.mode, brief.safeName, closing)
+    const issues = inspectMessage(message, brief.mode, brief.safeName)
+
+    if (!best || issues.length < best.issues.length) best = { message, issues, repaired }
+    if (!hasBlocker(issues)) break
+
+    corrections = issues.filter(issue => issue.severity === 'bloqueio').map(issue => issue.correction)
+  }
+
+  if (!best || !best.message) {
+    return {
+      ...base,
+      message: fallbackMessage(sanitizeCampaignTheme(input.campaignTheme, brief.mode), brief.safeName),
+      eligible: true,
+      exclusion_reason: null,
+      quality_flags: ['fallback_sem_personalizacao'],
+      resolution: 'fallback',
+    }
+  }
+
+  // Bloqueio que sobreviveu a duas tentativas e ao reparo: manda a mensagem de
+  // segurança em vez de string vazia. O corretor sempre recebe algo enviável.
+  if (hasBlocker(best.issues)) {
+    return {
+      ...base,
+      message: fallbackMessage(sanitizeCampaignTheme(input.campaignTheme, brief.mode), brief.safeName),
+      eligible: true,
+      exclusion_reason: null,
+      quality_flags: [...best.issues.map(issue => issue.code), 'fallback_sem_personalizacao'],
+      resolution: 'fallback',
+    }
   }
 
   return {
     ...base,
-    message: flags.length ? '' : message,
+    message: best.message,
     eligible: true,
     exclusion_reason: null,
-    quality_flags: flags,
+    quality_flags: [...best.repaired.map(code => `ajustado:${code}`), ...best.issues.map(issue => issue.code)],
+    resolution: best.repaired.length ? 'ajustada' : 'direta',
   }
 }

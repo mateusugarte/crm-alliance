@@ -89,16 +89,19 @@ export async function POST(req: NextRequest) {
       context_mode: 'no_history',
       context_reference: null,
       quality_flags: ['falha_na_geracao'],
+      resolution: 'fallback',
     }))))
     results.push(...generated)
   }
 
+  // Duplicata no lote passou a ser um aviso, não um descarte. Zerar a mensagem
+  // deixava o corretor sem nada para editar e travava o avanço do passo — que
+  // era exatamente o beco sem saída do "algumas mensagens não passaram".
   const seenMessages = new Set<string>()
   for (const result of results) {
     if (!result.message) continue
     const fingerprint = result.message.toLocaleLowerCase('pt-BR').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
     if (seenMessages.has(fingerprint)) {
-      result.message = ''
       result.quality_flags.push('mensagem_duplicada_no_lote')
     } else {
       seenMessages.add(fingerprint)
@@ -121,6 +124,8 @@ export async function POST(req: NextRequest) {
       sparse_context: results.filter(result => result.context_mode === 'sparse').length,
       without_history: results.filter(result => result.context_mode === 'no_history').length,
       flagged: results.filter(result => result.quality_flags.length > 0 && result.eligible).length,
+      adjusted: results.filter(result => result.resolution === 'ajustada').length,
+      fallback: results.filter(result => result.resolution === 'fallback').length,
     },
   })
 }
