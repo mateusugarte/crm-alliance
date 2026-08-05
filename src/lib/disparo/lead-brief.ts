@@ -183,6 +183,7 @@ const THIRD_PARTY_BOT = [
   /\bseja bem[- ]vindo(?:\(a\)|a)?\b.{0,40}\b(?:ao|nosso|mundo)\b/i,
   /\bbem[- ]vindo\b.{0,20}\bao mundo\b/i,
   /\b(?:um|nosso) (?:corretor|consultor|especialista|atendente)\b.{0,40}\b(?:ir[aá] lhe ligar|entrar[aá] em contato)\b/i,
+  /\bagradecemos sua mensagem\b.{0,100}\bn[aã]o estamos dispon[ií]veis\b/i,
 ]
 
 /** Assinaturas de terceiros específicas o bastante para um único acerto bastar. */
@@ -194,6 +195,7 @@ const STRONG_THIRD_PARTY_BOT = [
   /\bConcession[aá]ria Honda\b/i,
   /\bempresa ProHair\b/i,
   /\bWhatsApp (?:é )?utilizado exclusivamente para o envio de informa[cç][oõ]es\b/i,
+  /\bestamos com um novo n[uú]mero\b.{0,100}\bwa\.me\/message\b/i,
 ]
 
 /**

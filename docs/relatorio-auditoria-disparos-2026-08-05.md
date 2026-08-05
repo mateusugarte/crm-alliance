@@ -186,11 +186,13 @@ Ao aprovar a campanha, salvar mensagem, briefing, fatos usados, versão do promp
 
 Foi feita uma auditoria conservadora de todos os 674 leads que estavam na coluna fria:
 
-- 31 não compradores de alta confiança na coluna fria;
+- 33 não compradores de alta confiança na coluna fria, após duas passadas;
 - 2 não compradores que já haviam sido movidos para quente;
-- total: 33 contatos classificados;
-- composição da coluna fria: 8 fornecedores, 4 parceiros, 14 bots de terceiro, 2 candidatos a emprego e 3 testes;
+- total: 35 contatos classificados;
+- composição da coluna fria: 8 fornecedores, 4 parceiros, 16 bots de terceiro, 2 candidatos a emprego e 3 testes;
 - os 2 contatos quentes adicionais são 1 fornecedor e 1 corretor parceiro.
+
+Nomes comerciais sem nenhuma conversa permaneceram no funil por falta de evidência. Na arquitetura nova, eles devem cair em `unknown` para revisão humana, não ser movidos ou disparados automaticamente só pelo nome.
 
 A nova coluna `Fornecedores` fica imediatamente à esquerda de `Lead Frio`. Os contatos movidos ficam com automação pausada, inelegíveis para resgate e sem tarefas pendentes. Um snapshot preserva estágio e estados anteriores para reversão assistida.
 
@@ -198,7 +200,7 @@ A nova coluna `Fornecedores` fica imediatamente à esquerda de `Lead Frio`. Os c
 
 ### Fase 0 — contenção imediata
 
-- separar os 33 não compradores;
+- separar os 35 não compradores;
 - bloquear assinaturas conhecidas de bots de terceiros;
 - impedir exposição de “histórico”, “cadastro” e “sistema”;
 - manter revisão humana obrigatória antes do envio.
@@ -235,7 +237,7 @@ A nova coluna `Fornecedores` fica imediatamente à esquerda de `Lead Frio`. Os c
 
 ## Reversibilidade
 
-- A classificação dos 33 contatos é registrada em `fornecedores_classification_audit` com estágio, automação e resgate anteriores.
+- A classificação dos 35 contatos é registrada em `fornecedores_classification_audit` com estágio, automação e resgate anteriores.
 - A migração de banco é transacional.
 - O código será publicado em commit identificável e pode ser revertido por commit.
 - Nenhuma mensagem foi enviada durante esta auditoria.

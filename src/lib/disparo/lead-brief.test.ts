@@ -66,6 +66,18 @@ describe('exclusão de contatos', () => {
     ])).toMatch(/atendimento autom/i)
   })
 
+  it('exclui número comercial com resposta automática de indisponibilidade', () => {
+    expect(exclusionReason('Ao Comercial', [
+      'Agradecemos sua mensagem. Não estamos disponíveis no momento, mas entraremos em contato assim que possível.',
+    ])).toMatch(/atendimento autom/i)
+  })
+
+  it('exclui empresa que responde com troca automática de número', () => {
+    expect(exclusionReason('Bruto Barbearia', [
+      'Estamos com um novo número para melhor atendê-los: https://wa.me/message/4CLU4DZI3UVQG1',
+    ])).toMatch(/atendimento autom/i)
+  })
+
   it('exclui candidato a emprego sem confundir vaga de garagem', () => {
     expect(exclusionReason('Paulo', [
       'Boa tarde, gostaria de encaminhar meu currículo para trabalhar com vocês.',
