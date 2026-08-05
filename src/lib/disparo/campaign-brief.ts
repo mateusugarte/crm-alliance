@@ -113,7 +113,7 @@ export function renderCampaignOnlyMessage(
   const facts = brief.current_facts.map(fact => fact.value.replace(/[.!?]+$/g, '').trim()).filter(Boolean)
   const primary = facts[0] ?? brief.novelty.replace(/[.!?]+$/g, '').trim()
   const secondary = facts.slice(1).map(sentenceCase).join('. ')
-  const projectUpdate = primary.replace(/^As obras do La Reserva\s+/i, '')
+  const projectUpdate = primary.replace(/^As obras do La Reserva avançaram/i, 'a obra avançou')
   const cta = brief.cta.endsWith('?') ? brief.cta : `${brief.cta.replace(/[.!]+$/g, '')}?`
   const openings = [
     `${greeting(safeName)} ${sentenceCase(primary)}.`,
