@@ -33,7 +33,10 @@ export async function loadTaskQueue(
   let activeQuery = supabase
     .from('tarefas')
     .select('id,origem,vence_em')
-    .or('status.eq.pendente,and(status.eq.vencida,origem.neq.resgate)')
+    // Overdue follow-ups remain actionable until a call is registered. The
+    // previous resgate exclusion made unfinished suggestions disappear after
+    // fechar_fila_do_dia marked them as vencida.
+    .in('status', ['pendente', 'vencida'])
   if (!isAdm) activeQuery = activeQuery.eq('responsavel_id', userId)
 
   let completedQuery = supabase
