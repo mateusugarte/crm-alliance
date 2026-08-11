@@ -48,7 +48,7 @@ export default async function ConfiguracoesPage() {
     supabase
       .from('login_logs')
       .select('*')
-      .order('logged_at', { ascending: false })
+      .order('last_seen_at', { ascending: false })
       .limit(100),
   ])
 
@@ -157,7 +157,8 @@ export default async function ConfiguracoesPage() {
                     <th className="px-5 py-3">Usuário</th>
                     <th className="px-5 py-3">Perfil</th>
                     <th className="px-5 py-3">Origem</th>
-                    <th className="px-5 py-3">Data</th>
+                    <th className="px-5 py-3">Primeiro acesso</th>
+                    <th className="px-5 py-3">Última atividade</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line dark:divide-white/10">
@@ -171,7 +172,8 @@ export default async function ConfiguracoesPage() {
                       </td>
                       <td className="px-5 py-4">{log.role}</td>
                       <td className="px-5 py-4">{log.source}</td>
-                      <td className="px-5 py-4">{formatDate(log.logged_at)}</td>
+                      <td className="px-5 py-4">{formatDate(log.first_seen_at || log.logged_at)}</td>
+                      <td className="px-5 py-4">{formatDate(log.last_seen_at || log.logged_at)}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { differenceInCalendarDays, format, formatDistanceToNow, isToday, isTomorrow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -329,18 +329,25 @@ export function DailyTaskCenter() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [showDone, setShowDone] = useState(false)
+  const loadSequence = useRef(0)
+  const activeLoad = useRef<AbortController | null>(null)
 
   const load = useCallback(async (quiet = false) => {
+    const sequence = ++loadSequence.current
+    activeLoad.current?.abort()
     if (!quiet) setLoading(true)
     if (!quiet) setLoadError(null)
     const controller = new AbortController()
+    activeLoad.current = controller
     const timeout = window.setTimeout(() => controller.abort(), 12_000)
     try {
       const response = await fetch(`/api/tasks?view=${view}`, { cache: 'no-store', signal: controller.signal })
       const json = await response.json() as { data?: DailyTaskItem[]; error?: string }
       if (!response.ok) throw new Error(json.error || 'Erro ao carregar a fila')
+      if (sequence !== loadSequence.current) return
       setTasks(json.data ?? [])
     } catch (error) {
+      if (sequence !== loadSequence.current) return
       const message = error instanceof DOMException && error.name === 'AbortError'
         ? 'A fila demorou para responder.'
         : error instanceof Error ? error.message : 'Erro ao carregar a fila'
@@ -350,11 +357,15 @@ export function DailyTaskCenter() {
       }
     } finally {
       window.clearTimeout(timeout)
-      if (!quiet) setLoading(false)
+      if (sequence === loadSequence.current) {
+        activeLoad.current = null
+        if (!quiet) setLoading(false)
+      }
     }
   }, [view])
 
   useEffect(() => { void load() }, [load])
+  useEffect(() => () => activeLoad.current?.abort(), [])
   useEffect(() => {
     const supabase = createClient()
     const channel = supabase.channel('central-do-dia-dashboard')

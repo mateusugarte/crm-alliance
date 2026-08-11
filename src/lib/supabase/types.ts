@@ -224,6 +224,8 @@ export interface Database {
           user_agent: string | null
           logged_at: string
           logged_date: string
+          first_seen_at: string
+          last_seen_at: string
         }
         Insert: {
           id?: string
@@ -236,6 +238,8 @@ export interface Database {
           user_agent?: string | null
           logged_at?: string
           logged_date?: string
+          first_seen_at?: string
+          last_seen_at?: string
         }
         Update: Partial<Database['public']['Tables']['login_logs']['Insert']>
       }
