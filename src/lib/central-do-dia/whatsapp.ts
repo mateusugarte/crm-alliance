@@ -32,8 +32,8 @@ export function scoreLabel(score: number | null) {
 function sectionFor(row: DailyContactRow) {
   if (row.origem === 'qualificacao') return 'qualification'
   if (row.origem === 'retorno_agendado') return 'scheduled_return'
-  if (row.overdue_days > 0) return 'overdue'
   if (row.origem === 'retentativa') return 'retry'
+  if (row.origem === 'resgate' && row.overdue_days > 0) return 'overdue'
   if (row.origem === 'resgate') return 'today'
   return 'other'
 }
@@ -48,8 +48,8 @@ function groupDailyContacts(rows: DailyContactRow[]): FollowupSection[] {
   const definitions = [
     ['qualification', 'LEADS QUENTES AGUARDANDO PRIMEIRO CONTATO', 'Qualificados que ainda não receberam a primeira ligação.'],
     ['scheduled_return', 'RETORNOS COMBINADOS', 'Leads que pediram contato novamente.'],
-    ['overdue', 'FOLLOW UPS ATRASADOS', 'Pendências de dias anteriores que continuam abertas.'],
-    ['retry', 'RETENTATIVAS AGENDADAS PARA HOJE', 'Leads que já tiveram uma tentativa de contato.'],
+    ['overdue', 'FOLLOW UPS ATRASADOS', 'Sugestões de dias anteriores que não receberam ligação.'],
+    ['retry', 'LEADS QUENTES PARA RETENTATIVA', 'Leads quentes sem contato após uma tentativa anterior.'],
     ['today', 'FOLLOW UPS SUGERIDOS PARA HOJE', 'Novos contatos selecionados para o dia.'],
     ['other', 'OUTRAS LIGAÇÕES PENDENTES', 'Tarefas manuais que ainda precisam de atenção.'],
   ] as const
@@ -112,6 +112,12 @@ export async function queueDailyFollowupMessage(date: string) {
        join tarefas t on t.id=fd.tarefa_id
        join leads l on l.id=t.lead_id
       where fd.data=$1::date and t.status in ('pendente','vencida')
+        and (
+          (t.origem='qualificacao' and l.stage='lead_quente' and l.primeira_ligacao_em is null)
+          or (t.origem='resgate' and l.stage in ('lead_morno','lead_quente') and l.primeira_ligacao_em is null)
+          or (t.origem='retentativa' and l.stage='lead_quente')
+          or t.origem in ('retorno_agendado','manual')
+        )
       order by fd.posicao`,
     [date],
   )

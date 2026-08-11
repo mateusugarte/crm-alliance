@@ -18,7 +18,7 @@ describe('daily follow-up message', () => {
     expect(message).toContain('*FOLLOW UP DO DIA - LIGAÇÕES*')
     expect(message).toContain('*3 contatos pendentes*')
     expect(message).toContain('*FOLLOW UPS ATRASADOS · 1*')
-    expect(message).toContain('*RETENTATIVAS AGENDADAS PARA HOJE · 1*')
+    expect(message).toContain('*LEADS QUENTES PARA RETENTATIVA · 1*')
     expect(message).toContain('*FOLLOW UPS SUGERIDOS PARA HOJE · 1*')
     expect(message).toContain('1. Cintia Zambon - nunca ligado - score 7,6 - 5 d sem contato')
     expect(message).toContain('1. Millena Bastos - 2ª tentativa - score 6,4 - 9 d sem contato')
@@ -40,5 +40,17 @@ describe('daily follow-up message', () => {
       message.indexOf('FOLLOW UPS SUGERIDOS PARA HOJE'),
     )
     expect(message).not.toContain('FOLLOW UPS ATRASADOS')
+  })
+
+  it('never classifies an overdue retry as a missed daily suggestion', () => {
+    const message = formatDailyFollowupMessage([
+      { tarefa_id: '1', name: 'Retentativa antiga', tentativa_num: 2, lead_score: 80, no_contact_days: 8, origem: 'retentativa', overdue_days: 3 },
+      { tarefa_id: '2', name: 'Sugestão antiga', tentativa_num: 1, lead_score: 60, no_contact_days: 12, origem: 'resgate', overdue_days: 2 },
+    ], 'https://crm-alliance.vercel.app')
+
+    expect(message).toContain('*LEADS QUENTES PARA RETENTATIVA · 1*')
+    expect(message).toContain('1. Retentativa antiga')
+    expect(message).toContain('*FOLLOW UPS ATRASADOS · 1*')
+    expect(message).toContain('1. Sugestão antiga')
   })
 })

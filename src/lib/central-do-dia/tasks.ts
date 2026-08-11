@@ -116,7 +116,8 @@ export async function loadTaskQueue(
         || (lead.stage === 'lead_quente' && !lead.primeira_ligacao_em)
       const isCurrentSuggestion = task.origem !== 'resgate'
         || (['lead_morno', 'lead_quente'].includes(lead.stage) && !lead.primeira_ligacao_em)
-      if (!isCurrentQualification || !isCurrentSuggestion) return []
+      const isCurrentRetry = task.origem !== 'retentativa' || lead.stage === 'lead_quente'
+      if (!isCurrentQualification || !isCurrentSuggestion || !isCurrentRetry) return []
     }
 
     const queue = queueMap.get(task.id)
