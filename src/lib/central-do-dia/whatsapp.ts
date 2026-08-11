@@ -11,6 +11,14 @@ interface DailyContactRow {
   tentativa_num: number
   lead_score: number | null
   no_contact_days: number
+  origem: 'qualificacao' | 'resgate' | 'retorno_agendado' | 'retentativa' | 'manual'
+  overdue_days: number
+}
+
+type FollowupSection = {
+  title: string
+  description: string
+  rows: DailyContactRow[]
 }
 
 export function attemptLabel(attempt: number) {
@@ -21,15 +29,55 @@ export function scoreLabel(score: number | null) {
   return Math.max(0, Math.min(10, (score ?? 0) / 10)).toFixed(1).replace('.', ',')
 }
 
+function sectionFor(row: DailyContactRow) {
+  if (row.origem === 'qualificacao') return 'qualification'
+  if (row.origem === 'retorno_agendado') return 'scheduled_return'
+  if (row.overdue_days > 0) return 'overdue'
+  if (row.origem === 'retentativa') return 'retry'
+  if (row.origem === 'resgate') return 'today'
+  return 'other'
+}
+
+function groupDailyContacts(rows: DailyContactRow[]): FollowupSection[] {
+  const grouped = new Map<string, DailyContactRow[]>()
+  for (const row of rows) {
+    const key = sectionFor(row)
+    grouped.set(key, [...(grouped.get(key) ?? []), row])
+  }
+
+  const definitions = [
+    ['qualification', 'LEADS QUENTES AGUARDANDO PRIMEIRO CONTATO', 'Qualificados que ainda não receberam a primeira ligação.'],
+    ['scheduled_return', 'RETORNOS COMBINADOS', 'Leads que pediram contato novamente.'],
+    ['overdue', 'FOLLOW UPS ATRASADOS', 'Pendências de dias anteriores que continuam abertas.'],
+    ['retry', 'RETENTATIVAS AGENDADAS PARA HOJE', 'Leads que já tiveram uma tentativa de contato.'],
+    ['today', 'FOLLOW UPS SUGERIDOS PARA HOJE', 'Novos contatos selecionados para o dia.'],
+    ['other', 'OUTRAS LIGAÇÕES PENDENTES', 'Tarefas manuais que ainda precisam de atenção.'],
+  ] as const
+
+  return definitions.flatMap(([key, title, description]) => {
+    const sectionRows = grouped.get(key) ?? []
+    return sectionRows.length ? [{ title, description, rows: sectionRows }] : []
+  })
+}
+
+function contactLine(item: DailyContactRow, index: number) {
+  return `${index + 1}. ${item.name} - ${attemptLabel(item.tentativa_num)} - score ${scoreLabel(item.lead_score)} - ${item.no_contact_days} d sem contato`
+}
+
 export function formatDailyFollowupMessage(rows: DailyContactRow[], crmUrl: string) {
+  const sections = groupDailyContacts(rows)
   return [
     '*FOLLOW UP DO DIA - LIGAÇÕES*',
     '',
-    `${rows.length} ${rows.length === 1 ? 'contato' : 'contatos'} para follow up hoje:`,
+    `*${rows.length} ${rows.length === 1 ? 'contato pendente' : 'contatos pendentes'}*`,
+    'Organizados por tipo e urgência:',
     '',
-    ...rows.map((item, index) => (
-      `${index + 1}. ${item.name} - ${attemptLabel(item.tentativa_num)} - score ${scoreLabel(item.lead_score)} - ${item.no_contact_days} d sem contato`
-    )),
+    ...sections.flatMap(section => [
+      `*${section.title} · ${section.rows.length}*`,
+      section.description,
+      ...section.rows.map(contactLine),
+      '',
+    ]),
     '',
     'Abra o CRM para ver o contexto e registrar a ligação.',
     `${crmUrl}/dashboard`,
@@ -49,7 +97,9 @@ export async function queueDailyFollowupMessage(date: string) {
   }
 
   const { rows } = await centralQuery<DailyContactRow>(
-    `select t.id tarefa_id, l.name, t.tentativa_num, l.lead_score,
+    `select t.id tarefa_id, l.name, t.tentativa_num, l.lead_score, t.origem,
+            greatest(0, $1::date
+              - timezone('America/Sao_Paulo', t.vence_em)::date)::int overdue_days,
             greatest(0, (timezone('America/Sao_Paulo', now())::date
               - timezone('America/Sao_Paulo', coalesce(
                   case when t.origem='qualificacao' then l.qualificado_em end,
