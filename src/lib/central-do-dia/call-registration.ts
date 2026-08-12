@@ -28,7 +28,6 @@ export function parseCallRegistration(input: unknown):
   const returnAt = typeof body.returnAt === 'string' && body.returnAt ? body.returnAt : null
 
   if (note.length > 4_000 || lossReason.length > 500) return { ok: false, error: 'O registro da ligação está muito longo' }
-  if (outcome === 'atendeu' && !note) return { ok: false, error: 'Informe o que foi conversado' }
   if (outcome === 'pediu_retorno' && (!returnAt || Number.isNaN(new Date(returnAt).getTime()))) {
     return { ok: false, error: 'Informe uma data de retorno válida' }
   }

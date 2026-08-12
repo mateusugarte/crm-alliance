@@ -65,7 +65,7 @@ export interface Database {
           lead_id: string
           responsavel_id: string
           tipo: 'ligacao' | 'followup' | 'whatsapp' | 'visita'
-          origem: 'qualificacao' | 'resgate' | 'retorno_agendado' | 'retentativa' | 'manual'
+          origem: 'qualificacao' | 'resgate' | 'retorno_agendado' | 'retentativa' | 'acompanhamento' | 'manual'
           tentativa_num: number
           criada_em: string
           vence_em: string
@@ -80,7 +80,7 @@ export interface Database {
           lead_id: string
           responsavel_id: string
           tipo?: 'ligacao' | 'followup' | 'whatsapp' | 'visita'
-          origem: 'qualificacao' | 'resgate' | 'retorno_agendado' | 'retentativa' | 'manual'
+          origem: 'qualificacao' | 'resgate' | 'retorno_agendado' | 'retentativa' | 'acompanhamento' | 'manual'
           tentativa_num?: number
           criada_em?: string
           vence_em: string

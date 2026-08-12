@@ -13,7 +13,13 @@ describe('parseCallRegistration', () => {
   })
 
   it('exige os dados condicionais de cada desfecho', () => {
-    expect(parseCallRegistration({ outcome: 'atendeu' }).ok).toBe(false)
+    expect(parseCallRegistration({ outcome: 'atendeu' })).toEqual({
+      ok: true,
+      data: {
+        outcome: 'atendeu', note: null, returnAt: null,
+        meetingScheduled: false, lossReason: null,
+      },
+    })
     expect(parseCallRegistration({ outcome: 'pediu_retorno' }).ok).toBe(false)
     expect(parseCallRegistration({ outcome: 'sem_interesse' }).ok).toBe(false)
   })

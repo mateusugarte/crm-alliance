@@ -53,4 +53,15 @@ describe('daily follow-up message', () => {
     expect(message).toContain('*FOLLOW UPS ATRASADOS · 1*')
     expect(message).toContain('1. Sugestão antiga')
   })
+
+  it('separates the five-day conversation follow-up from retries and random suggestions', () => {
+    const message = formatDailyFollowupMessage([
+      { tarefa_id: '1', name: 'Arthur', tentativa_num: 2, lead_score: 72, no_contact_days: 5, origem: 'acompanhamento', overdue_days: 0 },
+    ], 'https://crm-alliance.vercel.app')
+
+    expect(message).toContain('*LEADS EM CONVERSA PARA FOLLOW UP · 1*')
+    expect(message).toContain('1. Arthur - follow up após conversa - score 7,2 - 5 d sem contato')
+    expect(message).not.toContain('LEADS QUENTES PARA RETENTATIVA')
+    expect(message).not.toContain('FOLLOW UPS SUGERIDOS PARA HOJE')
+  })
 })

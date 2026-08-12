@@ -117,7 +117,8 @@ export async function loadTaskQueue(
       const isCurrentSuggestion = task.origem !== 'resgate'
         || (['lead_morno', 'lead_quente'].includes(lead.stage) && !lead.primeira_ligacao_em)
       const isCurrentRetry = task.origem !== 'retentativa' || lead.stage === 'lead_quente'
-      if (!isCurrentQualification || !isCurrentSuggestion || !isCurrentRetry) return []
+      const isCurrentConversationFollowup = task.origem !== 'acompanhamento' || lead.stage === 'lead_quente'
+      if (!isCurrentQualification || !isCurrentSuggestion || !isCurrentRetry || !isCurrentConversationFollowup) return []
     }
 
     const queue = queueMap.get(task.id)
@@ -172,11 +173,12 @@ export async function loadTaskQueue(
   }).sort((a, b) => {
     const priority = (item: DailyTaskItem) => {
       if (item.status === 'vencida') return 0
-      if (item.status === 'feita') return 5
+      if (item.status === 'feita') return 6
       if (item.origin === 'retorno_agendado') return 1
       if (item.origin === 'qualificacao') return 2
       if (item.origin === 'retentativa') return 3
-      return 4
+      if (item.origin === 'acompanhamento') return 4
+      return 5
     }
     const statusA = priority(a)
     const statusB = priority(b)

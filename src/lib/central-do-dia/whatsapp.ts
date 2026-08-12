@@ -11,7 +11,7 @@ interface DailyContactRow {
   tentativa_num: number
   lead_score: number | null
   no_contact_days: number
-  origem: 'qualificacao' | 'resgate' | 'retorno_agendado' | 'retentativa' | 'manual'
+  origem: 'qualificacao' | 'resgate' | 'retorno_agendado' | 'retentativa' | 'acompanhamento' | 'manual'
   overdue_days: number
 }
 
@@ -33,6 +33,7 @@ function sectionFor(row: DailyContactRow) {
   if (row.origem === 'qualificacao') return 'qualification'
   if (row.origem === 'retorno_agendado') return 'scheduled_return'
   if (row.origem === 'retentativa') return 'retry'
+  if (row.origem === 'acompanhamento') return 'conversation_followup'
   if (row.origem === 'resgate' && row.overdue_days > 0) return 'overdue'
   if (row.origem === 'resgate') return 'today'
   return 'other'
@@ -50,6 +51,7 @@ function groupDailyContacts(rows: DailyContactRow[]): FollowupSection[] {
     ['scheduled_return', 'RETORNOS COMBINADOS', 'Leads que pediram contato novamente.'],
     ['overdue', 'FOLLOW UPS ATRASADOS', 'Sugestões de dias anteriores que não receberam ligação.'],
     ['retry', 'LEADS QUENTES PARA RETENTATIVA', 'Leads quentes sem contato após uma tentativa anterior.'],
+    ['conversation_followup', 'LEADS EM CONVERSA PARA FOLLOW UP', 'Conversas iniciadas há 5 dias que precisam de acompanhamento.'],
     ['today', 'FOLLOW UPS SUGERIDOS PARA HOJE', 'Novos contatos selecionados para o dia.'],
     ['other', 'OUTRAS LIGAÇÕES PENDENTES', 'Tarefas manuais que ainda precisam de atenção.'],
   ] as const
@@ -61,7 +63,10 @@ function groupDailyContacts(rows: DailyContactRow[]): FollowupSection[] {
 }
 
 function contactLine(item: DailyContactRow, index: number) {
-  return `${index + 1}. ${item.name} - ${attemptLabel(item.tentativa_num)} - score ${scoreLabel(item.lead_score)} - ${item.no_contact_days} d sem contato`
+  const contactState = item.origem === 'acompanhamento'
+    ? 'follow up após conversa'
+    : attemptLabel(item.tentativa_num)
+  return `${index + 1}. ${item.name} - ${contactState} - score ${scoreLabel(item.lead_score)} - ${item.no_contact_days} d sem contato`
 }
 
 export function formatDailyFollowupMessage(rows: DailyContactRow[], crmUrl: string) {
@@ -116,6 +121,7 @@ export async function queueDailyFollowupMessage(date: string) {
           (t.origem='qualificacao' and l.stage='lead_quente' and l.primeira_ligacao_em is null)
           or (t.origem='resgate' and l.stage in ('lead_morno','lead_quente') and l.primeira_ligacao_em is null)
           or (t.origem='retentativa' and l.stage='lead_quente')
+          or (t.origem='acompanhamento' and l.stage='lead_quente')
           or t.origem in ('retorno_agendado','manual')
         )
       order by fd.posicao`,

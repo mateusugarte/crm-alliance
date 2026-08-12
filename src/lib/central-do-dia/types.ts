@@ -27,7 +27,7 @@ export interface DailyTaskItem {
   noContactSince: string
   attempts: number
   ownerId: string
-  origin: 'qualificacao' | 'resgate' | 'retorno_agendado' | 'retentativa' | 'manual'
+  origin: 'qualificacao' | 'resgate' | 'retorno_agendado' | 'retentativa' | 'acompanhamento' | 'manual'
   attemptNumber: number
   createdAt: string
   dueAt: string

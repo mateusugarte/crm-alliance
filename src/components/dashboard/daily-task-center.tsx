@@ -35,6 +35,7 @@ function dueLabel(task: DailyTaskItem) {
 
 /** Estado da tentativa — o dado que decide se vale ligar agora. */
 function attemptLabel(task: DailyTaskItem) {
+  if (task.origin === 'acompanhamento') return 'follow up após conversa'
   if (task.attemptNumber > 1) return `${task.attemptNumber}ª tentativa`
   if (!task.lastContactAt) return 'nunca ligado'
   return `sem contato há ${formatDistanceToNow(new Date(task.lastContactAt), { locale: ptBR })}`
