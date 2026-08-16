@@ -23,4 +23,9 @@ app.prepare().then(() => {
   httpServer.listen(port, hostname, () => {
     console.log(`> Ready on http://${hostname}:${port}`)
   })
+}).catch((err) => {
+  // Sem isso, uma falha no prepare() vira unhandled rejection: o processo continua vivo
+  // mas nunca abre a porta, e quem chama a API (n8n) fica pendurado até estourar timeout.
+  console.error('> Falha ao inicializar o Next.js:', err)
+  process.exit(1)
 })

@@ -1,11 +1,14 @@
-import type { NextConfig } from "next";
-
 // URL do serviço EasyPanel, onde o server.js customizado roda de forma persistente
 // (necessário para o loop de disparo, que fica vivo entre envios). Sem essa variável,
 // as ações abaixo continuam servidas localmente — é assim que o próprio EasyPanel se comporta.
 const disparoEngineUrl = process.env.DISPARO_ENGINE_URL;
 
-const nextConfig: NextConfig = {
+// Config em .mjs (e não .ts) de propósito: o server.js customizado carrega este arquivo
+// em tempo de execução, e a imagem de produção roda com `npm ci --omit=dev` — sem o
+// typescript instalado, um next.config.ts faz o Next tentar instalá-lo no boot.
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   images: {
     remotePatterns: [
       {
