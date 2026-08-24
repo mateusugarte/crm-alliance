@@ -364,7 +364,7 @@ export function DailyTaskCenter() {
       window.clearTimeout(timeout)
       if (sequence === loadSequence.current) {
         activeLoad.current = null
-        if (!quiet) setLoading(false)
+        setLoading(false)
       }
     }
   }, [view])
@@ -373,10 +373,13 @@ export function DailyTaskCenter() {
   useEffect(() => () => activeLoad.current?.abort(), [])
   useEffect(() => {
     const supabase = createClient()
+    let hasConnected = false
     const channel = supabase.channel('central-do-dia-dashboard')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tarefas' }, () => void load(true))
       .subscribe(status => {
-        if (status === 'SUBSCRIBED') void load(true)
+        if (status !== 'SUBSCRIBED') return
+        if (hasConnected) void load(true)
+        hasConnected = true
       })
     return () => { void supabase.removeChannel(channel) }
   }, [load])

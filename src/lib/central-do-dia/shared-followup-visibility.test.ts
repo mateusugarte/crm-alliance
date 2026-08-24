@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 const migration = readFileSync(join(process.cwd(), '040_shared_followup_visibility.sql'), 'utf8')
 const taskLoader = readFileSync(join(process.cwd(), 'src/lib/central-do-dia/tasks.ts'), 'utf8')
+const taskCenter = readFileSync(join(process.cwd(), 'src/components/dashboard/daily-task-center.tsx'), 'utf8')
 
 describe('shared follow-up visibility', () => {
   it('allows every authenticated user to read the team queue', () => {
@@ -21,5 +22,10 @@ describe('shared follow-up visibility', () => {
 
   it('publishes lead movement for the shared Kanban', () => {
     expect(migration).toContain('ALTER PUBLICATION supabase_realtime ADD TABLE leads')
+  })
+
+  it('finishes the spinner when a silent realtime refresh replaces the initial load', () => {
+    expect(taskCenter).toContain('activeLoad.current = null\n        setLoading(false)')
+    expect(taskCenter).not.toContain('if (!quiet) setLoading(false)')
   })
 })
