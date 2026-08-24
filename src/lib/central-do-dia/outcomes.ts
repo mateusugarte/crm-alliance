@@ -88,6 +88,13 @@ export function outcomeConfig(value: TaskOutcome): OutcomeConfig {
   return BY_VALUE.get(value) ?? OUTCOMES[2]!
 }
 
+export function callResultLabel(value: TaskOutcome, meetingScheduled = false) {
+  if (value === 'atendeu') {
+    return meetingScheduled ? 'Atendeu · reunião marcada' : 'Atendeu · em conversa'
+  }
+  return outcomeConfig(value).pastLabel
+}
+
 /** Contexto registrado antes de o lead voltar para a base fria. */
 export const LOSS_REASONS = [
   'Preço ou condição',

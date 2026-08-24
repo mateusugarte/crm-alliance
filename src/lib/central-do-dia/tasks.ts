@@ -16,36 +16,31 @@ function asBriefing(value: Json | null): TaskBriefing | null {
 
 export async function loadTaskQueue(
   supabase: Client,
-  userId: string,
-  isAdm: boolean,
   startIso: string,
   endExclusiveIso: string,
   startDate: string,
   endExclusiveDate: string,
 ) {
-  let queueQuery = supabase
+  const queueQuery = supabase
     .from('fila_diaria')
     .select('data, tarefa_id, posicao, faixa')
     .gte('data', startDate)
     .lt('data', endExclusiveDate)
-  if (!isAdm) queueQuery = queueQuery.eq('responsavel_id', userId)
 
-  let activeQuery = supabase
+  const activeQuery = supabase
     .from('tarefas')
     .select('id,origem,vence_em')
     // Overdue follow-ups remain actionable until a call is registered. The
     // previous resgate exclusion made unfinished suggestions disappear after
     // fechar_fila_do_dia marked them as vencida.
     .in('status', ['pendente', 'vencida'])
-  if (!isAdm) activeQuery = activeQuery.eq('responsavel_id', userId)
 
-  let completedQuery = supabase
+  const completedQuery = supabase
     .from('tarefas')
     .select('id')
     .eq('status', 'feita')
     .gte('concluida_em', startIso)
     .lt('concluida_em', endExclusiveIso)
-  if (!isAdm) completedQuery = completedQuery.eq('responsavel_id', userId)
 
   const [queueResult, activeResult, completedResult] = await Promise.all([
     queueQuery,
@@ -69,12 +64,11 @@ export async function loadTaskQueue(
   ]))
   if (!ids.length) return []
 
-  let tasksQuery = supabase
+  const tasksQuery = supabase
     .from('tarefas')
     .select('*')
     .in('id', ids)
     .neq('status', 'cancelada')
-  if (!isAdm) tasksQuery = tasksQuery.eq('responsavel_id', userId)
 
   const { data: tasks, error } = await tasksQuery
   if (error) throw error

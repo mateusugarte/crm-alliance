@@ -10,16 +10,12 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: profileData } = await supabase.from('user_profiles').select('role').eq('id', user.id).single()
-  const profile = profileData as { role?: string } | null
   const week = request.nextUrl.searchParams.get('view') === 'week'
   const range = zonedDayRange(new Date(), week ? 'week' : 'day')
 
   try {
     const data = await loadTaskQueue(
       supabase,
-      user.id,
-      profile?.role === 'adm',
       range.startIso,
       range.endExclusiveIso,
       range.startDate,

@@ -19,6 +19,7 @@ import { LeadDetailModal } from './lead-detail-modal'
 import { KANBAN_COLUMNS, type KanbanStage } from './types'
 import type { Lead } from '@/lib/supabase/types'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { createClient } from '@/lib/supabase/client'
 
 interface KanbanBoardProps {
   initialLeads: Lead[]
@@ -46,6 +47,28 @@ export function KanbanBoard({ initialLeads, currentUserId }: KanbanBoardProps) {
     const leadId = searchParams.get('lead')
     if (leadId && initialLeads.some(lead => lead.id === leadId)) setSelectedLeadId(leadId)
   }, [initialLeads, searchParams])
+
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase.channel('kanban-leads')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, payload => {
+        if (payload.eventType === 'DELETE') {
+          const removedId = (payload.old as { id?: string }).id
+          if (removedId) setLeads(current => current.filter(lead => lead.id !== removedId))
+          return
+        }
+
+        const changed = payload.new as Lead
+        setLeads(current => {
+          const exists = current.some(lead => lead.id === changed.id)
+          return exists
+            ? current.map(lead => lead.id === changed.id ? { ...lead, ...changed } : lead)
+            : [...current, changed]
+        })
+      })
+      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+  }, [])
 
   // Derivado — nunca fica stale porque lê diretamente do array autoritativo
   const selectedLead = selectedLeadId ? (leads.find(l => l.id === selectedLeadId) ?? null) : null

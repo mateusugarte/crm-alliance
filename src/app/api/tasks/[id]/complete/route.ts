@@ -13,7 +13,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 })
   const body = parsed.data
 
-  const { data, error } = await supabase.rpc('registrar_ligacao_v2', {
+  const { data, error } = await supabase.rpc('registrar_ligacao_equipe_v1', {
     p_tarefa_id: id,
     p_desfecho: body.outcome,
     p_observacao: body.note,

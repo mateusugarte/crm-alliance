@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseCallRegistration } from './call-registration'
+import { callResultLabel } from './outcomes'
 
 describe('parseCallRegistration', () => {
   it('normaliza um registro atendido', () => {
@@ -22,5 +23,13 @@ describe('parseCallRegistration', () => {
     })
     expect(parseCallRegistration({ outcome: 'pediu_retorno' }).ok).toBe(false)
     expect(parseCallRegistration({ outcome: 'sem_interesse' }).ok).toBe(false)
+  })
+})
+
+describe('callResultLabel', () => {
+  it('preserva o resultado comercial depois de uma ligação atendida', () => {
+    expect(callResultLabel('atendeu')).toBe('Atendeu · em conversa')
+    expect(callResultLabel('atendeu', true)).toBe('Atendeu · reunião marcada')
+    expect(callResultLabel('nao_atendeu')).toBe('Não atendeu')
   })
 })

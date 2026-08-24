@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { CalendarCheck, ChevronDown, Clock, Loader2, PhoneCall, ICON } from '@/lib/icons'
-import { outcomeConfig } from '@/lib/central-do-dia/outcomes'
+import { callResultLabel, outcomeConfig } from '@/lib/central-do-dia/outcomes'
 import type { LeadCall } from '@/app/api/leads/[id]/calls/route'
 import type { CallRegistrationInput } from '@/lib/central-do-dia/call-registration'
 import type { TaskCompletionResult } from '@/lib/central-do-dia/types'
@@ -130,7 +130,9 @@ export function LeadCallsSection({ leadId }: { leadId: string }) {
                   <Icon size={12} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-xs font-semibold" style={{ color: config.tone.ink }}>{config.pastLabel}</span>
+                  <span className="block text-xs font-semibold" style={{ color: config.tone.ink }}>
+                    {callResultLabel(call.outcome, call.meetingScheduled)}
+                  </span>
                   <span className="block text-2xs text-ink-subtle">{whenLabel(call.registeredAt)} · {call.ownerName}</span>
                 </span>
                 {hasDetail && <ChevronDown size={12} className={cn('text-ink-subtle transition-transform', expanded && 'rotate-180')} />}

@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { stageLabel, stageTokens } from '@/lib/stages'
 import { DURATION, EASE_OUT } from '@/lib/animations'
-import { outcomeConfig } from '@/lib/central-do-dia/outcomes'
+import { callResultLabel, outcomeConfig } from '@/lib/central-do-dia/outcomes'
 import { CallRegistrationForm } from '@/components/central-do-dia/call-registration-form'
 import type { CallRegistrationInput } from '@/lib/central-do-dia/call-registration'
 import type { DailyTaskItem, TaskCompletionResult } from '@/lib/central-do-dia/types'
@@ -198,7 +198,9 @@ function TaskRow({ task, onRegistered, onUndone }: {
               mostra a tentativa e o vencimento. */}
           <span className="hidden flex-shrink-0 items-center gap-3 text-xs md:flex">
             {done && outcome ? (
-              <span className="font-medium" style={{ color: outcome.tone.ink }}>{outcome.pastLabel}</span>
+              <span className="font-medium" style={{ color: outcome.tone.ink }}>
+                {callResultLabel(call!.outcome, call!.meetingScheduled)}
+              </span>
             ) : null}
             <span className={cn('flex items-center gap-1 tabular-nums', late ? 'font-medium text-[var(--warning-ink)]' : 'text-ink-subtle')}>
               {late && <AlertTriangle size={12} />}
@@ -251,7 +253,9 @@ function TaskRow({ task, onRegistered, onUndone }: {
               {done && call ? (
                 <div className="rounded-[var(--radius-card)] bg-surface-sunken p-3.5">
                   <p className="flex flex-wrap items-center gap-2 text-sm">
-                    <span className="font-medium" style={{ color: outcome!.tone.ink }}>{outcome!.pastLabel}</span>
+                    <span className="font-medium" style={{ color: outcome!.tone.ink }}>
+                      {callResultLabel(call!.outcome, call!.meetingScheduled)}
+                    </span>
                     <span className="text-ink-subtle">
                       às {format(new Date(call.registeredAt), 'HH:mm')}
                     </span>
@@ -371,8 +375,21 @@ export function DailyTaskCenter() {
     const supabase = createClient()
     const channel = supabase.channel('central-do-dia-dashboard')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tarefas' }, () => void load(true))
-      .subscribe()
+      .subscribe(status => {
+        if (status === 'SUBSCRIBED') void load(true)
+      })
     return () => { void supabase.removeChannel(channel) }
+  }, [load])
+  useEffect(() => {
+    const refresh = () => void load(true)
+    const interval = window.setInterval(refresh, 60_000)
+    window.addEventListener('focus', refresh)
+    window.addEventListener('online', refresh)
+    return () => {
+      window.clearInterval(interval)
+      window.removeEventListener('focus', refresh)
+      window.removeEventListener('online', refresh)
+    }
   }, [load])
 
   const pending = tasks.filter(task => task.status !== 'feita')
