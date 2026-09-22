@@ -17,6 +17,7 @@ type Interaction = Database['public']['Tables']['interactions']['Row']
 
 const VALID_STAGES: Lead['stage'][] = [
   'nao_respondeu',
+  'fornecedores',
   'lead_frio',
   'lead_morno',
   'lead_quente',
@@ -158,6 +159,12 @@ function buildLeadUpdates(lead: Lead, output: Awaited<ReturnType<typeof runAlice
     updates.stage = lead.stage === 'lead_frio' || lead.stage === 'lead_morno' || lead.stage === 'nao_respondeu'
       ? 'lead_quente'
       : lead.stage
+  }
+  // Fornecedor decide por ultimo: um contato que so oferece servico nunca pode terminar
+  // como lead_quente por causa de uma action comercial disparada antes na mesma resposta.
+  if (output.actions.includes('fornecedor')) {
+    updates.stage = 'fornecedores'
+    updates.automation_paused = true
   }
 
   if (updates.summary !== undefined) {

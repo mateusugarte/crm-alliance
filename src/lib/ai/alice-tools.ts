@@ -65,6 +65,7 @@ export type AliceToolName =
   | 'pausar_IA'
   | 'aceitou_ligacao'
   | 'stop'
+  | 'fornecedor'
   | 'enviar_pdf'
 
 export interface AliceToolState {
@@ -201,12 +202,28 @@ export const aliceTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'stop',
-      description: 'Use quando o lead nao tem interesse, ja comprou, nao pode comprar, for bot/IA/empresa ou algo impossibilitar compra.',
+      description: 'Use quando o lead nao tem interesse, ja comprou, nao pode comprar, for bot/IA ou algo impossibilitar compra. NAO use para fornecedor ou prestador de servico — nesses casos use a tool fornecedor.',
       parameters: {
         type: 'object',
         properties: {
           motivo: { type: 'string' },
         },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'fornecedor',
+      description:
+        'Use quando o contato NAO e um possivel comprador e sim alguem oferecendo algo para a Alliance: prestador de servico, fornecedor, agencia, corretor ou imobiliaria de outra empresa, vendedor de material, parceria comercial ou proposta de servico. Move o card para a coluna Fornecedores, pausa a IA e notifica de verdade o grupo interno para um responsavel assumir — nunca anuncie essa notificacao ao lead. Nao use stop nesses casos.',
+      parameters: {
+        type: 'object',
+        properties: {
+          resumo: { type: 'string' },
+          empresa: { type: 'string' },
+        },
+        required: ['resumo'],
       },
     },
   },
@@ -423,6 +440,45 @@ export async function executeAliceTool(context: AliceToolContext, name: string, 
       state.lead_updates.stage = 'lead_frio'
       if (typeof args.motivo === 'string') state.lead_updates.summary = args.motivo.trim()
       return 'Atendimento automatico encerrado para este lead.'
+    }
+
+    case 'fornecedor': {
+      addAction(state, 'fornecedor')
+      state.lead_updates.stage = 'fornecedores'
+      state.lead_updates.automation_paused = true
+
+      const empresa = typeof args.empresa === 'string' ? args.empresa.trim() : ''
+      const oferta = typeof args.resumo === 'string' ? args.resumo.trim() : ''
+      // O resumo do card precisa dizer de cara que nao e lead de compra: quem abre a
+      // coluna Fornecedores quer saber o que a pessoa oferece, nao o funil comercial.
+      state.lead_updates.summary =
+        [`FORNECEDOR${empresa ? ` — ${empresa}` : ''}`, oferta || 'oferta nao detalhada'].join(': ')
+
+      const numero = toWhatsAppNumber(context.lead.phone)
+      const nome = state.lead_updates.name ?? context.lead.name
+
+      const notificado = await notifyInternalGroup(
+        [
+          '🏷️ FORNECEDOR',
+          '',
+          `Contato: ${numero}`,
+          nome ? `Nome: ${nome}` : null,
+          empresa ? `Empresa: ${empresa}` : null,
+          '',
+          `O que esta oferecendo: ${oferta || 'nao informado'}`,
+          '',
+          'Nao e lead de compra — card movido para a coluna Fornecedores.',
+          'Um responsavel precisa assumir este contato.',
+          '',
+          'IA PAUSADA 🛑🤖',
+        ]
+          .filter((linha) => linha !== null)
+          .join('\n')
+      )
+
+      return notificado
+        ? 'Contato marcado como FORNECEDOR, card movido para a coluna Fornecedores e grupo interno notificado.'
+        : 'Contato marcado como FORNECEDOR e card movido para a coluna Fornecedores, mas falha ao notificar o grupo interno.'
     }
 
     case 'enviar_pdf': {

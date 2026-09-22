@@ -13,6 +13,7 @@ export type AliceAction =
   | 'pausar_IA'
   | 'aceitou_ligacao'
   | 'stop'
+  | 'fornecedor'
   | 'enviar_pdf'
 
 export interface AliceAgentInput {
@@ -105,7 +106,7 @@ Voce conduz a conversa, nunca so reage a ela. Seu objetivo em toda mensagem e mo
 - Se o lead responder de forma curta ou neutra ("ok", "certo", "entendi", "blz"), nao pergunte se ele quer mais alguma informacao: avance voce mesma para o proximo dado de qualificacao ou traga um argumento novo relevante ao que ja foi dito.
 - Reaja ao que o lead conta antes de seguir em frente (um comentario curto e real sobre o que ele disse), para soar como conversa entre pessoas, nao como formulario. So depois faca a proxima pergunta.
 - Voce e proativa: traga informacoes relevantes do La Reserva no momento certo mesmo sem o lead perguntar, quando isso ajudar a avancar a conversa, sempre respeitando o CONTEXTO FIXO e as tools.
-- Excecao: conducao ativa NAO significa insistir com quem ja deve ser desqualificado. Se o lead disser que ja comprou em outro lugar, nao tem interesse, nao pode comprar ou for bot/IA/empresa, o passo ativo correto e ativar a tool stop e encerrar com cordialidade — nunca oferecer "te manter informado", "anotar contato para novidades" ou insistir de outra forma.
+- Excecao: conducao ativa NAO significa insistir com quem ja deve ser desqualificado. Se o lead disser que ja comprou em outro lugar, nao tem interesse, nao pode comprar ou for bot/IA, o passo ativo correto e ativar a tool stop e encerrar com cordialidade (se for fornecedor ou prestador de servico, use a tool fornecedor no lugar de stop) — nunca oferecer "te manter informado", "anotar contato para novidades" ou insistir de outra forma.
 
 REGRA MECANICA DE FLUXO
 via_disparo do lead atual: ${input.lead.via_disparo === true ? 'true' : 'false'}
@@ -130,6 +131,17 @@ Ao longo da conversa, procure entender de forma natural: nome, cidade, intencao 
 Para valores, use somente dados reais dos imoveis disponiveis e da tool simulacao. Nunca invente preco, desconto, prazo, vaga ou beneficio. Apresente valores assim que fizer sentido na conversa, mesmo que nem todos os dados de qualificacao tenham sido coletados — nao trave a conversa esperando completar uma lista.
 Para consultor: conduza quando a conversa tiver fluido naturalmente e o lead demonstrar interesse real — nao exija ter coletado todos os dados antes disso. No exato momento em que o lead aceitar falar com o consultor, ative as tres tools juntas, na mesma resposta, sem esperar mais nada do lead: qualificado, aceitou_ligacao, pausar_IA. Mesmo que a mensagem ainda pergunte uma preferencia de contato (ligacao ou mensagem), as tres tools ja devem ser ativadas agora — nao adie pausar_IA para uma proxima mensagem.
 Isso vale tambem para pedidos fora do padrao de venda direta (troca de imovel, permuta, negociacao de terreno, parceria etc): a trava de 4 necessidades e a trava de valores nao se aplicam a esses casos. Qualquer confirmacao do lead para ser contatado por um consultor sobre esse assunto — mesmo curta, como "pode me chamar" ou so um horario/periodo do dia — e aceite: ative as tres tools imediatamente e nao continue oferecendo qualificacao padrao (metragem, quartos, valores) depois desse aceite.
+
+FORNECEDORES E PRESTADORES DE SERVICO
+Nem todo contato e comprador. Quando a pessoa estiver OFERECENDO algo para a Alliance — em vez de procurar um apartamento — trate como fornecedor e pare a qualificacao comercial imediatamente.
+Sinais: oferece servico ou produto (marketing, trafego, software, CRM, obra, material de construcao, moveis, decoracao, limpeza, seguranca, brindes), se apresenta como representante, vendedor ou consultor de outra empresa, propoe parceria ou permuta de servico, e corretor ou imobiliaria de outra empresa querendo vender algo para a Alliance, pede para falar com compras, marketing ou RH, ou manda portfolio, orcamento, curriculo e tabela de precos.
+O que fazer, tudo na mesma resposta:
+- Ative a tool fornecedor, com resumo do que a pessoa oferece e a empresa, quando ela disser.
+- Defina stage='fornecedores' no JSON final.
+- Responda curto e cordial, informando que vai repassar o contato para um dos responsaveis e que eles retornam caso haja interesse. Nao prometa prazo, nao peca proposta e nao agende nada.
+- NAO ative qualificado, aceitou_ligacao nem stop. NAO envie PDF. NAO pergunte dados de qualificacao (nome, cidade, morar/investir, metragem, quartos) e NAO fale de unidades, valores ou condicoes.
+Na duvida entre comprador e fornecedor, pergunte uma unica vez o que a pessoa precisa e so classifique como fornecedor quando ficar claro que ela esta oferecendo algo.
+Exemplo de resposta: "Obrigada pelo contato! Nesse caso vou repassar para um dos responsaveis aqui da Alliance, e caso haja interesse eles retornam pra voce."
 
 TEMPERATURA DO LEAD
 - Mantenha ou defina stage='lead_frio' quando o lead so recebeu informacao, respondeu algo neutro ou ainda nao demonstrou interesse real.
@@ -172,7 +184,8 @@ Voce tem tools reais conectadas ao CRM. Use-as antes de montar a resposta final:
 - qualificado: apenas quando o lead aceitar falar com consultor; inclua resumo. Essa tool notifica de verdade o grupo interno da equipe — nunca mencione isso na resposta ao lead.
 - aceitou_ligacao: quando aceitar contato de consultor.
 - pausar_IA: quando aceitar consultor ou disser que vai verificar com alguem e retornar.
-- stop: quando nao tem interesse, ja comprou, nao pode comprar, for bot/IA/empresa ou assunto impossibilitar compra. Ative IMEDIATAMENTE nesta mesma resposta, mesmo que o lead agradeca ou a conversa pareca amigavel — nao ofereca manter contato para novidades futuras nem tente reverter a objecao, apenas encerre com cordialidade.
+- fornecedor: quando o contato e prestador de servico, fornecedor ou qualquer um oferecendo algo para a Alliance. Move o card para a coluna Fornecedores, pausa a IA e notifica de verdade o grupo interno da equipe — nunca mencione isso na resposta ao lead. Use esta tool no lugar de stop nesses casos.
+- stop: quando nao tem interesse, ja comprou, nao pode comprar, for bot/IA ou assunto impossibilitar compra. Ative IMEDIATAMENTE nesta mesma resposta, mesmo que o lead agradeca ou a conversa pareca amigavel — nao ofereca manter contato para novidades futuras nem tente reverter a objecao, apenas encerre com cordialidade.
 - enviar_pdf: ativa o envio real do PDF pelo WhatsApp. Use na primeira interacao (pdf_enviado=false) e sempre que o lead pedir para receber de novo. So ative a tool, nunca diga ao lead que enviou sem ativa-la.
 
 Depois de usar as tools necessarias, retorne o JSON final. O JSON final deve refletir as tools acionadas.
@@ -206,7 +219,7 @@ Depois de usar as tools necessarias, sua ULTIMA mensagem de texto (sem tool call
     "city": "cidade se coletada",
     "intention": "morar ou investir se coletado",
     "imovel_interesse": "unidade/perfil se coletado",
-    "stage": "nao_respondeu|lead_frio|lead_morno|lead_quente|follow_up|reuniao_agendada|visita_confirmada|cliente",
+    "stage": "nao_respondeu|fornecedores|lead_frio|lead_morno|lead_quente|follow_up|reuniao_agendada|visita_confirmada|cliente",
     "summary": "resumo util para corretor",
     "automation_paused": false,
     "aceitou_consultor": false
@@ -229,7 +242,7 @@ const ALICE_RESPONSE_FORMAT: OpenAI.Chat.Completions.ChatCompletionCreateParams[
           type: 'array',
           items: {
             type: 'string',
-            enum: ['leads', 'qualificado', 'pausar_IA', 'aceitou_ligacao', 'stop', 'enviar_pdf'],
+            enum: ['leads', 'qualificado', 'pausar_IA', 'aceitou_ligacao', 'stop', 'fornecedor', 'enviar_pdf'],
           },
         },
         lead_updates: {
@@ -244,6 +257,7 @@ const ALICE_RESPONSE_FORMAT: OpenAI.Chat.Completions.ChatCompletionCreateParams[
               type: ['string', 'null'],
               enum: [
                 'nao_respondeu',
+                'fornecedores',
                 'lead_frio',
                 'lead_morno',
                 'lead_quente',
@@ -435,11 +449,17 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
 
   const actionsBeforePdfFallback = [...new Set([...toolState.actions, ...parsed.actions])] as AliceAction[]
 
+  // Um fornecedor nao recebe material de venda: se o contato foi classificado como
+  // fornecedor, nenhuma rede de seguranca abaixo pode empurrar PDF ou handoff comercial.
+  const isFornecedor =
+    actionsBeforePdfFallback.includes('fornecedor') || parsed.lead_updates.stage === 'fornecedores'
+
   // Safety net: FLUXO B's first message must send the PDF even if the model forgot to call
   // the tool. FLUXO A (via_disparo) never auto-sends — it only reacts to an explicit request.
   const shouldForcePdf =
     input.lead.via_disparo !== true &&
     !input.lead.pdf_enviado &&
+    !isFornecedor &&
     !actionsBeforePdfFallback.includes('enviar_pdf')
 
   if (shouldForcePdf) {
@@ -468,7 +488,26 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
 
   const actionsBeforeHandoffFallback = [...new Set([...toolState.actions, ...parsed.actions])] as AliceAction[]
 
-  if (promisedConsultantHandoff && !actionsBeforeHandoffFallback.includes('qualificado')) {
+  // Safety net: o modelo as vezes classifica o contato como fornecedor no JSON (ou promete
+  // repassar para um responsavel) sem chamar a tool — o que deixaria o card fora da coluna
+  // Fornecedores, o grupo interno sem aviso e a IA ainda ativa em cima de um fornecedor.
+  // A deteccao por texto e deliberadamente estreita e exige a ausencia de "consultor":
+  // sem isso ela colidiria com o handoff comercial logo abaixo, que usa linguagem parecida.
+  const promisedSupplierHandoff =
+    !!parsed.reply &&
+    !/consultor/i.test(parsed.reply) &&
+    /(repassar|encaminhar|passar).{0,40}(respons[aá]vel|respons[aá]veis|setor de compras)/i.test(parsed.reply)
+
+  if (
+    (parsed.lead_updates.stage === 'fornecedores' || promisedSupplierHandoff) &&
+    !actionsBeforeHandoffFallback.includes('fornecedor') &&
+    !actionsBeforeHandoffFallback.includes('qualificado')
+  ) {
+    const resumo = parsed.internal_summary || parsed.lead_updates.summary || 'Contato oferecendo servico/produto.'
+    await executeAliceTool({ lead: input.lead, imoveis: input.imoveis, state: toolState }, 'fornecedor', { resumo })
+  }
+
+  if (promisedConsultantHandoff && !isFornecedor && !actionsBeforeHandoffFallback.includes('qualificado')) {
     const resumo = input.lead.summary || parsed.internal_summary || 'Lead aceitou contato de consultor.'
     await executeAliceTool({ lead: input.lead, imoveis: input.imoveis, state: toolState }, 'qualificado', { resumo })
     await executeAliceTool({ lead: input.lead, imoveis: input.imoveis, state: toolState }, 'aceitou_ligacao', {})
@@ -484,6 +523,9 @@ export async function runAliceAgent(input: AliceAgentInput): Promise<AliceAgentO
       ...toolState.lead_updates,
       ...parsed.lead_updates,
       // Tool calls are ground truth: never let the model's own JSON contradict an action it just fired.
+      ...(allActions.includes('fornecedor')
+        ? { stage: 'fornecedores' as const, automation_paused: true }
+        : {}),
       ...((allActions.includes('pausar_IA') || allActions.includes('stop')) ? { automation_paused: true } : {}),
       ...(allActions.includes('aceitou_ligacao') ? { aceitou_consultor: true } : {}),
       ...(toolState.lead_updates.pdf_enviado ? { pdf_enviado: true } : {}),
