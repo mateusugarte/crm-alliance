@@ -1,8 +1,19 @@
 import type { PoolClient } from 'pg'
 import { centralTransaction } from '@/lib/central-do-dia/db'
 
-export const CHECKIN_RESULTADOS = ['atendeu', 'nao_atendeu', 'caixa_postal', 'numero_errado', 'nao_ligou'] as const
-export type CheckinResultado = (typeof CHECKIN_RESULTADOS)[number]
+export const CHECKIN_RESPOSTAS = ['ligou', 'nao_ligou'] as const
+export type CheckinResposta = (typeof CHECKIN_RESPOSTAS)[number]
+
+// Detalhe opcional quando o corretor conta como foi a ligacao.
+export const CHECKIN_DETALHES = ['atendeu', 'nao_atendeu', 'caixa_postal', 'numero_errado'] as const
+export type CheckinDetalhe = (typeof CHECKIN_DETALHES)[number]
+
+const DETALHE_LABEL: Record<CheckinDetalhe, string> = {
+  atendeu: 'o lead atendeu',
+  nao_atendeu: 'o lead nao atendeu',
+  caixa_postal: 'caiu na caixa postal',
+  numero_errado: 'numero errado',
+}
 
 interface Profile {
   id: string
@@ -13,7 +24,7 @@ interface Profile {
 function firstName(name: string) {
   return (name.trim().split(/\s+/)[0] ?? '')
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
 }
 
@@ -32,17 +43,36 @@ async function loadProfiles(client: PoolClient) {
   return rows
 }
 
+export function checkinComment(input: {
+  data: string
+  respondente: string
+  resposta: CheckinResposta
+  detalhe?: CheckinDetalhe | null
+}) {
+  const quem = input.respondente.trim() || 'Corretor'
+  const oQue = input.resposta === 'ligou'
+    ? `LIGOU para este lead${input.detalhe ? ` (${DETALHE_LABEL[input.detalhe]})` : ''}`
+    : 'NAO LIGOU para este lead'
+  return `Check-in de ligacoes (${input.data}): ${quem} respondeu no grupo que ${oQue}.`
+}
+
+function hojeSaoPaulo() {
+  return new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' }).format(new Date())
+}
+
 /**
- * Registra no CRM o que o corretor informou sobre um lead do check-in.
- * "Ligou" passa pela mesma regra transacional da Central do Dia
- * (registrar_ligacao_lead_v1) executando como o corretor: auth.uid() le o
- * claim sub da requisicao, entao ele so vale dentro desta transacao.
- * "Nao ligou" vira um comentario no lead. Repeticoes nao duplicam registro.
+ * Registra no CRM a resposta de um corretor sobre um lead do check-in.
+ * Sempre grava um comentario no lead com o nome de quem respondeu no grupo.
+ * Quando ligou, tambem registra a ligacao pela regra transacional da Central
+ * do Dia (registrar_ligacao_lead_v1) executando como o usuario do corretor:
+ * auth.uid() le o claim sub da requisicao, que so vale nesta transacao.
+ * A mesma resposta repetida nao duplica nada.
  */
 export async function registrarCheckin(input: {
   leadId: string
-  resultado: CheckinResultado
-  corretorNome: string
+  resposta: CheckinResposta
+  detalhe?: CheckinDetalhe | null
+  respondente: string
   mensagem: string
 }) {
   return centralTransaction(async (client) => {
@@ -57,25 +87,23 @@ export async function registrarCheckin(input: {
     const lead = leads[0]
     if (!lead) return { status: 'lead_nao_encontrado' as const }
 
-    const user = resolveUser(await loadProfiles(client), input.corretorNome, lead.assigned_to)
+    const user = resolveUser(await loadProfiles(client), input.respondente, lead.assigned_to)
     if (!user) throw new Error('Nenhum usuario para atribuir o check-in')
 
-    if (input.resultado === 'nao_ligou') {
-      const { rowCount } = await client.query(
-        `select 1 from lead_comments
-          where lead_id=$1 and content like 'Check-in de ligacoes%NAO ligou%'
-            and created_at > now() - interval '20 hours'`,
-        [lead.id],
-      )
-      if (rowCount) return { status: 'ja_registrado' as const, lead: lead.name }
+    const comentario = checkinComment({ data: hojeSaoPaulo(), ...input })
+    const { rowCount: repetido } = await client.query(
+      `select 1 from lead_comments where lead_id=$1 and content=$2 and created_at > now() - interval '20 hours'`,
+      [lead.id, comentario],
+    )
+    if (repetido) return { status: 'ja_registrado' as const, lead: lead.name }
 
-      await client.query(
-        `insert into lead_comments (lead_id,user_id,user_name,content)
-         values ($1,$2,$3,'Check-in de ligacoes (' || to_char(now() at time zone 'America/Sao_Paulo','DD/MM')
-           || '): ' || $4 || ' informou que NAO ligou para este lead.')`,
-        [lead.id, user.id, user.full_name, input.corretorNome || user.full_name],
-      )
-      return { status: 'registrado' as const, lead: lead.name, corretor: user.full_name }
+    await client.query(
+      'insert into lead_comments (lead_id,user_id,user_name,content) values ($1,$2,$3,$4)',
+      [lead.id, user.id, user.full_name, comentario],
+    )
+
+    if (input.resposta === 'nao_ligou') {
+      return { status: 'registrado' as const, lead: lead.name, ligacaoRegistrada: false }
     }
 
     const { rowCount: jaLigado } = await client.query(
@@ -84,30 +112,25 @@ export async function registrarCheckin(input: {
           and registrada_em >= coalesce($2::timestamptz, now() - interval '1 day')`,
       [lead.id, lead.qualificado_em],
     )
-    if (jaLigado) return { status: 'ja_registrado' as const, lead: lead.name }
+    if (jaLigado) return { status: 'registrado' as const, lead: lead.name, ligacaoRegistrada: false }
 
     await client.query(
       `select set_config('request.jwt.claim.sub', $1, true),
               set_config('request.jwt.claims', $2, true)`,
       [user.id, JSON.stringify({ sub: user.id, role: 'authenticated' })],
     )
-    const { rows } = await client.query<{ result: { call?: { id?: string } } }>(
-      'select registrar_ligacao_lead_v1($1, $2::ligacao_desfecho, $3) result',
+    await client.query(
+      'select registrar_ligacao_lead_v1($1, $2::ligacao_desfecho, $3)',
       [
         lead.id,
-        input.resultado,
-        `Registrado pelo check-in de ligacoes no WhatsApp. Resposta do corretor: ${input.mensagem.slice(0, 300)}`,
+        input.detalhe ?? 'atendeu',
+        `Check-in no grupo: ${input.respondente.trim() || 'corretor'} informou que ligou. Resposta: ${input.mensagem.slice(0, 300)}`,
       ],
     )
     await client.query(
       `select set_config('request.jwt.claim.sub', '', true), set_config('request.jwt.claims', '', true)`,
     )
 
-    return {
-      status: 'registrado' as const,
-      lead: lead.name,
-      corretor: user.full_name,
-      ligacaoId: rows[0]?.result?.call?.id ?? null,
-    }
+    return { status: 'registrado' as const, lead: lead.name, ligacaoRegistrada: true }
   })
 }

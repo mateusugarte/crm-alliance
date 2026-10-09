@@ -16,7 +16,7 @@ vi.mock('./register', async (importOriginal) => ({
 vi.mock('@/lib/central-do-dia/db', () => ({ centralQuery: vi.fn(), centralTransaction: vi.fn() }))
 
 const { activeList } = await import('./config')
-const { resolveUser } = await import('./register')
+const { checkinComment, resolveUser } = await import('./register')
 const { runCorretorCheckinAgent } = await import('./corretor-agent')
 const { formatCheckinQuestion, parseGroupMessages } = await import('./service')
 
@@ -57,11 +57,23 @@ describe('parseGroupMessages', () => {
 })
 
 describe('formatCheckinQuestion', () => {
-  it('numbers the leads and explains how to answer', () => {
+  it('asks which leads were called, listing them by name', () => {
     const message = formatCheckinQuestion('2026-10-08', state.lista)
     expect(message).toContain('CHECK-IN DE LIGAÇÕES · 08/10')
+    expect(message).toContain('Quais desses leads receberam contato via ligação?')
     expect(message).toContain('1. Maria · (28) 999990000')
-    expect(message).toContain('2 leads foram qualificados')
+    expect(message).toContain('Maria liguei\nJosé não liguei')
+  })
+})
+
+describe('checkinComment', () => {
+  it('records who answered and whether they called', () => {
+    expect(checkinComment({ data: '08/10', respondente: 'Lucas Alliance', resposta: 'ligou' }))
+      .toBe('Check-in de ligacoes (08/10): Lucas Alliance respondeu no grupo que LIGOU para este lead.')
+    expect(checkinComment({ data: '08/10', respondente: 'João', resposta: 'nao_ligou' }))
+      .toBe('Check-in de ligacoes (08/10): João respondeu no grupo que NAO LIGOU para este lead.')
+    expect(checkinComment({ data: '08/10', respondente: '', resposta: 'ligou', detalhe: 'caixa_postal' }))
+      .toBe('Check-in de ligacoes (08/10): Corretor respondeu no grupo que LIGOU para este lead (caiu na caixa postal).')
   })
 })
 
@@ -89,8 +101,8 @@ describe('resolveUser', () => {
   })
 })
 
-function toolCall(id: string, numero: number, resultado: string) {
-  return { id, type: 'function', function: { name: 'registrar_ligacao', arguments: JSON.stringify({ numero, resultado }) } }
+function toolCall(id: string, args: Record<string, unknown>) {
+  return { id, type: 'function', function: { name: 'registrar_ligacao', arguments: JSON.stringify(args) } }
 }
 
 describe('runCorretorCheckinAgent', () => {
@@ -100,51 +112,60 @@ describe('runCorretorCheckinAgent', () => {
     registrarCheckin.mockResolvedValue({ status: 'registrado' })
   })
 
-  it('registers each lead the broker mentions through the tool', async () => {
+  it('registers each lead the broker mentions, in the name of who answered', async () => {
     create
       .mockResolvedValueOnce({ choices: [{ message: { role: 'assistant', content: null, tool_calls: [
-        toolCall('a', 1, 'atendeu'),
-        toolCall('b', 2, 'nao_ligou'),
+        toolCall('a', { numero: 1, resposta: 'ligou' }),
+        toolCall('b', { numero: 2, resposta: 'nao_ligou' }),
       ] } }] })
       .mockResolvedValueOnce({ choices: [{ message: { role: 'assistant', content: 'ok' } }] })
 
     const result = await runCorretorCheckinAgent({
-      corretorNome: 'Lucas', lista: state.lista, message: '1 atendeu, 2 não liguei',
+      corretorNome: 'Lucas', lista: state.lista, message: 'Maria liguei, José não liguei',
     })
 
     expect(result).toEqual([
-      { numero: 1, resultado: 'atendeu', status: 'registrado' },
-      { numero: 2, resultado: 'nao_ligou', status: 'registrado' },
+      { numero: 1, lead: 'Maria', resposta: 'ligou', detalhe: null, status: 'registrado' },
+      { numero: 2, lead: 'José', resposta: 'nao_ligou', detalhe: null, status: 'registrado' },
     ])
     expect(registrarCheckin).toHaveBeenCalledWith({
-      leadId: 'lead-1', resultado: 'atendeu', corretorNome: 'Lucas', mensagem: '1 atendeu, 2 não liguei',
+      leadId: 'lead-1', resposta: 'ligou', detalhe: null, respondente: 'Lucas', mensagem: 'Maria liguei, José não liguei',
     })
   })
 
-  it('refuses numbers outside the list, invalid results and repeated leads', async () => {
+  it('keeps the call detail only when the broker called', async () => {
     create
       .mockResolvedValueOnce({ choices: [{ message: { role: 'assistant', content: null, tool_calls: [
-        toolCall('a', 9, 'atendeu'),
-        toolCall('b', 1, 'talvez'),
-        toolCall('c', 2, 'atendeu'),
-        toolCall('d', 2, 'nao_atendeu'),
+        toolCall('a', { numero: 1, resposta: 'ligou', detalhe: 'caixa_postal' }),
+        toolCall('b', { numero: 2, resposta: 'nao_ligou', detalhe: 'atendeu' }),
       ] } }] })
       .mockResolvedValueOnce({ choices: [{ message: { role: 'assistant', content: '' } }] })
 
-    const result = await runCorretorCheckinAgent({
-      corretorNome: '', lista: state.lista, message: 'texto',
-    })
+    const result = await runCorretorCheckinAgent({ corretorNome: 'Lucas', lista: state.lista, message: 'x' })
 
-    expect(result).toEqual([{ numero: 2, resultado: 'atendeu', status: 'registrado' }])
+    expect(result.map((item) => item.detalhe)).toEqual(['caixa_postal', null])
+  })
+
+  it('refuses numbers outside the list, invalid answers and repeated leads', async () => {
+    create
+      .mockResolvedValueOnce({ choices: [{ message: { role: 'assistant', content: null, tool_calls: [
+        toolCall('a', { numero: 9, resposta: 'ligou' }),
+        toolCall('b', { numero: 1, resposta: 'talvez' }),
+        toolCall('c', { numero: 2, resposta: 'ligou' }),
+        toolCall('d', { numero: 2, resposta: 'nao_ligou' }),
+      ] } }] })
+      .mockResolvedValueOnce({ choices: [{ message: { role: 'assistant', content: '' } }] })
+
+    const result = await runCorretorCheckinAgent({ corretorNome: '', lista: state.lista, message: 'texto' })
+
+    expect(result).toEqual([{ numero: 2, lead: 'José', resposta: 'ligou', detalhe: null, status: 'registrado' }])
     expect(registrarCheckin).toHaveBeenCalledTimes(1)
   })
 
   it('does nothing when the message is not about the calls', async () => {
     create.mockResolvedValueOnce({ choices: [{ message: { role: 'assistant', content: 'Bom dia!' } }] })
 
-    const result = await runCorretorCheckinAgent({
-      corretorNome: '', lista: state.lista, message: 'bom dia',
-    })
+    const result = await runCorretorCheckinAgent({ corretorNome: '', lista: state.lista, message: 'bom dia' })
 
     expect(result).toEqual([])
     expect(registrarCheckin).not.toHaveBeenCalled()

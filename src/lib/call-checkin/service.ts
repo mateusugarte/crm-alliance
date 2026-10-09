@@ -14,21 +14,21 @@ function formatTelefone(phone: string) {
 
 export function formatCheckinQuestion(date: string, lista: CheckinLead[]) {
   const [, month, day] = date.split('-')
+  const exemplo = lista.slice(0, 3).map((lead, index) => {
+    const nome = lead.nome.split(' ')[0]
+    return index === 1 ? `${nome} não liguei` : `${nome} liguei`
+  })
   return [
     `*CHECK-IN DE LIGAÇÕES · ${day}/${month}*`,
     '',
-    lista.length === 1
-      ? '1 lead foi qualificado e ainda não tem ligação registrada no CRM. Quem ligou?'
-      : `${lista.length} leads foram qualificados e ainda não têm ligação registrada no CRM. Quem ligou?`,
+    lista.length === 1 ? '*Este lead recebeu contato via ligação?*' : '*Quais desses leads receberam contato via ligação?*',
     '',
     ...lista.map((lead) => `${lead.numero}. ${lead.nome} · ${lead.telefone}`),
     '',
-    'Corretores, respondam aqui com o número e o resultado, por exemplo:',
-    '1 atendeu',
-    '2 não atendeu',
-    '3 não liguei',
+    'Corretores, respondam aqui com o nome do lead e se ligou ou não. Ex.:',
+    ...exemplo,
     '',
-    'Também vale: caixa postal, número errado. As respostas são registradas direto no CRM.',
+    'A resposta de cada corretor é registrada no CRM com o nome de quem respondeu.',
   ].join('\n')
 }
 

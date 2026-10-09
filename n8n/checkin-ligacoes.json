@@ -95,7 +95,7 @@
     },
     {
       "id": "c1a00002-0000-4000-8000-000000000005",
-      "name": "A cada 10 minutos",
+      "name": "A cada 10 min (8h às 18h)",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
@@ -106,12 +106,14 @@
         "rule": {
           "interval": [
             {
-              "field": "minutes",
-              "minutesInterval": 10
+              "field": "cronExpression",
+              "expression": "*/10 8-17 * * *"
             }
           ]
         }
-      }
+      },
+      "notes": "Lê as respostas novas do grupo das 8h às 17h50. Respostas fora desse horário são lidas às 8h do dia seguinte.",
+      "notesInFlow": true
     },
     {
       "id": "c1a00002-0000-4000-8000-000000000006",
@@ -179,7 +181,7 @@
         ]
       ]
     },
-    "A cada 10 minutos": {
+    "A cada 10 min (8h às 18h)": {
       "main": [
         [
           {
