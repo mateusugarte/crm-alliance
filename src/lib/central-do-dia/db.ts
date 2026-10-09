@@ -1,4 +1,4 @@
-import { Pool, type QueryResultRow } from 'pg'
+import { Pool, type PoolClient, type QueryResultRow } from 'pg'
 
 const globalForCentral = globalThis as typeof globalThis & {
   centralPool?: Pool
@@ -36,4 +36,19 @@ export async function centralQuery<T extends QueryResultRow = QueryResultRow>(
   values: unknown[] = [],
 ) {
   return getPool().query<T>(text, values)
+}
+
+export async function centralTransaction<T>(fn: (client: PoolClient) => Promise<T>) {
+  const client = await getPool().connect()
+  try {
+    await client.query('begin')
+    const result = await fn(client)
+    await client.query('commit')
+    return result
+  } catch (error) {
+    await client.query('rollback').catch(() => undefined)
+    throw error
+  } finally {
+    client.release()
+  }
 }

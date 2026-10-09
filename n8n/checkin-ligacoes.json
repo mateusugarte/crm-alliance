@@ -1,0 +1,198 @@
+{
+  "name": "CRM Alliance · Check-in de ligações (grupo)",
+  "nodes": [
+    {
+      "id": "c1a00002-0000-4000-8000-000000000001",
+      "name": "Todo dia às 17h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 17 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c1a00002-0000-4000-8000-000000000002",
+      "name": "Executar agora (manual)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        180
+      ],
+      "webhookId": "8e2f4a17-6b3c-4d9e-a1f5-0c7b9d2e6a84",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crm-alliance-checkin-abrir-8e2f4a17",
+        "options": {}
+      }
+    },
+    {
+      "id": "c1a00002-0000-4000-8000-000000000003",
+      "name": "⚙️ Configuração",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        80
+      ],
+      "notes": "grupo_id: grupo da equipe onde a pergunta é enviada e as respostas são lidas.",
+      "notesInFlow": true,
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "grupo_id",
+              "value": "120363429109259182@g.us",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c1a00002-0000-4000-8000-000000000004",
+      "name": "CRM · pergunta no grupo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        480,
+        80
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "akQwejZOZqJZkUxI",
+          "name": "La Reserva account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "method": "POST",
+        "url": "http://aula_alliance:3000/api/n8n-agent/call-checkin",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ acao: 'abrir', grupo_jid: $json.grupo_id }) }}",
+        "options": {
+          "timeout": 280000
+        }
+      }
+    },
+    {
+      "id": "c1a00002-0000-4000-8000-000000000005",
+      "name": "A cada 10 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        420
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c1a00002-0000-4000-8000-000000000006",
+      "name": "CRM · agente lê respostas e registra",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        480,
+        420
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "akQwejZOZqJZkUxI",
+          "name": "La Reserva account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "method": "POST",
+        "url": "http://aula_alliance:3000/api/n8n-agent/call-checkin",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ acao: 'coletar' }) }}",
+        "options": {
+          "timeout": 280000
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Todo dia às 17h": {
+      "main": [
+        [
+          {
+            "node": "⚙️ Configuração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executar agora (manual)": {
+      "main": [
+        [
+          {
+            "node": "⚙️ Configuração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚙️ Configuração": {
+      "main": [
+        [
+          {
+            "node": "CRM · pergunta no grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A cada 10 minutos": {
+      "main": [
+        [
+          {
+            "node": "CRM · agente lê respostas e registra",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  }
+}

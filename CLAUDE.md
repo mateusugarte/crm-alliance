@@ -77,6 +77,7 @@ src/
 | `/api/imoveis/[id]/toggle` | POST | toggle disponibilidade |
 | `/api/webhooks/whatsapp` | GET/POST | verificação Meta + repasse ao N8N |
 | `/api/webhooks/n8n` | POST | recebe do N8N → atualiza lead + insere interaction |
+| `/api/n8n-agent/call-checkin` | POST | N8N: `abrir` pergunta no grupo (17h) / `coletar` lê respostas e o agente de check-in registra ligações |
 
 ## Payload N8N → CRM (`POST /api/webhooks/n8n`)
 
